@@ -4,6 +4,7 @@ format:
   html: 
     echo: false 
 editor: visual
+bibliography: references.bib
 ---
 
 ```{r}
@@ -19,6 +20,8 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"),
 ```
 
 ## Introduction
+
+This paper is basically the same as another paper about polar bears (*Ursus maritimus*) [@naciri2022].
 
 ## Methods
 
