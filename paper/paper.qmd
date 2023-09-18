@@ -1,11 +1,14 @@
 ---
 title: "Elephant Seal Age JAE Intraspecific Variation"
-format: html
+format: 
+  html: 
+    echo: false 
 editor: visual
 ---
 
 ```{r}
 #| label: setup
+#| include: false  
 
 library(tidyverse)
 library(ggthemes)
