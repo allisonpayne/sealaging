@@ -1,0 +1,53 @@
+---
+title: "Elephant Seal Age JAE Intraspecific Variation"
+format: html
+editor: visual
+---
+
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(ggthemes)
+sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"), 
+                    show_col_types = FALSE) %>% 
+  mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"))
+
+```
+
+## Introduction
+
+## Methods
+
+## Results 
+
+Pup sex shifted towards males as maternal age increased (@fig-repro_age).
+
+```{r}
+#| label: fig-repro_age
+#| fig-cap: "Pup sex shifted towards males with increasing maternal age."
+
+sealdat %>% 
+  filter(pupsex %in% c("M", "F"), 
+         age < 18) %>% 
+  group_by(age, pupsex) %>%
+  count(pupsex) %>% 
+  pivot_wider(values_from = n, names_from = pupsex) %>% 
+  mutate(num = M + F,
+         percf = F / num,
+         se = (percf * (1 - percf) / num)^0.5) %>% 
+  ggplot(aes(x = age, y = percf, weight = num)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0.2) +
+  geom_hline(yintercept = 0.5, lty = 2) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), formula = y ~ x) +
+  geom_text(aes(label = num, vjust = 1, y = 0.03)) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+  labs(x = "Maternal Age (Years)", y = "% Pups Female") +
+  theme_few()
+
+```
+
+## Discussion
+
+## 
