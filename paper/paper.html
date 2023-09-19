@@ -81,37 +81,56 @@ div.csl-indent {
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This paper is basically the same as another paper about polar bears (<em>Ursus maritimus</em>) <span class="citation" data-cites="naciri2022">(<a href="#ref-naciri2022" role="doc-biblioref">Naciri et al. 2022</a>)</span>.</p>
+<p>This paper similar to another paper about polar bears (<em>Ursus maritimus</em>) <span class="citation" data-cites="naciri2022">(<a href="#ref-naciri2022" role="doc-biblioref">Naciri et al. 2022</a>)</span>.</p>
+<p>Our hypotheses:</p>
+<ol type="1">
+<li><p>Elephant seal reproductive success declines with age.</p></li>
+<li><p>Reproductive declines persist to the next generation (maternal effect senescence).&nbsp;</p></li>
+<li><p>Seals optimize their annual cycle timing to compensate for reproductive declines.</p></li>
+</ol>
 </section>
 <section id="methods" class="level2">
 <h2 class="anchored" data-anchor-id="methods">Methods</h2>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">Results</h2>
-<p>As maternal age increases, pup sex skews slightly towards males. Pup survival and recruitment are not significantly affected by maternal age (<a href="#fig-repro_age">Figure&nbsp;1</a>).</p>
+<section id="h1-age-distribution-and-breeding-success" class="level3">
+<h3 class="anchored" data-anchor-id="h1-age-distribution-and-breeding-success">H1: Age distribution and breeding success</h3>
 <div class="cell">
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning in eval(family$initialize): non-integer #successes in a binomial glm!</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Removed 2 rows containing non-finite values (`stat_smooth()`).</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Removed 2 rows containing missing values (`geom_point()`).</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Removed 2 rows containing missing values (`geom_text()`).</code></pre>
-</div>
 <div class="cell-output-display">
-<div id="fig-repro_age" class="quarto-figure quarto-figure-center anchored">
+<div id="fig-age_dist" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
-<p><img src="paper_files/figure-html/fig-repro_age-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="paper_files/figure-html/fig-age_dist-1.png" class="img-fluid figure-img" width="672"></p>
 <figcaption class="figure-caption">Figure&nbsp;1: <strong>?(caption)</strong></figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Pup survival</p>
+</section>
+<section id="h2-maternal-effect-senescence" class="level3">
+<h3 class="anchored" data-anchor-id="h2-maternal-effect-senescence">H2: Maternal effect senescence</h3>
+<p>As maternal age increases, pup sex skews slightly towards males. Pup survival declines slightly with maternal age, but pup recruitment is not significantly affected by maternal age (<a href="#fig-repro_age">Figure&nbsp;2</a>). Reproductive declines therefore do not persist to the next generation.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-repro_age" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="paper_files/figure-html/fig-repro_age-1.png" class="img-fluid figure-img" width="576"></p>
+<figcaption class="figure-caption">Figure&nbsp;2: Pup sex skews slightly towards males with increasing maternal age. Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="h3-changes-to-annual-cycle-timing-with-increased-maternal-age" class="level3">
+<h3 class="anchored" data-anchor-id="h3-changes-to-annual-cycle-timing-with-increased-maternal-age">H3: Changes to annual cycle timing with increased maternal age</h3>
+<p>In order to create the timing figure, I need a csv with these columns: breeding arrival DOY, breeding departure DOY, molt arrival DOY, molt departure DOY.</p>
+<ul>
+<li><p>breeding arrival DOY = firstobsbreeddoy</p></li>
+<li><p>breeding departure DOY = firstobsbreeddoy + breeddur</p></li>
+<li><p>molt arrival DOY = lastobsmoltdoy - moltdur</p></li>
+<li><p>molt departure DOY = lastobsmoltdoy</p></li>
+</ul>
+</section>
 </section>
 <section id="discussion" class="level2">
 <h2 class="anchored" data-anchor-id="discussion">Discussion</h2>
