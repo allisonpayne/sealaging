@@ -13,6 +13,8 @@ bibliography: references.bib
 
 library(tidyverse)
 library(ggthemes)
+library(gridExtra)
+
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"), 
                     show_col_types = FALSE) %>% 
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"))
@@ -27,13 +29,29 @@ This paper is basically the same as another paper about polar bears (*Ursus mari
 
 ## Results 
 
-Pup sex shifted towards males as maternal age increased (@fig-repro_age).
+### Changes to annual cycle timing with increased maternal age
+
+In order to create the timing figure, I need a csv with these columns: breeding arrival DOY, breeding departure DOY, molt arrival DOY, molt departure DOY.
+
+-   breeding arrival DOY = firstobsbreeddoy
+
+-   breeding departure DOY = firstobsbreeddoy + breeddur
+
+-   *molt arrival DOY = get from Roxanne*
+
+-   molt departure DOY = lastobsmoltdoy
+
+### Reproductive success and maternal age 
+
+As maternal age increases, pup sex skews slightly towards males. Pup survival and recruitment are not significantly affected by maternal age (@fig-repro_age).
 
 ```{r}
 #| label: fig-repro_age
-#| fig-cap: "Pup sex shifted towards males with increasing maternal age."
+#| caption: "Pup sex skews slightly towards males with increasing maternal age. Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age.
 
-sealdat %>% 
+#Pup sex shifts towards males with increasing maternal age.
+
+pup_sex <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
          age < 18) %>% 
   group_by(age, pupsex) %>%
@@ -51,6 +69,60 @@ sealdat %>%
   scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
   labs(x = "Maternal Age (Years)", y = "% Pups Female") +
   theme_few()
+
+#Pup survival doesn't change with increased maternal age.
+
+pup_survival <- sealdat %>% mutate(pup_surv = ifelse(pupseeneveragain > 0, 1, 0)) %>% 
+  drop_na(pup_surv) %>% 
+  group_by(age, pup_surv) %>%
+  count(pup_surv) %>% 
+  pivot_wider(names_from = pup_surv, values_from = n) %>% 
+  mutate(n = (`0`+`1`),
+         perc = `0` / n,
+         se = (perc * (1-perc) / n)^0.5) %>% 
+  filter(n > 5) %>% 
+  ggplot(aes(x = age, y = perc)) +
+  geom_point() +
+  geom_smooth(method = "glm", method.args = list(family = binomial), formula = y ~ x) +
+  geom_errorbar(aes(ymin = perc - se, ymax = perc + se), width = 0.2) +
+  geom_text(aes(label = n, 
+                vjust = -1), y = .5) +
+  labs(x = "Maternal Age (Years)", y = "Fraction Pups Not Seen Again") +
+  theme_few()
+  
+#code that I haven't got to work yet that shows this by sex
+#ggplot(aes(x = age, y = perc, weight = n, col = pupsex)) +
+  # geom_text(pupsex == "M", aes(label = n, 
+  #                              vjust = -1, 
+  #                              col = pupsex), y = 0.5) + 
+  # geom_text(pupsex == "F", aes(label = n, 
+  #                              vjust = -1, 
+  #                              col = pupsex), y = 0.5) +
+
+#Pup recruitment doesn't change with maternal age
+
+pup_recruit <- sealdat %>% 
+  filter(pupsex == "F") %>% 
+  group_by(age, puprecruited) %>%
+  drop_na(puprecruited) %>% 
+  count(puprecruited) %>% 
+  pivot_wider(names_from = puprecruited, values_from = n) %>% 
+  mutate(n = (`0` + `1`),
+         perc = `0` / n,
+         se = (perc * (1 - perc) / n)^0.5) %>% 
+  filter(n > 5) %>% 
+  ggplot(aes(x = age, y = perc, weight = n)) +
+  geom_point() + 
+  xlim(2.5 , 13.5) +
+  geom_errorbar(aes(ymin = perc - se, ymax = perc + se), width = 0.2) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), formula = y ~ x) +
+  labs(x = "Maternal Age (Years)", y = "Fraction Pups Never Breed") +
+  theme_few() +
+  geom_text(aes(label = n,
+                vjust = 1,
+                y = 1))
+
+grid.arrange(pup_sex, pup_survival, pup_recruit)
 
 ```
 
