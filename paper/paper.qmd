@@ -23,8 +23,6 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"),
 
 ## Introduction
 
-This paper similar to another paper about polar bears (*Ursus maritimus*) [@naciri2022].
-
 Our hypotheses:
 
 1.  Elephant seal reproductive success declines with age.
@@ -32,6 +30,8 @@ Our hypotheses:
 2.  Reproductive declines persist to the next generation (maternal effect senescence). 
 
 3.  Seals optimize their annual cycle timing to compensate for reproductive declines.
+
+Note: This paper is similar to another paper about polar bears (*Ursus maritimus*) [@naciri2022].
 
 ## Methods
 
@@ -41,18 +41,41 @@ Our hypotheses:
 
 ```{r}
 #| label: fig-age_dist
+#| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
+#| fig-width: 6
+#| fig-height: 8
 
-#Age distribution panel A = COUNTS, B = PERCENTAGES
+#Age distribution panel A 
 
-sealdat %>% 
-  group_by(age, observed) %>% 
+age_dist <- sealdat %>% 
+  group_by(age) %>% 
   count(age) %>% 
-  ggplot(aes(x = age, y = n, fill = observed)) + 
-  geom_col() + 
-  labs(x = "Number of individuals", y = "Age") + 
+  ggplot(aes(x = age, y = n)) + 
+  geom_col(fill = "#829BD1") + 
+  labs(x = "Number of individuals", y = "Age (Years)") + 
   theme_few()
+
+#Panel B: percentage of each age class that were breeders or  nonbreeders
+
+breed_nonbreed <- sealdat %>% 
+  group_by(age) %>% 
+  summarize(n_observed = sum(!is.na(observed)), 
+            perc_breed = sum(observed == "Breeder") / n_observed, 
+            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
+  ggplot(aes(x = age, y = perc_breed)) + 
+  stat_smooth(method = "lm", 
+              formula = y ~ poly(x , 2), 
+              se = TRUE, 
+              color = "#849ED5", 
+              fill = "#C8D3ED") +
+  geom_point() + 
+  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) + 
+  labs(x = "Maternal Age (Years)", y = "% Breeders") + 
+  theme_few()
+
+plot_grid(age_dist, breed_nonbreed, ncol = 1, labels = "AUTO")
   
-#I want each of these bars to show the proportion of breeders and non breeders for each age
 
 ```
 
@@ -64,9 +87,9 @@ As maternal age increases, pup sex skews slightly towards males. Pup survival de
 #| label: fig-repro_age
 #| fig-cap: "Pup sex skews slightly towards males with increasing maternal age. Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age."
 #| fig-width: 6
-#| fig-height: 6
+#| fig-height: 8
 
-#Pup sex shifts towards males with increasing maternal age.
+#A: Pup sex shifts towards males with increasing maternal age.
 
 pup_sex <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
@@ -78,15 +101,19 @@ pup_sex <- sealdat %>%
          percf = F / num,
          se = (percf * (1 - percf) / num)^0.5) %>% 
   ggplot(aes(x = age, y = percf, weight = num)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0.2) +
   geom_hline(yintercept = 0.5, lty = 2) +
-  stat_smooth(method = "glm", method.args = list(family = "binomial"), formula = y ~ x) +
+  stat_smooth(method = "glm", 
+              method.args = list(family = "binomial"), 
+              formula = y ~ x, 
+              color = "#829BD1", 
+              fill = "#C8D3ED") +
+  geom_point() +
+  geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
   labs(x = "Maternal Age (Years)", y = "% Pups Female") +
   theme_few()
 
-#Pup survival doesn't change with increased maternal age.
+#B Pup survival and recruitment doesn't change with increased maternal age.
 
 pup_surv_recruit <- sealdat %>% 
   mutate(pup_surv = ifelse(pupseeneveragain > 0, 1, 0)) %>% 
@@ -111,13 +138,14 @@ pup_surv_recruit <- sealdat %>%
                          labels = c("Recruitment", "1st Year Survival"))) %>% 
   filter(n_surv > 5) %>% 
   ggplot(aes(x = age, y = mean, color = metric)) + 
-  geom_pointrange(aes(ymin = low, ymax = high)) +
   geom_smooth(aes(weight = n_surv), 
               method = "glm", 
               method.args = list(family = binomial), 
-              formula = y ~ x) +
-  scale_y_continuous(labels = scales::percent, 
-                     limits = c(0, .5)) + 
+              formula = y ~ x, 
+              fill = "#C8D3ED") +
+  geom_pointrange(aes(ymin = low, ymax = high)) +
+  scale_color_manual(values = c("#829BD1", "#E9B668")) + 
+  scale_y_continuous(labels = scales::percent, limits = c(0, .5)) + 
   labs(x = "Maternal Age (Years)", y = "% Pups") +
   theme_few() + 
   theme(legend.position = c(0.1,0.97), 
@@ -140,6 +168,13 @@ In order to create the timing figure, I need a csv with these columns: breeding 
 -   molt arrival DOY = lastobsmoltdoy - moltdur
 
 -   molt departure DOY = lastobsmoltdoy
+
+```{r}
+#| label: annual_timing
+
+
+
+```
 
 ## Discussion
 

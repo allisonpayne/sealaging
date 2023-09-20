@@ -3,8 +3,7 @@
 
 #################################################################################
 
-setwd("C:/Users/roxan/Documents/Teaching/Current Courses/BIOE 128L/128L 2023/128L Projects")
-final=read.csv("128L pull 2023_06_29.csv")
+final <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"))
 final$observed[final$observed=="B"]="Breeder"
 final$observed[final$observed==1]="Non-Breeder"
 
