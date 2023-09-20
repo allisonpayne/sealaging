@@ -39,6 +39,8 @@ Note: This paper is similar to another paper about polar bears (*Ursus maritimus
 
 ### H1: Age distribution and breeding success
 
+We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).
+
 ```{r}
 #| label: fig-age_dist
 #| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
@@ -81,7 +83,11 @@ plot_grid(age_dist, breed_nonbreed, ncol = 1, labels = "AUTO")
 
 ### H2: Maternal effect senescence 
 
-As maternal age increases, pup sex skews slightly towards males. Pup survival declines slightly with maternal age, but pup recruitment is not significantly affected by maternal age (@fig-repro_age). Reproductive declines therefore do not persist to the next generation.
+We predicted that reproductive declines would carry over to the next generation.
+
+We found that as maternal age increases, pup sex skews slightly towards males. Pup survival declines slightly with maternal age, and pup recruitment is not significantly affected by maternal age (@fig-repro_age).
+
+We reject our hypothesis: reproductive declines do not persist to the next generation.
 
 ```{r}
 #| label: fig-repro_age
@@ -159,23 +165,47 @@ plot_grid(pup_sex, pup_surv_recruit, ncol = 1, labels = "AUTO")
 
 ### H3: Changes to annual cycle timing with increased maternal age
 
-In order to create the timing figure, I need a csv with these columns: breeding arrival DOY, breeding departure DOY, molt arrival DOY, molt departure DOY.
+We predicted that seals would optimize the timing of their annual cycle.
 
--   breeding arrival DOY = firstobsbreeddoy
-
--   breeding departure DOY = firstobsbreeddoy + breeddur
-
--   molt arrival DOY = lastobsmoltdoy - moltdur
-
--   molt departure DOY = lastobsmoltdoy
+We found that as maternal age increases, there are slight adjustments to the timing of life history events. These events (breeding/molting arrival/departure) are typically shifted later for older animals (@fig-annual_timing).
 
 ```{r}
-#| label: annual_timing
+#| label: fig-annual_timing
+#| fig-cap: Timing of life history events across maternal age classes. 
 
-
+sealdat %>% 
+  mutate(ba = firstobsbreeddoy, 
+         bd = firstobsbreeddoy + breeddur, 
+         ma = lastobsmoltdoy - moltdur, 
+         md = lastobsmoltdoy) %>% 
+  drop_na(age, ba, bd, ma, md) %>% 
+  group_by(age) %>% 
+  summarize(across(ba:md, mean)) %>% 
+  pivot_longer(cols = -age, 
+               names_to = "event", 
+               values_to = "doy") %>% 
+  group_by(age) %>% 
+  group_modify(\(data, keys) {
+    tibble(event = c("Long trip", "Breeding", "Short trip", "Molting", "longtrip2"),
+           doy = c(data$doy, 365) - c(0, data$doy))
+  }) %>% 
+  ungroup() %>% 
+  mutate(event = factor(event, levels = c("Long trip", 
+                                          "Breeding", 
+                                          "Short trip", 
+                                          "Molting", 
+                                          "longtrip2"))) %>% 
+  ggplot(aes(x = age, y = doy, fill = event)) + 
+  geom_area(position = position_stack(reverse = TRUE),
+            outline.type = "full",
+            color = "white") +
+  scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
+                      breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
+  labs(x = "Maternal Age (Years)", y = "Day of Year") + 
+  theme_few() + 
+  theme(legend.position = "right",
+        legend.title = element_blank())
 
 ```
 
 ## Discussion
-
-## 

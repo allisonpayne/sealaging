@@ -277,3 +277,33 @@ nd1=data.frame(age=3:21)
 nd1$pred=predict(f1,newdata=nd1,type="response")
 nd1$SE=predict(f1,newdata=nd1,type="response",se.fit=T)$se
 
+
+
+########################all models#########################
+
+require(lmerTest)
+
+#Molt duration model summaries
+moltdur_add <- summary(lmer(as.numeric(moltdur) ~ age + observed + (1 | animalID) + (1 | year),
+                            data = sealdat))
+moltdur_int <- summary(lmer(as.numeric(moltdur) ~ age * observed + (1 | animalID) + (1 | year),
+                            data = sealdat))
+
+#Molt departure date model summary
+moltdep <- summary(lmer(lastobsmoltdoy ~ age + observed + (1 | animalID) + (1 | year),
+                        data = sealdat))
+
+#Long trip duration model summary
+longtripdur_add <- summary(lmer(tripdur ~ age + observed + (1 | animalID) + (1 | year),
+                                data = sealdat))
+longtripdur_int <- lmer(tripdur ~ age * observed + (1 | animalID) + (1 | year),
+                        data = sealdat)
+emmeans::lstrends(longtripdur_int, "observed", var = "age", infer = T)
+emmeans(longtripdur_int, "observed", infer = T)
+longtripdur_int <- summary(longtripdur_int)
+
+#Breeding arrival date model summary
+brarr_add <- summary(lmer(firstobsbreeddoy ~ age + (1 | animalID) + (1 | year),
+                          data = sealdat))
+brarr_int <- summary(lmer(firstobsbreeddoy ~ age + observed + (1 | animalID) + (1 | year),
+                          data = sealdat))
