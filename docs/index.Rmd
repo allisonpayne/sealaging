@@ -1,6 +1,0 @@
----
-title: "Seal Aging"
-output: html_document
----
-
-Seal aging figures can be found [here](.\docs\paperv2.html)
