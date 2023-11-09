@@ -1050,7 +1050,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-366"><a href="#cb6-366" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-369"><a href="#cb6-369" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb6-370"><a href="#cb6-370" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-phenology</span></span>
-<span id="cb6-371"><a href="#cb6-371" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 9</span></span>
+<span id="cb6-371"><a href="#cb6-371" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 7</span></span>
 <span id="cb6-372"><a href="#cb6-372" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Phenology caption"</span></span>
 <span id="cb6-373"><a href="#cb6-373" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-374"><a href="#cb6-374" aria-hidden="true" tabindex="-1"></a>phen_plot1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(timing_summary, <span class="fu">aes</span>(<span class="at">x =</span> age, <span class="at">y =</span> doy, <span class="at">fill =</span> event)) <span class="sc">+</span> </span>
@@ -1114,7 +1114,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-432"><a href="#cb6-432" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> metric, <span class="at">values_from =</span> value) <span class="sc">%&gt;%</span> </span>
 <span id="cb6-433"><a href="#cb6-433" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">signif =</span> <span class="fu">as.logical</span>(signif), </span>
 <span id="cb6-434"><a href="#cb6-434" aria-hidden="true" tabindex="-1"></a>         <span class="at">param =</span> <span class="fu">factor</span>(param, </span>
-<span id="cb6-435"><a href="#cb6-435" aria-hidden="true" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Maternal Age (Years)"</span>, </span>
+<span id="cb6-435"><a href="#cb6-435" aria-hidden="true" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Maternal Age"</span>, </span>
 <span id="cb6-436"><a href="#cb6-436" aria-hidden="true" tabindex="-1"></a>                                   <span class="st">"Breeding Status"</span>))) <span class="sc">%&gt;%</span> </span>
 <span id="cb6-437"><a href="#cb6-437" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> coef, <span class="at">y =</span> phenology)) <span class="sc">+</span></span>
 <span id="cb6-438"><a href="#cb6-438" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Prevent geom_rect() from establishing a continuous y-axis scale</span></span>

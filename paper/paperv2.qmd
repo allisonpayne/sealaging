@@ -345,7 +345,7 @@ timing_summary_flipped <- timing_summary %>%
 
 ```{r}
 #| label: fig-phenology
-#| fig-height: 9
+#| fig-height: 7
 #| fig-cap: "Phenology caption"
 
 phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
@@ -409,7 +409,7 @@ phen_plot2 <- phenology_models %>%
   pivot_wider(names_from = metric, values_from = value) %>% 
   mutate(signif = as.logical(signif), 
          param = factor(param, 
-                        labels = c("Maternal Age (Years)", 
+                        labels = c("Maternal Age", 
                                    "Breeding Status"))) %>% 
   ggplot(aes(x = coef, y = phenology)) +
   # Prevent geom_rect() from establishing a continuous y-axis scale
