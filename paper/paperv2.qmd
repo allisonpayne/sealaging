@@ -311,7 +311,7 @@ seal_phenology <- sealdat %>%
          md = lastobsmoltdoy) %>% 
   drop_na(age, ba, bd, ma, md)
 
-phenology_n <- unique(seal_phenology$animalID))
+phenology_n <- unique(seal_phenology$animalID)
 
 timing_summary <- seal_phenology %>% 
   group_by(age, observed) %>% 
@@ -349,7 +349,8 @@ timing_summary_flipped <- timing_summary %>%
 
 phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
   geom_area(position = position_stack(reverse = TRUE),
-            outline.type = "full",
+            color = NA) +
+  geom_line(position = position_stack(reverse = TRUE),
             color = "white") +
   geom_line(data = timing_summary_flipped,
             position = position_stack(reverse = TRUE),
@@ -360,10 +361,7 @@ phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
   facet_grid(cols = vars(observed)) +
   labs(x = "Maternal Age (Years)", y = "Day of Year") + 
-  theme_few() + 
-  theme(legend.position = "bottom",
-        legend.title = element_blank())
-
+  theme_few()
 
 # Utility functions for model fitting and coefficient extraction
 fit_model <- function(dat) {
@@ -395,20 +393,50 @@ phenology_models <- seal_phenology %>%
          breeder_pval = extract_pval(model, "observedBreeder"),
          breeder_signif = breeder_pval * 8 < 0.05,)
 
+phen_wrapped <- tibble(
+  event_begin = c(-Inf, 1:4),
+  event_end = c(1:4, Inf),
+  event = timing_summary$event[0:5]
+)
+
 phen_plot2 <- phenology_models %>% 
   select(-c(model_data, model)) %>% 
-  pivot_longer(age_coef:breeder_stderr,
+  pivot_longer(c(ends_with("coef"), ends_with("stderr"), ends_with("signif")),
                names_to = c("param", "metric"),
                names_sep = "_",
                values_to = "value") %>% 
   pivot_wider(names_from = metric, values_from = value) %>% 
+  mutate(signif = as.logical(signif)) %>% 
   ggplot(aes(x = coef, y = phenology)) +
-  geom_pointrange(aes(xmin = coef - stderr, xmax = coef + stderr)) +
+  # Prevent geom_rect() from establishing a continuous y-axis scale
+  geom_point(alpha = 0) +
+  geom_rect(aes(xmin = -Inf, xmax = Inf,
+                ymin = event_begin, ymax = event_end,
+                fill = event),
+            phen_wrapped,
+            inherit.aes = FALSE) +
+  geom_pointrange(aes(xmin = coef - stderr, 
+                      xmax = coef + stderr,
+                      color = signif)) +
+  scale_color_manual(values = c("FALSE" = "grey50", "TRUE" = "black"),
+                     guide = "none") +
+  scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
+                      breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
   expand_limits(x = 0) +
   facet_grid(cols = vars(param), scales = "free_x") +
-  theme_classic()
+  theme_few()
+  
+phen_plot2
 
-plot_grid(phen_plot1, phen_plot2, nrow = 2, labels = "AUTO")
+library(patchwork)
+phen_plot1 /
+  phen_plot2 +
+  plot_annotation(tag_levels = "A") +
+  plot_layout(guides = "collect") &
+  theme(legend.position = "top",
+        legend.title = element_blank())
+  
+plot_grid(phen_plot1, phen_plot2, nrow = 2, labels = "AUTO", align = "v")
 
 phenology_models %>% 
   select(-c(model_data, model)) %>% 
