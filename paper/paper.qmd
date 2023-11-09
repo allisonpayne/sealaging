@@ -33,9 +33,7 @@ Our hypotheses:
 
 Note: This paper is similar to another paper about polar bears (*Ursus maritimus*) [@naciri2022].
 
-## Methods
-
-## Results 
+## Results
 
 ### H1: Age distribution and breeding success
 
@@ -81,7 +79,7 @@ plot_grid(age_dist, breed_nonbreed, ncol = 1, labels = "AUTO")
 
 ```
 
-### H2: Maternal effect senescence 
+### H2: Maternal effect senescence
 
 We predicted that reproductive declines would carry over to the next generation.
 

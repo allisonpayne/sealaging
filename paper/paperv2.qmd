@@ -1,0 +1,430 @@
+---
+title: "Elephant Seal Age JAE Intraspecific Variation"
+format: 
+  html: 
+    echo: false
+    fig-width: 4.5
+    fig-height: 4.5
+    embed-resources: true
+    code-fold: true
+    code-tools: true
+    warning: false
+editor: visual
+bibliography: references.bib
+---
+
+```{r}
+#| label: setup
+#| include: false  
+
+library(ggthemes)
+library(cowplot)
+library(lme4)
+library(lmerTest) # Loading this library will automatically append p-values to lmer models estimated using something called Satterthwaite's method
+library(merTools)
+library(tidyverse)
+
+sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"), 
+                    show_col_types = FALSE) %>% 
+  mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
+         observed_int = if_else(observed == "Breeder", 1, 0), 
+         pup_survived = pupseeneveragain > 0) %>% 
+  filter(age > 3)
+
+```
+
+# Introduction
+
+Our hypotheses:
+
+1.  Elephant seal reproductive success declines with age.
+
+2.  Reproductive declines persist to the next generation (maternal effect senescence). 
+
+3.  Seal phenology is shifted later for older animals and breeders.
+
+**Note**: *This paper is similar to another paper about polar bears (*Ursus maritimus*)* [@naciri2022].
+
+# Results
+
+### H1: Age distribution and breeding status
+
+We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).
+
+**Note**: *statistics for increase in inter-birth interval?*
+
+```{r}
+#| label: fig-age_dist
+#| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
+#| fig-width: 9
+
+#Age distribution panel A 
+
+age_dist <- sealdat %>% 
+  filter(age < 22) %>% 
+  group_by(age) %>% 
+  count(age) %>% 
+  ggplot(aes(x = age, y = n)) + 
+  geom_col(fill = "#829BD1") + 
+  labs(x = "Number of individuals", y = "Age (Years)") + 
+  theme_few()
+
+#Panel B: percentage of each age class that were breeders or  nonbreeders
+
+breed_nonbreed <- sealdat %>% 
+  group_by(age) %>% 
+  summarize(n_observed = sum(!is.na(observed)), 
+            perc_breed = sum(observed == "Breeder") / n_observed, 
+            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
+  filter(age < 22) %>%
+  ggplot(aes(x = age, y = perc_breed)) + 
+  stat_smooth(method = "lm", 
+              formula = y ~ poly(x , 2), 
+              se = TRUE, 
+              color = "#849ED5", 
+              fill = "#C8D3ED") +
+  geom_point() + 
+  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) + 
+  labs(x = "Maternal Age (Years)", y = "% Breeders") + 
+  theme_few()
+
+plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
+  
+```
+
+Panel B shown with axis constrained below.
+
+```{r}
+#| label: fig-age_dist2
+#| fig-cap: "B: Percentage of each age class that were observed breeding, with axes constrained."
+#| fig-width: 9
+
+
+#Panel B: percentage of each age class that were breeders or  nonbreeders
+
+breed_nonbreed <- sealdat %>% 
+  group_by(age) %>% 
+  summarize(n_observed = sum(!is.na(observed)), 
+            perc_breed = sum(observed == "Breeder") / n_observed, 
+            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
+  filter(n_observed > 2) %>% 
+  ggplot(aes(x = age, y = perc_breed)) + 
+  stat_smooth(method = "lm", 
+              formula = y ~ poly(x , 2), 
+              se = TRUE, 
+              color = "#849ED5", 
+              fill = "#C8D3ED") +
+  geom_point() + 
+  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
+  scale_y_continuous(labels = scales::percent, limits = c(.25, .75)) + 
+  labs(x = "Maternal Age (Years)", y = "% Breeders") + 
+  theme_few()
+
+breed_nonbreed  
+```
+
+To test the quadratic fit of the model:
+
+```{r}
+summary(glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
+              data = sealdat, 
+              family = "binomial"))
+```
+
+### H2: Maternal effect senescence
+
+We predicted that reproductive declines would carry over to the next generation - that is, pups born to older mothers would have decreased survival and recruitment success.
+
+We found that neither pup survival nor recruitment is significantly affected by maternal age (@fig-repro_age).
+
+We reject our hypothesis: reproductive declines do not persist to the next generation, and there is no evidence of maternal effect senescence.
+
+**To do:** *Add sample sizes to the plot because they are different than Figure 1.* *Do I need to do this if I have the sample sizes in the manuscript?*
+
+**Note:** *Try to plot these quadraticlly??*
+
+```{r}
+#| label: fig-repro_age
+#| fig-cap: "Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age."
+#| fig-width: 9
+
+
+#B Pup survival and recruitment doesn't change with increased maternal age.
+
+pup_surv_recruit <- sealdat %>% 
+  mutate(pup_surv = ifelse(pupseeneveragain > 0, 1, 0)) %>% 
+  filter(pupsex == "F", 
+         pupyearborn < 2016) %>% 
+  group_by(age) %>%
+  summarize(n_surv = sum(!is.na(pup_surv)),
+            mean_surv = sum(pup_surv, na.rm = TRUE) / n_surv,  
+            se_surv = (mean_surv * (1 - mean_surv) / n_surv)^0.5,
+            n_recruit = sum(!is.na(puprecruited)), 
+            mean_recruit = sum(puprecruited, na.rm = TRUE) / n_recruit, 
+            se_recruit = (mean_recruit * (1 - mean_recruit) / n_recruit)^0.5)  %>%  
+  pivot_longer(cols = c(mean_surv, se_surv, mean_recruit, se_recruit), 
+               names_to = c("stat", "metric"), 
+               names_pattern = "(.*)_(.*)") %>% 
+  pivot_wider(names_from = "stat", 
+              values_from = "value") %>% 
+  mutate(low = mean - se, 
+         high = mean + se, 
+         age = age + ifelse(metric == "surv", -0.1, 0.1), 
+         metric = factor(metric, 
+                         levels = c("recruit", "surv"), 
+                         labels = c("Recruitment", "Survival"))) %>% 
+  filter(n_surv > 5) %>% 
+  ggplot(aes(x = age, y = mean, color = metric)) + 
+  geom_pointrange(aes(ymin = low, ymax = high)) +
+  scale_color_manual(values = c("#829BD1", "#E9B668")) + 
+  scale_y_continuous(labels = scales::percent, limits = c(0, .5)) + 
+  labs(x = "Maternal Age (Years)", y = "% Pups") +
+  theme_few() + 
+  theme(legend.position = c(0.1,0.97), 
+        legend.justification = c(0,1), 
+        legend.title = element_blank(), 
+        legend.direction = "horizontal")
+
+pup_surv_recruit
+```
+
+Results of the Pup Survival model, with individual and year as random effects:
+
+```{r}
+#Panel B Survival Model
+surv_dat <- sealdat %>% filter(pupyearborn < 2016)
+pup_survival_model <- glmer(pup_survived ~ age + (1 | animalID) + (1 | year),
+                            data = surv_dat,
+                            family = "binomial")
+summary(pup_survival_model)
+
+```
+
+Results of the Pup Recruitment model, with individual and year as random effects:
+
+**Note**: *Getting error "boundary (singular) fit" - possibly not enough data to fit this model? I.e., too few recruits. Also, need to apply 7 year filter to this one too????*
+
+```{r}
+#Panel B Recruitment Model
+
+pup_recruit_model <- glmer(puprecruited ~ age + (1 | animalID) + (1 | year),
+                           data = filter(sealdat, year > 1984), 
+                           family = "binomial")
+summary(pup_recruit_model)
+
+```
+
+The model of Survival \~ Maternal age was significant before we treated Year as a random effect. Was that because pups born earlier in the study had more time to be seen again (i.e., a sampling artifact?) If so, the plot of the random effect of year should have a negative slope.
+
+```{r}
+#| label: fig-surv_bias
+#| fig-cap: "A: Plotting the intercept of the random effect of year shows that variation in ocean conditions is likely driving patterns in survival, rather than age of mother. B: 95% of seals that survived were resighted within ~seven years of their birth."
+#| fig-width: 9
+
+year_ranef <- ranef(pup_survival_model)$year %>% 
+  as_tibble(rownames = "year") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  rename(intercept = `(Intercept)`)
+
+year_ranef_plot <- ggplot(year_ranef, aes(year, intercept)) + 
+  geom_point() + 
+  geom_smooth(method = "loess", 
+              formula = y ~ x,
+              color = "red") + 
+  theme_classic()
+
+survival_bias <- sealdat %>% 
+  group_by(animalID) %>% 
+  summarize(first_resight_yrs = min(age))
+
+survival95 <- quantile(survival_bias$first_resight_yrs, 0.95)
+#n for 95% quantile
+sum(survival_bias$first_resight_yrs > 7)
+
+survival_bias_plot <- ggplot(survival_bias, aes(x = first_resight_yrs)) +
+  stat_ecdf() +
+  geom_vline(xintercept = survival95, linetype = "dashed", color = "red") +
+  scale_x_continuous(limits = c(0, 10)) + 
+  theme_classic()
+
+plot_grid(year_ranef_plot, survival_bias_plot, nrow = 1, labels = "AUTO")
+
+```
+
+There is a drop off in recent years that seems to support the idea that recent years have a sampling bias, but the earlier portion suggests that overall the variation is caused by ocean conditions and not sampling. See the Cohort paper!
+
+If not maternal effect senescence, then perhaps a strategy shift?
+
+### H3a: Changes in pup sex ratio with increased maternal age
+
+We found that as maternal age increases, pup sex skews slightly towards males.
+
+```{r}
+#| label: fig-sex_ratio
+#| fig-cap: "Pup sex skews slightly towards males with increasing maternal age, but it's not significant."
+#| fig-width: 9
+#A: Pup sex shifts towards males with increasing maternal age, but it's not significant.
+
+pup_sex <- sealdat %>% 
+  filter(pupsex %in% c("M", "F"), 
+         age < 18) %>% 
+  group_by(age, pupsex) %>%
+  count(pupsex) %>% 
+  pivot_wider(values_from = n, names_from = pupsex) %>% 
+  mutate(num = M + F,
+         percf = F / num,
+         se = (percf * (1 - percf) / num)^0.5) %>% 
+  ggplot(aes(x = age, y = percf, weight = num)) +
+  geom_hline(yintercept = 0.5, lty = 2, color = "#829BD1") +
+  geom_point() +
+  geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+  labs(x = "Maternal Age (Years)", y = "% Pups Female") +
+  theme_few()
+
+pup_sex
+```
+
+Results of the model for pup sex ratio:
+
+```{r}
+pup_sex_mod <- glmer(as.factor(pupsex) ~ age + (1 | animalID) + (1 | year),
+                     data = filter(sealdat, 
+                                   pupsex %in% c("M", "F"), 
+                                   age < 18), 
+                     family = "binomial")
+summary(pup_sex_mod)
+```
+
+### H3b: Changes to annual cycle timing with increased maternal age
+
+We predicted that seals would shift the timing of their annual cycle.
+
+We found that as maternal age increases, there are slight adjustments to the timing of life history events. These events (breeding/molting arrival/departure) are typically shifted later for older animals (@fig-annual_timing).
+
+```{r}
+
+seal_phenology <- sealdat %>% 
+  mutate(ba = firstobsbreeddoy, 
+         bd = firstobsbreeddoy + breeddur, 
+         ma = lastobsmoltdoy - moltdur, 
+         md = lastobsmoltdoy) %>% 
+  drop_na(age, ba, bd, ma, md)
+
+phenology_n <- unique(seal_phenology$animalID))
+
+timing_summary <- seal_phenology %>% 
+  group_by(age, observed) %>% 
+  summarize(across(ba:md, mean), 
+            .groups = "drop") %>% 
+  pivot_longer(cols = -c(age, observed),  
+               names_to = "event", 
+               values_to = "doy") %>% 
+  group_by(age, observed) %>% 
+  group_modify(\(data, keys) {
+    tibble(event = c("Long trip", "Breeding", "Short trip", "Molting", "longtrip2"),
+           doy = c(data$doy, 365) - c(0, data$doy))
+  }) %>% 
+  ungroup() %>% 
+  mutate(event = factor(event, levels = c("Long trip", 
+                                          "Breeding", 
+                                          "Short trip", 
+                                          "Molting", 
+                                          "longtrip2")))
+timing_summary_flipped <- timing_summary %>% 
+  mutate(observed = ifelse(observed == "Breeder",
+                           "Non-breeder",
+                           "Breeder")) %>% 
+  filter(event != "longtrip2")
+
+
+```
+
+**Note:** *Add in illustrator the colors between each phenological variable, so people can understand the timing. Fix the labels on panel B and write a caption.*
+
+```{r}
+#| label: fig-phenology
+#| fig-height: 9
+#| fig-cap: "Phenology caption"
+
+phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
+  geom_area(position = position_stack(reverse = TRUE),
+            outline.type = "full",
+            color = "white") +
+  geom_line(data = timing_summary_flipped,
+            position = position_stack(reverse = TRUE),
+            color = "white",
+            linetype = "dashed",
+            alpha = 0.5) +
+  scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
+                      breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
+  facet_grid(cols = vars(observed)) +
+  labs(x = "Maternal Age (Years)", y = "Day of Year") + 
+  theme_few() + 
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+
+
+# Utility functions for model fitting and coefficient extraction
+fit_model <- function(dat) {
+  lmer(doy ~ age + observed + (1 | animalID) + (1 | year), data = dat)
+}
+extract_estimate <- function(models, param) {
+  map_dbl(models, \(mod) summary(mod)$coefficients[param, "Estimate"])
+}
+extract_stderr <- function(models, param) {
+  map_dbl(models, \(mod) summary(mod)$coefficients[param, "Std. Error"])
+}
+extract_pval <- function(models, param) {
+  map_dbl(models, \(mod) summary(mod)$coefficients[param, "Pr(>|t|)"])
+}
+
+# This data frame contains a model for each phenological variable w.r.t. age
+phenology_models <- seal_phenology %>% 
+  pivot_longer(ba:md, names_to = "phenology", values_to = "doy") %>% 
+  select(phenology, observed, doy, age, animalID, year) %>% 
+  mutate(observed = factor(observed, levels = c("Non-breeder", "Breeder"))) %>% 
+  nest(model_data = c(doy, age, observed, animalID, year)) %>% 
+  mutate(model = map(model_data, fit_model),
+         age_coef = extract_estimate(model, "age"),
+         age_stderr = extract_stderr(model, "age"),
+         age_pval = extract_pval(model, "age"),
+         age_signif = age_pval * 8 < 0.05,
+         breeder_coef = extract_estimate(model, "observedBreeder"),
+         breeder_stderr = extract_stderr(model, "observedBreeder"),
+         breeder_pval = extract_pval(model, "observedBreeder"),
+         breeder_signif = breeder_pval * 8 < 0.05,)
+
+phen_plot2 <- phenology_models %>% 
+  select(-c(model_data, model)) %>% 
+  pivot_longer(age_coef:breeder_stderr,
+               names_to = c("param", "metric"),
+               names_sep = "_",
+               values_to = "value") %>% 
+  pivot_wider(names_from = metric, values_from = value) %>% 
+  ggplot(aes(x = coef, y = phenology)) +
+  geom_pointrange(aes(xmin = coef - stderr, xmax = coef + stderr)) +
+  expand_limits(x = 0) +
+  facet_grid(cols = vars(param), scales = "free_x") +
+  theme_classic()
+
+plot_grid(phen_plot1, phen_plot2, nrow = 2, labels = "AUTO")
+
+phenology_models %>% 
+  select(-c(model_data, model)) %>% 
+  pivot_longer(age_coef:breeder_signif, 
+               names_to = c("param", "metric"),
+               names_sep = "_",
+               values_to = "value") %>% 
+  pivot_wider(names_from = metric, values_from = value) %>% 
+  mutate(coef = str_glue("{round(coef, 2)} +- {round(stderr, 2)}"),
+         signif = str_glue("p = {round(pval, 4)} ({signif == 1})")) %>% 
+  select(-c(stderr, pval)) %>% 
+  pivot_wider(names_from = param, values_from = c(coef, signif)) %>% 
+  select(phenology, ends_with("age"), ends_with("breeder")) %>% 
+  knitr::kable()
+
+```
+
+## Discussion
