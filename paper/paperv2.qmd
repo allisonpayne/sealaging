@@ -22,6 +22,7 @@ library(lme4)
 library(lmerTest) # Loading this library will automatically append p-values to lmer models estimated using something called Satterthwaite's method
 library(merTools)
 library(tidyverse)
+library(patchwork)
 
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"), 
                     show_col_types = FALSE) %>% 
@@ -305,17 +306,17 @@ We found that as maternal age increases, there are slight adjustments to the tim
 ```{r}
 
 seal_phenology <- sealdat %>% 
-  mutate(ba = firstobsbreeddoy, 
-         bd = firstobsbreeddoy + breeddur, 
-         ma = lastobsmoltdoy - moltdur, 
-         md = lastobsmoltdoy) %>% 
-  drop_na(age, ba, bd, ma, md)
+  mutate(BA = firstobsbreeddoy, 
+         BD = firstobsbreeddoy + breeddur, 
+         MA = lastobsmoltdoy - moltdur, 
+         MD = lastobsmoltdoy) %>% 
+  drop_na(age, BA, BD, MA, MD)
 
 phenology_n <- unique(seal_phenology$animalID)
 
 timing_summary <- seal_phenology %>% 
   group_by(age, observed) %>% 
-  summarize(across(ba:md, mean), 
+  summarize(across(BA:MD, mean), 
             .groups = "drop") %>% 
   pivot_longer(cols = -c(age, observed),  
                names_to = "event", 
@@ -379,7 +380,7 @@ extract_pval <- function(models, param) {
 
 # This data frame contains a model for each phenological variable w.r.t. age
 phenology_models <- seal_phenology %>% 
-  pivot_longer(ba:md, names_to = "phenology", values_to = "doy") %>% 
+  pivot_longer(BA:MD, names_to = "phenology", values_to = "doy") %>% 
   select(phenology, observed, doy, age, animalID, year) %>% 
   mutate(observed = factor(observed, levels = c("Non-breeder", "Breeder"))) %>% 
   nest(model_data = c(doy, age, observed, animalID, year)) %>% 
@@ -406,7 +407,10 @@ phen_plot2 <- phenology_models %>%
                names_sep = "_",
                values_to = "value") %>% 
   pivot_wider(names_from = metric, values_from = value) %>% 
-  mutate(signif = as.logical(signif)) %>% 
+  mutate(signif = as.logical(signif), 
+         param = factor(param, 
+                        labels = c("Maternal Age (Years)", 
+                                   "Breeding Status"))) %>% 
   ggplot(aes(x = coef, y = phenology)) +
   # Prevent geom_rect() from establishing a continuous y-axis scale
   geom_point(alpha = 0) +
@@ -424,19 +428,16 @@ phen_plot2 <- phenology_models %>%
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
   expand_limits(x = 0) +
   facet_grid(cols = vars(param), scales = "free_x") +
+  xlab("LMM coefficeint") + 
+  ylab("Phenology") + 
   theme_few()
   
-phen_plot2
-
-library(patchwork)
 phen_plot1 /
   phen_plot2 +
   plot_annotation(tag_levels = "A") +
   plot_layout(guides = "collect") &
   theme(legend.position = "top",
         legend.title = element_blank())
-  
-plot_grid(phen_plot1, phen_plot2, nrow = 2, labels = "AUTO", align = "v")
 
 phenology_models %>% 
   select(-c(model_data, model)) %>% 
@@ -454,4 +455,3 @@ phenology_models %>%
 
 ```
 
-## Discussion
