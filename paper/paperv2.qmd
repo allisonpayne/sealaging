@@ -5,7 +5,6 @@ format:
     echo: false
     fig-width: 4.5
     fig-height: 4.5
-    embed-resources: true
     code-fold: true
     code-tools: true
     warning: false
