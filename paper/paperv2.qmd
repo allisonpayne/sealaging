@@ -451,7 +451,12 @@ phenology_models %>%
   select(-c(stderr, pval)) %>% 
   pivot_wider(names_from = param, values_from = c(coef, signif)) %>% 
   select(phenology, ends_with("age"), ends_with("breeder")) %>% 
-  knitr::kable()
+  knitr::kable(col.names = c("Phenology", 
+                             "Age coef. (days/year)", 
+                             "Significance", 
+                             "Breeding status coef. (days)", 
+                             "Significance")) %>% 
+  kableExtra::kable_styling()
 
 ```
 
