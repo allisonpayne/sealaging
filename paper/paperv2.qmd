@@ -51,8 +51,6 @@ Our hypotheses:
 
 We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).
 
-**Note**: *statistics for increase in inter-birth interval?*
-
 ```{r}
 #| label: fig-age_dist
 #| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
@@ -140,8 +138,6 @@ We found that neither pup survival nor recruitment is significantly affected by 
 
 We reject our hypothesis: reproductive declines do not persist to the next generation, and there is no evidence of maternal effect senescence.
 
-**To do:** *Add sample sizes to the plot because they are different than Figure 1.* *Do I need to do this if I have the sample sizes in the manuscript?*
-
 **Note:** *Try to plot these quadraticlly??*
 
 ```{r}
@@ -214,6 +210,24 @@ pup_recruit_model <- glmer(puprecruited ~ age + (1 | animalID) + (1 | year),
 summary(pup_recruit_model)
 
 ```
+
+Modeling the above metrics as quadratic, just in case:
+
+```{r}
+surv_dat <- sealdat %>% filter(pupyearborn < 2016)
+pup_survival_model <- glmer(pup_survived ~ poly(age, 2) + (1 | animalID) + (1 | year),
+                            data = surv_dat,
+                            family = "binomial")
+summary(pup_survival_model)
+
+pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | animalID) + (1 | year),
+                           data = filter(sealdat, year > 1984), 
+                           family = "binomial")
+summary(pup_recruit_model)
+
+```
+
+Neither were significant as 2nd order polynomials.
 
 The model of Survival \~ Maternal age was significant before we treated Year as a random effect. Was that because pups born earlier in the study had more time to be seen again (i.e., a sampling artifact?) If so, the plot of the random effect of year should have a negative slope.
 
@@ -459,4 +473,3 @@ phenology_models %>%
   kableExtra::kable_styling()
 
 ```
-
