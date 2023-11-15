@@ -87,7 +87,9 @@ breed_nonbreed <- sealdat %>%
   labs(x = "Maternal Age (Years)", y = "% Breeders") + 
   theme_few()
 
-ggsave("outputs/agefig1.png", plot = plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO"), height = 4, width = 9)
+plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
+
+#ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
 
 ```
 
@@ -417,6 +419,12 @@ phen_plot1 /
   plot_layout(guides = "collect") &
   theme(legend.position = "top",
         legend.title = element_blank())
+
+```
+
+Supplemental table
+
+```{r}
 
 phenology_models %>% 
   select(-c(model_data, model)) %>% 
