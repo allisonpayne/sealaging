@@ -83,11 +83,12 @@ breed_nonbreed <- sealdat %>%
               fill = "#C8D3ED") +
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) + 
+  scale_y_continuous(labels = scales::percent, limits = c(.25, .75)) + 
   labs(x = "Maternal Age (Years)", y = "% Breeders") + 
   theme_few()
 
-plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
+ggsave("outputs/agefig1.png", plot = plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO"), height = 4, width = 9)
+
   
 ```
 
@@ -205,7 +206,7 @@ Results of the Pup Recruitment model, with individual and year as random effects
 #Panel B Recruitment Model
 
 pup_recruit_model <- glmer(puprecruited ~ age + (1 | animalID) + (1 | year),
-                           data = filter(sealdat, year > 1984), 
+                           data = filter(sealdat, year > 1984 & year < 2019), 
                            family = "binomial")
 summary(pup_recruit_model)
 
@@ -221,7 +222,7 @@ pup_survival_model <- glmer(pup_survived ~ poly(age, 2) + (1 | animalID) + (1 | 
 summary(pup_survival_model)
 
 pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                           data = filter(sealdat, year > 1984), 
+                           data = filter(sealdat, year > 1984 & year < 2019), 
                            family = "binomial")
 summary(pup_recruit_model)
 
@@ -282,7 +283,7 @@ We found that as maternal age increases, pup sex skews slightly towards males.
 
 pup_sex <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
-         age < 18) %>% 
+         age < 20) %>% 
   group_by(age, pupsex) %>%
   count(pupsex) %>% 
   pivot_wider(values_from = n, names_from = pupsex) %>% 
