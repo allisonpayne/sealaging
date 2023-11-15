@@ -89,38 +89,6 @@ breed_nonbreed <- sealdat %>%
 
 ggsave("outputs/agefig1.png", plot = plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO"), height = 4, width = 9)
 
-  
-```
-
-Panel B shown with axis constrained below.
-
-```{r}
-#| label: fig-age_dist2
-#| fig-cap: "B: Percentage of each age class that were observed breeding, with axes constrained."
-#| fig-width: 9
-
-
-#Panel B: percentage of each age class that were breeders or  nonbreeders
-
-breed_nonbreed <- sealdat %>% 
-  group_by(age) %>% 
-  summarize(n_observed = sum(!is.na(observed)), 
-            perc_breed = sum(observed == "Breeder") / n_observed, 
-            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
-  filter(n_observed > 2) %>% 
-  ggplot(aes(x = age, y = perc_breed)) + 
-  stat_smooth(method = "lm", 
-              formula = y ~ poly(x , 2), 
-              se = TRUE, 
-              color = "#849ED5", 
-              fill = "#C8D3ED") +
-  geom_point() + 
-  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(.25, .75)) + 
-  labs(x = "Maternal Age (Years)", y = "% Breeders") + 
-  theme_few()
-
-breed_nonbreed  
 ```
 
 To test the quadratic fit of the model:
@@ -138,8 +106,6 @@ We predicted that reproductive declines would carry over to the next generation 
 We found that neither pup survival nor recruitment is significantly affected by maternal age (@fig-repro_age).
 
 We reject our hypothesis: reproductive declines do not persist to the next generation, and there is no evidence of maternal effect senescence.
-
-**Note:** *Try to plot these quadraticlly??*
 
 ```{r}
 #| label: fig-repro_age
@@ -200,8 +166,6 @@ summary(pup_survival_model)
 
 Results of the Pup Recruitment model, with individual and year as random effects:
 
-**Note**: *Getting error "boundary (singular) fit" - possibly not enough data to fit this model? I.e., too few recruits. Also, need to apply 7 year filter to this one too????*
-
 ```{r}
 #Panel B Recruitment Model
 
@@ -231,6 +195,8 @@ summary(pup_recruit_model)
 Neither were significant as 2nd order polynomials.
 
 The model of Survival \~ Maternal age was significant before we treated Year as a random effect. Was that because pups born earlier in the study had more time to be seen again (i.e., a sampling artifact?) If so, the plot of the random effect of year should have a negative slope.
+
+We also plotted survival bias to show that 95% of pups were resighted within 7 years. Both plots are supplemental.
 
 ```{r}
 #| label: fig-surv_bias
@@ -269,11 +235,9 @@ plot_grid(year_ranef_plot, survival_bias_plot, nrow = 1, labels = "AUTO")
 
 There is a drop off in recent years that seems to support the idea that recent years have a sampling bias, but the earlier portion suggests that overall the variation is caused by ocean conditions and not sampling. See the Cohort paper!
 
-If not maternal effect senescence, then perhaps a strategy shift?
-
 ### H3a: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males.
+We found that as maternal age increases, pup sex skews slightly towards males - but it's not significant.
 
 ```{r}
 #| label: fig-sex_ratio
@@ -283,7 +247,7 @@ We found that as maternal age increases, pup sex skews slightly towards males.
 
 pup_sex <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
-         age < 20) %>% 
+         age < 19) %>% 
   group_by(age, pupsex) %>%
   count(pupsex) %>% 
   pivot_wider(values_from = n, names_from = pupsex) %>% 
@@ -307,7 +271,7 @@ Results of the model for pup sex ratio:
 pup_sex_mod <- glmer(as.factor(pupsex) ~ age + (1 | animalID) + (1 | year),
                      data = filter(sealdat, 
                                    pupsex %in% c("M", "F"), 
-                                   age < 18), 
+                                   age < 19), 
                      family = "binomial")
 summary(pup_sex_mod)
 ```
@@ -356,12 +320,12 @@ timing_summary_flipped <- timing_summary %>%
 
 ```
 
-**Note:** *Add in illustrator the colors between each phenological variable, so people can understand the timing. Fix the labels on panel B and write a caption.*
+The table is supplemental.
 
 ```{r}
 #| label: fig-phenology
 #| fig-height: 7
-#| fig-cap: "Phenology caption"
+#| fig-cap: "Successful breeding and increased maternal age both impact elephant seal annual cycles. A: Visualization of life history timing across ages, faceted by breeding status. White dashed lines on each panel represent the raw data from the other panel to facilitate comparisons between breeders and non-breeders. B: LMM coefficients for phenological parameters. The units for maternal age coefficients are in days per year. The coefficients for breeding status are in days. BA = Breeding arrival; BD = Breeding departure; MA = Molt arrival; MD = Molt departure. Black points are significant, gray points are not significant."
 
 phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
   geom_area(position = position_stack(reverse = TRUE),
