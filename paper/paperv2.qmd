@@ -64,8 +64,9 @@ age_dist <- sealdat %>%
   count(age) %>% 
   ggplot(aes(x = age, y = n)) + 
   geom_col(fill = "#829BD1") + 
-  labs(x = "Number of individuals", y = "Age (Years)") + 
-  theme_few()
+  labs(x = "Age (Years)", y = "Number of individuals") + 
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
 
 #Panel B: percentage of each age class that were breeders or  nonbreeders
 
@@ -84,8 +85,10 @@ breed_nonbreed <- sealdat %>%
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(.25, .75)) + 
-  labs(x = "Maternal Age (Years)", y = "% Breeders") + 
-  theme_few()
+  labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
+
 
 plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
 
@@ -149,7 +152,9 @@ pup_surv_recruit <- sealdat %>%
   theme(legend.position = c(0.1,0.97), 
         legend.justification = c(0,1), 
         legend.title = element_blank(), 
-        legend.direction = "horizontal")
+        legend.direction = "horizontal", 
+        axis.title = element_text(size = 13)
+)
 
 pup_surv_recruit
 ```
@@ -262,7 +267,9 @@ pup_sex <- sealdat %>%
   geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
   labs(x = "Maternal Age (Years)", y = "% Pups Female") +
-  theme_few()
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
+
 
 pup_sex
 ```
@@ -343,7 +350,9 @@ phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
   facet_grid(cols = vars(observed)) +
   labs(x = "Maternal Age (Years)", y = "Day of Year") + 
-  theme_few()
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
+
 
 # Utility functions for model fitting and coefficient extraction
 fit_model <- function(dat) {
@@ -411,7 +420,9 @@ phen_plot2 <- phenology_models %>%
   facet_grid(cols = vars(param), scales = "free_x") +
   xlab("LMM coefficeint") + 
   ylab("Phenology") + 
-  theme_few()
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
+
   
 phen_plot1 /
   phen_plot2 +
