@@ -22,9 +22,10 @@ library(lme4)
 library(lmerTest) # Loading this library will automatically append p-values to lmer models estimated using something called Satterthwaite's method
 library(merTools)
 library(tidyverse)
+library(ggeffects)
 library(patchwork)
 
-sealdat <- read_csv(here::here("data/raw/128L pull 2023_06_29.csv"), 
+sealdat <- read_csv(here::here("data/raw/128L pull 2023_11_21.csv"), 
                     show_col_types = FALSE) %>% 
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
          observed_int = if_else(observed == "Breeder", 1, 0), 
@@ -52,6 +53,32 @@ Our hypotheses:
 We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).
 
 ```{r}
+#| label: age_breeding_mod
+
+breeding_mod_bad <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
+                      data = filter(sealdat), 
+                      family = "binomial")
+
+count(sealdat, year) %>% 
+     left_join(as_tibble(ranef(breeding_mod_bad)$year, 
+                         rownames = "year") %>% 
+                   mutate(year = as.numeric(year)) %>% 
+                   rename(coef = `(Intercept)`),
+               by = "year") %>%
+     ggplot(aes(n, coef, color = year)) +
+     geom_point() +
+     scale_color_gradient(low = "blue", high = "red") +
+     theme_few()
+
+breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
+                      data = filter(sealdat, year >= 1990), 
+                      family = "binomial")
+breed_pred <- ggpredict(breeding_mod, terms = c("age [all]"))
+summary(breeding_mod)
+
+```
+
+```{r}
 #| label: fig-age_dist
 #| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
 #| fig-width: 9
@@ -59,7 +86,8 @@ We predicted that breeding success would decline with age. We found that breedin
 #Age distribution panel A 
 
 age_dist <- sealdat %>% 
-  filter(age < 22) %>% 
+  filter(age < 22,
+         year >= 1990) %>% 
   group_by(age) %>% 
   count(age) %>% 
   ggplot(aes(x = age, y = n)) + 
@@ -71,20 +99,26 @@ age_dist <- sealdat %>%
 #Panel B: percentage of each age class that were breeders or  nonbreeders
 
 breed_nonbreed <- sealdat %>% 
+  filter(year >= 1990) %>% 
   group_by(age) %>% 
   summarize(n_observed = sum(!is.na(observed)), 
             perc_breed = sum(observed == "Breeder") / n_observed, 
             se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
   filter(age < 22) %>%
   ggplot(aes(x = age, y = perc_breed)) + 
-  stat_smooth(method = "lm", 
-              formula = y ~ poly(x , 2), 
-              se = TRUE, 
-              color = "#849ED5", 
-              fill = "#C8D3ED") +
+  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high),
+              breed_pred,
+              inherit.aes = FALSE,
+              fill = "#829BD1",
+              alpha = 0.25) +
+  geom_line(aes(x, predicted),
+            breed_pred,
+            inherit.aes = FALSE,
+            color = "#829BD1",
+            linewidth = 1) +
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(.25, .75)) + 
+  scale_y_continuous(labels = scales::percent, limits = c(0,1)) + 
   labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
   theme_few() + 
   theme(axis.title = element_text(size = 13))
@@ -92,16 +126,47 @@ breed_nonbreed <- sealdat %>%
 
 plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
 
-#ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
+ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
 
 ```
 
-To test the quadratic fit of the model:
+Population level prediction - the fact that the raw data falls above it comes from the fact that those age classes are correlated with years and individuals that were very successful.
 
 ```{r}
-summary(glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
-              data = sealdat, 
-              family = "binomial"))
+#| label: fig-breeding_bias
+
+year_coef <- as_tibble(ranef(breeding_mod)$year, 
+                       rownames = "year") %>% 
+    mutate(year = as.numeric(year)) %>% 
+    rename(coef = `(Intercept)`)
+
+animal_coef <- as_tibble(ranef(breeding_mod)$animalID, 
+                         rownames = "animalID") %>% 
+    mutate(animalID = as.numeric(animalID)) %>% 
+    rename(coef = `(Intercept)`)
+
+year_bias <- sealdat %>% 
+  left_join(year_coef, by = "year") %>% 
+  mutate(age = factor(age)) %>% 
+  ggplot(aes(age, coef)) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0, color = "#829BD1", linetype = "dashed") +
+  scale_x_discrete("Maternal Age (Years)", breaks = seq(5, 20, by = 5)) +
+  ylab("Random effect of year") +
+  theme_few()
+
+animalID_bias <- sealdat %>% 
+  left_join(animal_coef, by = "animalID") %>% 
+  mutate(age = factor(age)) %>% 
+  ggplot(aes(age, coef)) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0, color = "#829BD1", linetype = "dashed") +
+  scale_x_discrete("Maternal Age (Years)", breaks = seq(5, 20, by = 5)) +  
+  ylab("Random effect of individual") +
+  theme_few()
+
+plot_grid(breed_nonbreed, year_bias, animalID_bias, nrow = 1)
+
 ```
 
 ### H2: Maternal effect senescence
@@ -147,7 +212,7 @@ pup_surv_recruit <- sealdat %>%
   geom_pointrange(aes(ymin = low, ymax = high)) +
   scale_color_manual(values = c("#829BD1", "#E9B668")) + 
   scale_y_continuous(labels = scales::percent, limits = c(0, .5)) + 
-  labs(x = "Maternal Age (Years)", y = "% Pups") +
+  labs(x = "Maternal Age (Years)", y = "% Pups (Mean ± SE)") +
   theme_few() + 
   theme(legend.position = c(0.1,0.97), 
         legend.justification = c(0,1), 
@@ -266,7 +331,7 @@ pup_sex <- sealdat %>%
   geom_point() +
   geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
-  labs(x = "Maternal Age (Years)", y = "% Pups Female") +
+  labs(x = "Maternal Age (Years)", y = "% Female Pups (Mean ± SE)") +
   theme_few() + 
   theme(axis.title = element_text(size = 13))
 
@@ -289,7 +354,7 @@ summary(pup_sex_mod)
 
 We predicted that seals would shift the timing of their annual cycle.
 
-We found that as maternal age increases, there are slight adjustments to the timing of life history events. These events (breeding/molting arrival/departure) are typically shifted later for older animals (@fig-annual_timing).
+We found that as maternal age increases, there are slight adjustments to the timing of life history events. These events (breeding/molting arrival/departure) are typically shifted later for older animals (@fig-phenology).
 
 ```{r}
 
@@ -334,7 +399,8 @@ The table is supplemental.
 ```{r}
 #| label: fig-phenology
 #| fig-height: 7
-#| fig-cap: "Successful breeding and increased maternal age both impact elephant seal annual cycles. A: Visualization of life history timing across ages, faceted by breeding status. White dashed lines on each panel represent the raw data from the other panel to facilitate comparisons between breeders and non-breeders. B: LMM coefficients for phenological parameters. The units for maternal age coefficients are in days per year. The coefficients for breeding status are in days. BA = Breeding arrival; BD = Breeding departure; MA = Molt arrival; MD = Molt departure. Black points are significant, gray points are not significant."
+#| fig-width: 7
+#| fig-cap: "Successful breeding and increased maternal age both impact elephant seal annual cycles. A: Visualization of life history timing across ages, faceted by breeding status. White dashed lines on each panel represent the raw data from the other panel to facilitate comparisons between breeders and non-breeders. B: LMM coefficients for phenological parameters. The units for maternal age coefficients are in days per year. The coefficients for breeding status are in days. Black points are significant, gray points are not significant."
 
 phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
   geom_area(position = position_stack(reverse = TRUE),
@@ -348,10 +414,12 @@ phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
             alpha = 0.5) +
   scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
+  scale_x_continuous("Maternal Age (Years)", expand = expansion(mult = 0)) +
+  scale_y_continuous("Day of Year", expand = expansion(mult = 0)) +
   facet_grid(cols = vars(observed)) +
-  labs(x = "Maternal Age (Years)", y = "Day of Year") + 
   theme_few() + 
-  theme(axis.title = element_text(size = 13))
+  theme(axis.title = element_text(size = 12),
+        panel.spacing = unit(1, "lines"))
 
 
 # Utility functions for model fitting and coefficient extraction
@@ -399,8 +467,13 @@ phen_plot2 <- phenology_models %>%
   pivot_wider(names_from = metric, values_from = value) %>% 
   mutate(signif = as.logical(signif), 
          param = factor(param, 
-                        labels = c("Maternal Age", 
-                                   "Breeding Status"))) %>% 
+                        labels = c("'Delay with maternal age (days year'^-1 * ')'", 
+                                   "'Delay with breeding (days)'")), 
+         phenology = factor(phenology, 
+                            labels = c("Breeding\narrrival", 
+                                       "Breeding\ndeparture", 
+                                       "Molt\narrrival", 
+                                       "Molt\ndeparture"))) %>% 
   ggplot(aes(x = coef, y = phenology)) +
   # Prevent geom_rect() from establishing a continuous y-axis scale
   geom_point(alpha = 0) +
@@ -417,19 +490,31 @@ phen_plot2 <- phenology_models %>%
   scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
   expand_limits(x = 0) +
-  facet_grid(cols = vars(param), scales = "free_x") +
-  xlab("LMM coefficeint") + 
-  ylab("Phenology") + 
+  facet_grid(cols = vars(param), 
+             scales = "free_x", 
+             switch = "x",
+             labeller = label_parsed) +
   theme_few() + 
-  theme(axis.title = element_text(size = 13))
+  theme(axis.title = element_blank(),
+        legend.direction = "horizontal",
+        legend.title = element_blank(),
+        strip.placement = "outside",
+        strip.text = element_text(size = 12, color = "black"),
+        panel.spacing = unit(1, "lines"))
 
-  
-phen_plot1 /
-  phen_plot2 +
-  plot_annotation(tag_levels = "A") +
-  plot_layout(guides = "collect") &
-  theme(legend.position = "top",
-        legend.title = element_blank())
+plot_grid(
+  get_legend(phen_plot2),
+  phen_plot1 + theme(legend.position = "none"),
+  phen_plot2 + theme(legend.position = "none"),
+  align = "v",
+  axis = "lr",
+  labels = c("", "A", "B"),
+  ncol = 1,
+  rel_heights = c(0.1, 1, 1)
+)
+
+ggsave("outputs/agefig4.png", plot = , height = 9, width = 9)
+
 
 ```
 
