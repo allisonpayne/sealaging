@@ -65,9 +65,10 @@ count(sealdat, year) %>%
                    mutate(year = as.numeric(year)) %>% 
                    rename(coef = `(Intercept)`),
                by = "year") %>%
-     ggplot(aes(n, coef, color = year)) +
-     geom_point() +
-     scale_color_gradient(low = "blue", high = "red") +
+     ggplot(aes(n, coef, color = year, label = year)) +
+     geom_point() + 
+  geom_label() + 
+     scale_color_gradient(low = "blue", high = "red") + 
      theme_few()
 
 breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
