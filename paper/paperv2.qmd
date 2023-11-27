@@ -30,7 +30,8 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_11_21.csv"),
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
          observed_int = if_else(observed == "Breeder", 1, 0), 
          pup_survived = pupseeneveragain > 0) %>% 
-  filter(age > 3)
+  filter(age > 3, 
+         year > 1994)
 
 ```
 
@@ -72,7 +73,7 @@ count(sealdat, year) %>%
      theme_few()
 
 breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                      data = filter(sealdat, year >= 1990), 
+                      data = filter(sealdat), 
                       family = "binomial")
 breed_pred <- ggpredict(breeding_mod, terms = c("age [all]"))
 summary(breeding_mod)
@@ -87,8 +88,7 @@ summary(breeding_mod)
 #Age distribution panel A 
 
 age_dist <- sealdat %>% 
-  filter(age < 22,
-         year >= 1990) %>% 
+  filter(age < 22) %>% 
   group_by(age) %>% 
   count(age) %>% 
   ggplot(aes(x = age, y = n)) + 
@@ -100,7 +100,6 @@ age_dist <- sealdat %>%
 #Panel B: percentage of each age class that were breeders or  nonbreeders
 
 breed_nonbreed <- sealdat %>% 
-  filter(year >= 1990) %>% 
   group_by(age) %>% 
   summarize(n_observed = sum(!is.na(observed)), 
             perc_breed = sum(observed == "Breeder") / n_observed, 
