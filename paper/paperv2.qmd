@@ -30,6 +30,7 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_11_21.csv"),
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
          observed_int = if_else(observed == "Breeder", 1, 0), 
          pup_survived = pupseeneveragain > 0) %>% 
+  select(-c("tagsex", "season", "numbreed", "firstyearindicator", "indices")) %>% 
   filter(age > 3, 
          year > 1994)
 
@@ -268,7 +269,7 @@ Neither were significant as 2nd order polynomials.
 
 The model of Survival \~ Maternal age was significant before we treated Year as a random effect. Was that because pups born earlier in the study had more time to be seen again (i.e., a sampling artifact?) If so, the plot of the random effect of year should have a negative slope.
 
-We also plotted survival bias to show that 95% of pups were resighted within 7 years. Both plots are supplemental.
+We also plotted survival bias to show that 95% of pups were resighted within 10 years. Both plots are supplemental.
 
 ```{r}
 #| label: fig-surv_bias
@@ -293,7 +294,7 @@ survival_bias <- sealdat %>%
 
 survival95 <- quantile(survival_bias$first_resight_yrs, 0.95)
 #n for 95% quantile
-sum(survival_bias$first_resight_yrs > 7)
+sum(survival_bias$first_resight_yrs > 10)
 
 survival_bias_plot <- ggplot(survival_bias, aes(x = first_resight_yrs)) +
   stat_ecdf() +
