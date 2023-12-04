@@ -53,6 +53,7 @@ We predicted that breeding success would decline with age. We found that breedin
 
 ```{r}
 #| label: age_breeding_mod
+#| #| fig-width: 9
 
 breeding_mod_bad <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
                       data = filter(sealdat), 
@@ -116,7 +117,7 @@ breed_nonbreed <- sealdat %>%
             linewidth = 1) +
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(0,1)) + 
+  scale_y_continuous(labels = scales::percent, limits = c(.4, 1)) + 
   labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
   theme_few() + 
   theme(axis.title = element_text(size = 13))
@@ -132,6 +133,8 @@ Population level prediction - the fact that the raw data falls above it comes fr
 
 ```{r}
 #| label: fig-breeding_bias
+#| fig-width: 9
+
 
 year_coef <- as_tibble(ranef(breeding_mod)$year, 
                        rownames = "year") %>% 
