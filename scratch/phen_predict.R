@@ -16,7 +16,8 @@ expand_grid(
                       newdata = .,
                       re.form = NA)) %>% 
   mutate(short_trip = ma - bd, 
-         molt_dur = md - ma) %>% 
+         molt_dur = md - ma, 
+ #        long_trip = 365 - md ) %>% 
   filter(observed == "Breeder", 
          age %in% c(4,19)) %>% 
   view()

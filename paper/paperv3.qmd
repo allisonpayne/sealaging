@@ -76,6 +76,11 @@ breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
                       family = "binomial")
 breed_pred <- ggpredict(breeding_mod, terms = c("age [all]"))
 summary(breeding_mod)
+#table s1, look at roxannes ecology letters paper supplemental 
+#Pull out the fixed effects table with 2 sfs, can paste in excel to adjust digits 
+#intercept, age (linear), age (quadratic) as row names 
+#in figure caption say "results from x analyis. The random effect variance of animal id is X (from results) and year was X. Apply to all the other stats. 
+#analyses fit to the age in which we have larger sample sizes fit also have a quadratic fit and don't change the story
 
 ```
 
@@ -186,6 +191,11 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 
 #B Pup survival and recruitment doesn't change with increased maternal age.
 
+pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | animalID) + (1 | year),
+                           data = filter(sealdat, year > 1984 & year < 2019), 
+                           family = "binomial")
+summary(pup_recruit_model)
+
 pup_surv_recruit <- sealdat %>% 
   mutate(pup_surv = ifelse(pupseeneveragain > 0, 1, 0)) %>% 
   filter(pupsex == "F", 
@@ -211,6 +221,11 @@ pup_surv_recruit <- sealdat %>%
   filter(n_surv > 5) %>% 
   ggplot(aes(x = age, y = mean, color = metric)) + 
   geom_pointrange(aes(ymin = low, ymax = high)) +
+  geom_ribbon(aes(x),
+              pup_recruit_model,
+              inherit.aes = FALSE,
+              fill = "#829BD1",
+              alpha = 0.25) + 
   scale_color_manual(values = c("#829BD1", "#E9B668")) + 
   scale_y_continuous(labels = scales::percent, limits = c(0, .5)) + 
   labs(x = "Maternal Age (Years)", y = "% Pups (Mean ± SE)") +
@@ -223,6 +238,8 @@ pup_surv_recruit <- sealdat %>%
 )
 
 pup_surv_recruit
+
+#Why is recruitment higher than survival in some points? Add the quadratic model? Reverse order of legend in the figure
 ```
 
 Results of the Pup Survival model, with individual and year as random effects:
@@ -252,16 +269,30 @@ summary(pup_recruit_model)
 Modeling the above metrics as quadratic, just in case:
 
 ```{r}
-surv_dat <- sealdat %>% filter(pupyearborn < 2016)
+surv_dat <- sealdat %>% filter(pupyearborn < 2016) %>% 
+  mutate(age10 = age/10)
+
 pup_survival_model <- glmer(pup_survived ~ poly(age, 2) + (1 | animalID) + (1 | year),
                             data = surv_dat,
                             family = "binomial")
 summary(pup_survival_model)
+#significant result, plot as quadratic on figure
+
+recruit_dat <- sealdat %>% mutate(age10 = age / 10)
 
 pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                           data = filter(sealdat, year > 1984 & year < 2019), 
-                           family = "binomial")
+                           data = filter(recruit_dat, year > 1984 & year < 2019), 
+                           family = "binomial", 
+                           control = glmerControl(optimizer = "bobyqa"))
 summary(pup_recruit_model)
+#divide age by 10 (ie rescale variables) - did not work
+#increase max iterations within glmer? 
+#change the optimizer? -> worked  
+
+#survival but not recruitment success with age
+#figure with both models, with the recruitment one dashed or something
+
+#ranef variance goes in the table legend 
 
 ```
 
@@ -332,12 +363,14 @@ pup_sex <- sealdat %>%
   geom_point() +
   geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
-  labs(x = "Maternal Age (Years)", y = "% Female Pups (Mean ± SE)") +
+  labs(x = "Maternal Age (Years)", y = "% Male Pups (Mean ± SE)") +
   theme_few() + 
   theme(axis.title = element_text(size = 13))
 
 
 pup_sex
+
+#take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)
 ```
 
 Results of the model for pup sex ratio:
@@ -349,6 +382,17 @@ pup_sex_mod <- glmer(as.factor(pupsex) ~ age + (1 | animalID) + (1 | year),
                                    age < 19), 
                      family = "binomial")
 summary(pup_sex_mod)
+
+#quadratic 
+
+pup_sex_quad <- glmer(as.factor(pupsex) ~ poly(age, 2) + (1 | animalID) + (1 | year),
+                            data = filter(sealdat, 
+                                   pupsex %in% c("M", "F"), 
+                                   age < 19),
+                            family = "binomial")
+summary(pup_sex_quad)
+
+
 ```
 
 ### H3b: Changes to annual cycle timing with increased maternal age
@@ -404,6 +448,13 @@ The table is supplemental.
 #| fig-width: 7
 #| fig-cap: "Successful breeding and increased maternal age both impact elephant seal annual cycles. A: Visualization of life history timing across ages, faceted by breeding status. White dashed lines on each panel represent the raw data from the other panel to facilitate comparisons between breeders and non-breeders. B: LMM coefficients for phenological parameters. The units for maternal age coefficients are in days per year. The coefficients for breeding status are in days. Black points are significant, gray points are not significant."
 
+#Delete the non-breeders and add the dashed line as an average instead. 
+#put panels next to each other 
+#what do you do when breeding dates are in december? ifelse statement (if > 250), 200 - 365 (so use negative numbers if they are in december)
+#show xy plots of each phenological variable against age in the supplemental and summary stats for the model in the supplement too 
+#draw attention to the widths - 1) 2) 3) 
+#assess linearity from plots, but double check visually and see if quadratic might fit better (we werent sure if age patterns would be linear or not, so we tested quadratic analyses throughout)
+
 phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
   geom_area(position = position_stack(reverse = TRUE),
             color = NA) +
@@ -426,7 +477,7 @@ phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
 
 # Utility functions for model fitting and coefficient extraction
 fit_model <- function(dat) {
-  lmer(doy ~ age + observed + (1 | animalID) + (1 | year), data = dat)
+  lmer(doy ~ age + (1 | animalID) + (1 | year), data = dat)
 }
 extract_estimate <- function(models, param) {
   map_dbl(models, \(mod) summary(mod)$coefficients[param, "Estimate"])
@@ -441,18 +492,23 @@ extract_pval <- function(models, param) {
 # This data frame contains a model for each phenological variable w.r.t. age
 phenology_models <- seal_phenology %>% 
   pivot_longer(BA:MD, names_to = "phenology", values_to = "doy") %>% 
-  select(phenology, observed, doy, age, animalID, year) %>% 
-  mutate(observed = factor(observed, levels = c("Non-breeder", "Breeder"))) %>% 
-  nest(model_data = c(doy, age, observed, animalID, year)) %>% 
+  filter(observed_int > 0) %>% 
+  select(phenology, doy, age, animalID, year) %>% 
+  nest(model_data = c(doy, age, animalID, year)) %>% 
   mutate(model = map(model_data, fit_model),
          age_coef = extract_estimate(model, "age"),
          age_stderr = extract_stderr(model, "age"),
-         age_pval = extract_pval(model, "age"),
-         age_signif = age_pval * 8 < 0.05,
-         breeder_coef = extract_estimate(model, "observedBreeder"),
-         breeder_stderr = extract_stderr(model, "observedBreeder"),
-         breeder_pval = extract_pval(model, "observedBreeder"),
-         breeder_signif = breeder_pval * 8 < 0.05,)
+         age_pval = extract_pval(model, "age"))
+
+
+#  mutate(observed = factor(observed, levels = c("Non-breeder", "Breeder"))) %>% 
+         # age_signif = age_pval * 8 < 0.05,
+         # breeder_coef = extract_estimate(model, "observedBreeder"),
+         # breeder_stderr = extract_stderr(model, "observedBreeder"),
+         # breeder_pval = extract_pval(model, "observedBreeder"),
+         # breeder_signif = breeder_pval * 8 < 0.05,)
+
+#remove bonferroni correction
 
 phen_wrapped <- tibble(
   event_begin = c(-Inf, 1:4),
