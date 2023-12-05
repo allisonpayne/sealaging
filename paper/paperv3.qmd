@@ -53,29 +53,16 @@ We predicted that breeding success would decline with age. We found that breedin
 
 ```{r}
 #| label: age_breeding_mod
-#| #| fig-width: 9
-
-breeding_mod_bad <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                      data = filter(sealdat), 
-                      family = "binomial")
-
-count(sealdat, year) %>% 
-     left_join(as_tibble(ranef(breeding_mod_bad)$year, 
-                         rownames = "year") %>% 
-                   mutate(year = as.numeric(year)) %>% 
-                   rename(coef = `(Intercept)`),
-               by = "year") %>%
-     ggplot(aes(n, coef, color = year, label = year)) +
-     geom_point() + 
-  geom_label() + 
-     scale_color_gradient(low = "blue", high = "red") + 
-     theme_few()
+#| fig-width: 9
 
 breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
                       data = filter(sealdat), 
                       family = "binomial")
+
 breed_pred <- ggpredict(breeding_mod, terms = c("age [all]"))
+
 summary(breeding_mod)
+
 #table s1, look at roxannes ecology letters paper supplemental 
 #Pull out the fixed effects table with 2 sfs, can paste in excel to adjust digits 
 #intercept, age (linear), age (quadratic) as row names 
