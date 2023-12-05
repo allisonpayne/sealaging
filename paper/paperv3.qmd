@@ -30,7 +30,7 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_11_30.csv"),
                     show_col_types = FALSE) %>% 
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
          observed_int = if_else(observed == "Breeder", 1, 0), 
-         pup_survived = pupseeneveragain > 0) %>% 
+         pup_survived = pupseeneveragain > 0,) %>% 
   filter(age > 3, 
          year > 1987)
 ```
@@ -367,6 +367,7 @@ pup_sex
 Results of the model for pup sex ratio:
 
 ```{r}
+#probably will need to take out animalID
 pup_sex_mod <- glmer(as.factor(pupsex) ~ age + (1 | animalID) + (1 | year),
                      data = filter(sealdat, 
                                    pupsex %in% c("M", "F"), 
@@ -395,23 +396,30 @@ We found that as maternal age increases, there are slight adjustments to the tim
 ```{r}
 
 seal_phenology <- sealdat %>% 
+  filter(observed == "Breeder") %>% 
   mutate(BA = firstobsbreeddoy, 
          BD = firstobsbreeddoy + breeddur, 
          MA = lastobsmoltdoy - moltdur, 
          MD = lastobsmoltdoy) %>% 
   drop_na(age, BA, BD, MA, MD)
 
+mean_phenology <- seal_phenology %>% 
+  summarize(across(BA:MD, mean), 
+            .groups = "drop") %>% 
+  pivot_longer(everything(),
+               names_to = "event", 
+               values_to = "doy")
 
 phenology_n <- unique(seal_phenology$animalID)
 
 timing_summary <- seal_phenology %>% 
-  group_by(age, observed) %>% 
+  group_by(age) %>% 
   summarize(across(BA:MD, mean), 
             .groups = "drop") %>% 
-  pivot_longer(cols = -c(age, observed),  
+  pivot_longer(cols = -age,  
                names_to = "event", 
                values_to = "doy") %>% 
-  group_by(age, observed) %>% 
+  group_by(age) %>% 
   group_modify(\(data, keys) {
     tibble(event = c("Long trip", "Breeding", "Short trip", "Molting", "longtrip2"),
            doy = c(data$doy, 365) - c(0, data$doy))
@@ -422,12 +430,6 @@ timing_summary <- seal_phenology %>%
                                           "Short trip", 
                                           "Molting", 
                                           "longtrip2")))
-timing_summary_flipped <- timing_summary %>% 
-  mutate(observed = ifelse(observed == "Breeder",
-                           "Non-breeder",
-                           "Breeder")) %>% 
-  filter(event != "longtrip2")
-
 
 ```
 
@@ -441,7 +443,7 @@ The table is supplemental.
 
 #Delete the non-breeders and add the dashed line as an average instead. 
 #put panels next to each other 
-#what do you do when breeding dates are in december? ifelse statement (if > 250), 200 - 365 (so use negative numbers if they are in december)
+#what do you do when breeding dates are in december? ifelse statement (if > 250), 200 - 365 (so use negative numbers if they are in december) **does not happen! no worries!!**
 #show xy plots of each phenological variable against age in the supplemental and summary stats for the model in the supplement too 
 #draw attention to the widths - 1) 2) 3) 
 #assess linearity from plots, but double check visually and see if quadratic might fit better (we werent sure if age patterns would be linear or not, so we tested quadratic analyses throughout)
@@ -451,16 +453,15 @@ phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
             color = NA) +
   geom_line(position = position_stack(reverse = TRUE),
             color = "white") +
-  geom_line(data = timing_summary_flipped,
-            position = position_stack(reverse = TRUE),
-            color = "white",
-            linetype = "dashed",
-            alpha = 0.5) +
+  geom_hline(aes(yintercept = doy),
+             mean_phenology,
+             color = "white",
+             linetype = "dashed",
+             alpha = 0.5) +
   scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
   scale_x_continuous("Maternal Age (Years)", expand = expansion(mult = 0)) +
   scale_y_continuous("Day of Year", expand = expansion(mult = 0)) +
-  facet_grid(cols = vars(observed)) +
   theme_few() + 
   theme(axis.title = element_text(size = 12),
         panel.spacing = unit(1, "lines"))
@@ -483,23 +484,13 @@ extract_pval <- function(models, param) {
 # This data frame contains a model for each phenological variable w.r.t. age
 phenology_models <- seal_phenology %>% 
   pivot_longer(BA:MD, names_to = "phenology", values_to = "doy") %>% 
-  filter(observed_int > 0) %>% 
   select(phenology, doy, age, animalID, year) %>% 
   nest(model_data = c(doy, age, animalID, year)) %>% 
   mutate(model = map(model_data, fit_model),
          age_coef = extract_estimate(model, "age"),
          age_stderr = extract_stderr(model, "age"),
-         age_pval = extract_pval(model, "age"))
-
-
-#  mutate(observed = factor(observed, levels = c("Non-breeder", "Breeder"))) %>% 
-         # age_signif = age_pval * 8 < 0.05,
-         # breeder_coef = extract_estimate(model, "observedBreeder"),
-         # breeder_stderr = extract_stderr(model, "observedBreeder"),
-         # breeder_pval = extract_pval(model, "observedBreeder"),
-         # breeder_signif = breeder_pval * 8 < 0.05,)
-
-#remove bonferroni correction
+         age_pval = extract_pval(model, "age"),
+         age_signif = age_pval < 0.05)
 
 phen_wrapped <- tibble(
   event_begin = c(-Inf, 1:4),
@@ -515,9 +506,8 @@ phen_plot2 <- phenology_models %>%
                values_to = "value") %>% 
   pivot_wider(names_from = metric, values_from = value) %>% 
   mutate(signif = as.logical(signif), 
-         param = factor(param, 
-                        labels = c("'Delay with maternal age (days year'^-1 * ')'", 
-                                   "'Delay with breeding (days)'")), 
+         # param = factor(param, 
+         #                labels = "'Delay with maternal age (days year'^-1 * ')'"), 
          phenology = factor(phenology, 
                             labels = c("Breeding\narrrival", 
                                        "Breeding\ndeparture", 
@@ -538,28 +528,25 @@ phen_plot2 <- phenology_models %>%
                      guide = "none") +
   scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
                       breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
+  labs(x = expression('Delay with maternal age (days year'^-1 * ')')) +
   expand_limits(x = 0) +
-  facet_grid(cols = vars(param), 
-             scales = "free_x", 
-             switch = "x",
-             labeller = label_parsed) +
   theme_few() + 
-  theme(axis.title = element_blank(),
+  theme(axis.title.y = element_blank(),
         legend.direction = "horizontal",
-        legend.title = element_blank(),
-        strip.placement = "outside",
-        strip.text = element_text(size = 12, color = "black"),
-        panel.spacing = unit(1, "lines"))
+        legend.title = element_blank())
 
 plot_grid(
   get_legend(phen_plot2),
-  phen_plot1 + theme(legend.position = "none"),
-  phen_plot2 + theme(legend.position = "none"),
-  align = "v",
-  axis = "lr",
-  labels = c("", "A", "B"),
+  plot_grid(
+    phen_plot1 + theme(legend.position = "none"),
+    phen_plot2 + theme(legend.position = "none"),
+    align = "h",
+    axis = "tb",
+    labels = c("A", "B"),
+    nrow = 1
+  ),
   ncol = 1,
-  rel_heights = c(0.1, 1, 1)
+  rel_heights = c(0.1, 1)
 )
 
 ggsave("outputs/agefig4.png", plot = , height = 9, width = 9)
