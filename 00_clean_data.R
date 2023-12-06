@@ -93,7 +93,6 @@ dateobsmolt=outall %>%
 dateobs=left_join(dateobsmolt,dateobsbreed,
                   by=c("season","animalID")) %>%
   #only last observed molt less than july 1 ish and only first breeding < march 16 ish
-  mutate(firstobsbreed=if_else(yday(firstobsbreed)>70,NA,firstobsbreed)) %>%
   mutate(firstobsbreeddoy=yday(as.Date(firstobsbreed))) %>%
   mutate(firstobsbreeddoy=if_else(firstobsbreeddoy>300,firstobsbreeddoy-365,firstobsbreeddoy)) %>%
   mutate(lastobsmolt=if_else(yday(lastobsmolt)>185,NA,lastobsmolt)) %>%
@@ -175,5 +174,5 @@ for(i in rows){ #for each row of those rows
 #subset to females only here (moms) for the main dataset
 final = final %>% filter(tagsex=="F")
 
-write.csv(final,here::here("data/raw/128L pull 2023_11_30.csv"),
+write.csv(final,here::here("data/raw/128L pull 2023_12_05.csv"),
           row.names=FALSE)

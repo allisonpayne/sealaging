@@ -24,11 +24,11 @@ library(tidyverse)
 library(ggeffects)
 library(patchwork)
 
-sealdat <- read_csv(here::here("data/raw/128L pull 2023_11_30.csv"), 
+sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"), 
                     show_col_types = FALSE) %>% 
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
          observed_int = if_else(observed == "Breeder", 1, 0), 
-         pup_survived = pupseeneveragain > 0,) %>% 
+         pup_survived = pupseeneveragain > 0) %>% 
   filter(age > 3, 
          year > 1987)
 ```
@@ -85,7 +85,7 @@ format_pval <- function(p, digits) {
 ```
 
 ```{r}
-#| tbl-cap: str_glue("The results from breeding probability analyis. The random effect variance of animal id is {VarCorr(breeding_mod, digits = 3)[1]} and year was VarCorr(breeding_mod, digits = 3)[2]".)
+#| tbl-cap: str_glue("The results from breeding probability analyis. The random effect variance of animal id is {VarCorr(breeding_mod, digits = 3)[1]} and year was VarCorr(breeding_mod, digits = 3)[2].")
 #| eval: true
 
 breed_mod_summary$coefficients %>% 
@@ -219,7 +219,7 @@ surv_recruit_data <- sealdat %>%
   mutate(n_pups = n()) %>% 
   ungroup() %>% 
   filter(n_pups >= 5)
-pup_surv_model <- glmer(pup_survived_dbl ~ poly(age, 2) + (1 | year),
+pup_surv_model <- glmer(pup_survived_dbl ~ poly(age, 2) + (1 | animalID) + (1 | year),
                         data = surv_recruit_data, 
                         family = "binomial")
 pup_surv_pred <- ggpredict(pup_surv_model, terms = c("age [all]")) %>% 
@@ -229,7 +229,7 @@ pup_surv_pred <- ggpredict(pup_surv_model, terms = c("age [all]")) %>%
             mean = predicted, 
             mean_lwr = conf.low, 
             mean_upr = conf.high)
-pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | year),
+pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | animalID) + (1 | year),
                            data = surv_recruit_data, 
                            family = "binomial")
 pup_recruit_pred <- ggpredict(pup_recruit_model, terms = c("age [all]")) %>% 

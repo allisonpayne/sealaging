@@ -144,23 +144,23 @@ div.csl-indent {
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Intercept</td>
-<td style="text-align: left;">2.82</td>
-<td style="text-align: left;">0.160</td>
-<td style="text-align: left;">17.6</td>
+<td style="text-align: left;">1.28</td>
+<td style="text-align: left;">0.105</td>
+<td style="text-align: left;">12.2</td>
 <td style="text-align: left;">&lt;0.01</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Age (linear)</td>
-<td style="text-align: left;">5.90</td>
-<td style="text-align: left;">3.63</td>
-<td style="text-align: left;">1.63</td>
-<td style="text-align: left;">0.10</td>
+<td style="text-align: left;">-5.73</td>
+<td style="text-align: left;">2.64</td>
+<td style="text-align: left;">-2.17</td>
+<td style="text-align: left;">0.03</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Age (quadratic)</td>
-<td style="text-align: left;">-12.9</td>
-<td style="text-align: left;">3.31</td>
-<td style="text-align: left;">-3.90</td>
+<td style="text-align: left;">-12.5</td>
+<td style="text-align: left;">2.46</td>
+<td style="text-align: left;">-5.09</td>
 <td style="text-align: left;">&lt;0.01</td>
 </tr>
 </tbody>
@@ -198,7 +198,7 @@ div.csl-indent {
 <div class="cell-output-display">
 <div id="fig-repro_age" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
-<p><img src="paperv3_files/figure-html/fig-repro_age-1.png" class="img-fluid figure-img" width="864"></p>
+<p><img src="paperv3_files/figure-html/fig-repro_age-1.png" class="img-fluid figure-img" width="432"></p>
 <figcaption class="figure-caption">Figure&nbsp;3: Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age.</figcaption>
 </figure>
 </div>
@@ -208,7 +208,7 @@ div.csl-indent {
 <p>We also plotted survival bias to show that 95% of pups were resighted within 7 years. Both plots are supplemental.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 86</code></pre>
+<pre><code>[1] 111</code></pre>
 </div>
 <div class="cell-output-display">
 <div id="fig-surv_bias" class="quarto-figure quarto-figure-center anchored">
@@ -233,28 +233,28 @@ Formula: is_male ~ age + (1 | animalID) + (1 | year)
    Data: pup_sex_data
 
      AIC      BIC   logLik deviance df.resid 
-  2461.9   2483.9  -1227.0   2453.9     1773 
+  2478.6   2500.5  -1235.3   2470.6     1785 
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--1.2774 -1.0261  0.8293  0.9511  1.0844 
+-1.2886 -1.0206  0.8272  0.9518  1.0873 
 
 Random effects:
  Groups   Name        Variance Std.Dev.
- animalID (Intercept) 0.02253  0.1501  
- year     (Intercept) 0.02350  0.1533  
-Number of obs: 1777, groups:  animalID, 796; year, 36
+ animalID (Intercept) 0.02959  0.1720  
+ year     (Intercept) 0.02417  0.1555  
+Number of obs: 1789, groups:  animalID, 798; year, 36
 
 Fixed effects:
             Estimate Std. Error z value Pr(&gt;|z|)  
-(Intercept) -0.13793    0.13100  -1.053   0.2924  
-age          0.03115    0.01601   1.946   0.0517 .
+(Intercept) -0.14803    0.13062  -1.133   0.2571  
+age          0.03187    0.01591   2.003   0.0452 *
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Correlation of Fixed Effects:
     (Intr)
-age -0.905</code></pre>
+age -0.903</code></pre>
 </div>
 <div class="cell-output-display">
 <div id="fig-sex_ratio" class="quarto-figure quarto-figure-center anchored">
@@ -270,7 +270,6 @@ age -0.905</code></pre>
 <h3 class="anchored" data-anchor-id="h3b-changes-to-annual-cycle-timing-with-increased-maternal-age">H3b: Changes to annual cycle timing with increased maternal age</h3>
 <p>We predicted that seals would shift the timing of their annual cycle.</p>
 <p>We found that as maternal age increases, there are slight adjustments to the timing of life history events. These events (breeding/molting arrival/departure) are typically shifted later for older animals (<a href="#fig-phenology">Figure&nbsp;6</a>).</p>
-<p>The table is supplemental.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-phenology" class="quarto-figure quarto-figure-center anchored">
@@ -603,11 +602,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggeffects)</span>
 <span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
 <span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>sealdat <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"data/raw/128L pull 2023_11_30.csv"</span>), </span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>sealdat <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"data/raw/128L pull 2023_12_05.csv"</span>), </span>
 <span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>                    <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed =</span> <span class="fu">if_else</span>(observed <span class="sc">==</span> <span class="st">"B"</span>, <span class="st">"Breeder"</span>, <span class="st">"Non-breeder"</span>), </span>
 <span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>         <span class="at">observed_int =</span> <span class="fu">if_else</span>(observed <span class="sc">==</span> <span class="st">"Breeder"</span>, <span class="dv">1</span>, <span class="dv">0</span>), </span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>         <span class="at">pup_survived =</span> pupseeneveragain <span class="sc">&gt;</span> <span class="dv">0</span>,) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>         <span class="at">pup_survived =</span> pupseeneveragain <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(age <span class="sc">&gt;</span> <span class="dv">3</span>, </span>
 <span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>         year <span class="sc">&gt;</span> <span class="dv">1987</span>)</span>
 <span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
@@ -780,7 +779,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-213"><a href="#cb3-213" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb3-214"><a href="#cb3-214" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-repro_age</span></span>
 <span id="cb3-215"><a href="#cb3-215" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age."</span></span>
-<span id="cb3-216"><a href="#cb3-216" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
+<span id="cb3-216"><a href="#cb3-216" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 4.5</span></span>
 <span id="cb3-217"><a href="#cb3-217" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-218"><a href="#cb3-218" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-219"><a href="#cb3-219" aria-hidden="true" tabindex="-1"></a><span class="co">#B Pup survival and recruitment doesn't change with increased maternal age.</span></span>
@@ -798,7 +797,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-231"><a href="#cb3-231" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_pups =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
 <span id="cb3-232"><a href="#cb3-232" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> </span>
 <span id="cb3-233"><a href="#cb3-233" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_pups <span class="sc">&gt;=</span> <span class="dv">5</span>)</span>
-<span id="cb3-234"><a href="#cb3-234" aria-hidden="true" tabindex="-1"></a>pup_surv_model <span class="ot">&lt;-</span> <span class="fu">glmer</span>(pup_survived_dbl <span class="sc">~</span> <span class="fu">poly</span>(age, <span class="dv">2</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
+<span id="cb3-234"><a href="#cb3-234" aria-hidden="true" tabindex="-1"></a>pup_surv_model <span class="ot">&lt;-</span> <span class="fu">glmer</span>(pup_survived_dbl <span class="sc">~</span> <span class="fu">poly</span>(age, <span class="dv">2</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
 <span id="cb3-235"><a href="#cb3-235" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> surv_recruit_data, </span>
 <span id="cb3-236"><a href="#cb3-236" aria-hidden="true" tabindex="-1"></a>                        <span class="at">family =</span> <span class="st">"binomial"</span>)</span>
 <span id="cb3-237"><a href="#cb3-237" aria-hidden="true" tabindex="-1"></a>pup_surv_pred <span class="ot">&lt;-</span> <span class="fu">ggpredict</span>(pup_surv_model, <span class="at">terms =</span> <span class="fu">c</span>(<span class="st">"age [all]"</span>)) <span class="sc">%&gt;%</span> </span>
@@ -808,7 +807,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-241"><a href="#cb3-241" aria-hidden="true" tabindex="-1"></a>            <span class="at">mean =</span> predicted, </span>
 <span id="cb3-242"><a href="#cb3-242" aria-hidden="true" tabindex="-1"></a>            <span class="at">mean_lwr =</span> conf.low, </span>
 <span id="cb3-243"><a href="#cb3-243" aria-hidden="true" tabindex="-1"></a>            <span class="at">mean_upr =</span> conf.high)</span>
-<span id="cb3-244"><a href="#cb3-244" aria-hidden="true" tabindex="-1"></a>pup_recruit_model <span class="ot">&lt;-</span> <span class="fu">glmer</span>(puprecruited <span class="sc">~</span> <span class="fu">poly</span>(age, <span class="dv">2</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
+<span id="cb3-244"><a href="#cb3-244" aria-hidden="true" tabindex="-1"></a>pup_recruit_model <span class="ot">&lt;-</span> <span class="fu">glmer</span>(puprecruited <span class="sc">~</span> <span class="fu">poly</span>(age, <span class="dv">2</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
 <span id="cb3-245"><a href="#cb3-245" aria-hidden="true" tabindex="-1"></a>                           <span class="at">data =</span> surv_recruit_data, </span>
 <span id="cb3-246"><a href="#cb3-246" aria-hidden="true" tabindex="-1"></a>                           <span class="at">family =</span> <span class="st">"binomial"</span>)</span>
 <span id="cb3-247"><a href="#cb3-247" aria-hidden="true" tabindex="-1"></a>pup_recruit_pred <span class="ot">&lt;-</span> <span class="fu">ggpredict</span>(pup_recruit_model, <span class="at">terms =</span> <span class="fu">c</span>(<span class="st">"age [all]"</span>)) <span class="sc">%&gt;%</span> </span>
@@ -984,36 +983,36 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-423"><a href="#cb3-423" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>(age, BA, BD, MA, MD)</span>
 <span id="cb3-424"><a href="#cb3-424" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-425"><a href="#cb3-425" aria-hidden="true" tabindex="-1"></a>mean_phenology <span class="ot">&lt;-</span> seal_phenology <span class="sc">%&gt;%</span> </span>
-<span id="cb3-426"><a href="#cb3-426" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(BA<span class="sc">:</span>MD, mean), </span>
-<span id="cb3-427"><a href="#cb3-427" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-428"><a href="#cb3-428" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(),</span>
-<span id="cb3-429"><a href="#cb3-429" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"event"</span>, </span>
-<span id="cb3-430"><a href="#cb3-430" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"doy"</span>)</span>
-<span id="cb3-431"><a href="#cb3-431" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-432"><a href="#cb3-432" aria-hidden="true" tabindex="-1"></a>phenology_n <span class="ot">&lt;-</span> <span class="fu">unique</span>(seal_phenology<span class="sc">$</span>animalID)</span>
-<span id="cb3-433"><a href="#cb3-433" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-434"><a href="#cb3-434" aria-hidden="true" tabindex="-1"></a>timing_summary <span class="ot">&lt;-</span> seal_phenology <span class="sc">%&gt;%</span> </span>
-<span id="cb3-435"><a href="#cb3-435" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(age) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-436"><a href="#cb3-436" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(BA<span class="sc">:</span>MD, mean), </span>
-<span id="cb3-437"><a href="#cb3-437" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-438"><a href="#cb3-438" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>age,  </span>
-<span id="cb3-439"><a href="#cb3-439" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"event"</span>, </span>
-<span id="cb3-440"><a href="#cb3-440" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"doy"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-441"><a href="#cb3-441" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(age) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-442"><a href="#cb3-442" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_modify</span>(\(data, keys) {</span>
-<span id="cb3-443"><a href="#cb3-443" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(<span class="at">event =</span> <span class="fu">c</span>(<span class="st">"Long trip"</span>, <span class="st">"Breeding"</span>, <span class="st">"Short trip"</span>, <span class="st">"Molting"</span>, <span class="st">"longtrip2"</span>),</span>
-<span id="cb3-444"><a href="#cb3-444" aria-hidden="true" tabindex="-1"></a>           <span class="at">doy =</span> <span class="fu">c</span>(data<span class="sc">$</span>doy, <span class="dv">365</span>) <span class="sc">-</span> <span class="fu">c</span>(<span class="dv">0</span>, data<span class="sc">$</span>doy))</span>
-<span id="cb3-445"><a href="#cb3-445" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">%&gt;%</span> </span>
-<span id="cb3-446"><a href="#cb3-446" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb3-447"><a href="#cb3-447" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event =</span> <span class="fu">factor</span>(event, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Long trip"</span>, </span>
-<span id="cb3-448"><a href="#cb3-448" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Breeding"</span>, </span>
-<span id="cb3-449"><a href="#cb3-449" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Short trip"</span>, </span>
-<span id="cb3-450"><a href="#cb3-450" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Molting"</span>, </span>
-<span id="cb3-451"><a href="#cb3-451" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"longtrip2"</span>)))</span>
-<span id="cb3-452"><a href="#cb3-452" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-453"><a href="#cb3-453" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-426"><a href="#cb3-426" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(age) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-427"><a href="#cb3-427" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(BA<span class="sc">:</span>MD, mean)) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-428"><a href="#cb3-428" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(BA<span class="sc">:</span>MD, mean)) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-429"><a href="#cb3-429" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(),</span>
+<span id="cb3-430"><a href="#cb3-430" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"event"</span>, </span>
+<span id="cb3-431"><a href="#cb3-431" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"doy"</span>) </span>
+<span id="cb3-432"><a href="#cb3-432" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-433"><a href="#cb3-433" aria-hidden="true" tabindex="-1"></a>phenology_n <span class="ot">&lt;-</span> <span class="fu">unique</span>(seal_phenology<span class="sc">$</span>animalID)</span>
+<span id="cb3-434"><a href="#cb3-434" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-435"><a href="#cb3-435" aria-hidden="true" tabindex="-1"></a>timing_summary <span class="ot">&lt;-</span> seal_phenology <span class="sc">%&gt;%</span> </span>
+<span id="cb3-436"><a href="#cb3-436" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(age) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-437"><a href="#cb3-437" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(BA<span class="sc">:</span>MD, mean), </span>
+<span id="cb3-438"><a href="#cb3-438" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-439"><a href="#cb3-439" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>age,  </span>
+<span id="cb3-440"><a href="#cb3-440" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"event"</span>, </span>
+<span id="cb3-441"><a href="#cb3-441" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"doy"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-442"><a href="#cb3-442" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(age) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-443"><a href="#cb3-443" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_modify</span>(\(data, keys) {</span>
+<span id="cb3-444"><a href="#cb3-444" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(<span class="at">event =</span> <span class="fu">c</span>(<span class="st">"Long trip"</span>, <span class="st">"Breeding"</span>, <span class="st">"Short trip"</span>, <span class="st">"Molting"</span>, <span class="st">"longtrip2"</span>),</span>
+<span id="cb3-445"><a href="#cb3-445" aria-hidden="true" tabindex="-1"></a>           <span class="at">doy =</span> <span class="fu">c</span>(data<span class="sc">$</span>doy, <span class="dv">365</span>) <span class="sc">-</span> <span class="fu">c</span>(<span class="dv">0</span>, data<span class="sc">$</span>doy))</span>
+<span id="cb3-446"><a href="#cb3-446" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-447"><a href="#cb3-447" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-448"><a href="#cb3-448" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">event =</span> <span class="fu">factor</span>(event, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Long trip"</span>, </span>
+<span id="cb3-449"><a href="#cb3-449" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Breeding"</span>, </span>
+<span id="cb3-450"><a href="#cb3-450" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Short trip"</span>, </span>
+<span id="cb3-451"><a href="#cb3-451" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Molting"</span>, </span>
+<span id="cb3-452"><a href="#cb3-452" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"longtrip2"</span>)))</span>
+<span id="cb3-453"><a href="#cb3-453" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-454"><a href="#cb3-454" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-455"><a href="#cb3-455" aria-hidden="true" tabindex="-1"></a>The table is supplemental.</span>
+<span id="cb3-455"><a href="#cb3-455" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb3-456"><a href="#cb3-456" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-459"><a href="#cb3-459" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb3-460"><a href="#cb3-460" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-phenology</span></span>
@@ -1131,7 +1130,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-572"><a href="#cb3-572" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-573"><a href="#cb3-573" aria-hidden="true" tabindex="-1"></a><span class="co"># table(seal_phenology$age,seal_phenology$observed)</span></span>
 <span id="cb3-574"><a href="#cb3-574" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-575"><a href="#cb3-575" aria-hidden="true" tabindex="-1"></a><span class="co">#average the averages - global average of age-specific averages </span></span>
+<span id="cb3-575"><a href="#cb3-575" aria-hidden="true" tabindex="-1"></a><span class="co">#white dashed lines average the averages - global average of age-specific averages </span></span>
 <span id="cb3-576"><a href="#cb3-576" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
