@@ -8,7 +8,6 @@ format:
     code-fold: true
     code-tools: true
     warning: false
-    eval: false
 editor: visual
 bibliography: references.bib
 ---
@@ -16,7 +15,6 @@ bibliography: references.bib
 ```{r}
 #| label: setup
 #| include: false  
-#| eval: true
 library(ggthemes)
 library(cowplot)
 library(lme4)
@@ -55,7 +53,6 @@ We predicted that breeding success would decline with age. We found that breedin
 
 ```{r}
 #| label: age_breeding_mod
-#| eval: true
 
 breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
                       data = filter(sealdat), 
@@ -75,6 +72,8 @@ format_pval <- function(p, digits) {
          sprintf(paste0("%0.", digits, "f"), p))
 }
 
+#change rightmost value to say p value 
+#add an extra sig fig to all columns
 #p values are also rounded....
 
 #table s1, look at roxannes ecology letters paper supplemental 
@@ -93,8 +92,9 @@ breed_mod_summary$coefficients %>%
   as_tibble() %>% 
   mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
          across(c(Estimate, `Std. Error`, `z value`), 
-                \(x) format_signif(x, digits = 2)),
-         `Pr(>|z|)` = format_pval(`Pr(>|z|)`, digits = 3)) %>%
+                \(x) format_signif(x, digits = 3)),
+         P_value = format_pval(`Pr(>|z|)`, digits = 2)) %>%
+  select(-`Pr(>|z|)`) %>% 
   relocate(Parameter) %>% 
   knitr::kable()
 ```
@@ -209,6 +209,7 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 ## NOTE: REMOVED RANDOM EFFECT OF INDIVIDUAL, OTHERWISE SINGULAR FIT (HYPOTHESIS: 
 ## INSUFFICIENT SAMPLE SIZES PER INDIVIDUAL)
 
+
 surv_recruit_data <- sealdat %>% 
   drop_na(pupID) %>% 
   filter(pupsex == "F",
@@ -278,7 +279,7 @@ surv_recruit_summary %>%
   scale_linetype_manual(values = c("solid", "dashed")) +
   scale_alpha_manual(values = c(0.25, 0.1)) +
   expand_limits(y = c(0, 0.5)) +
-  labs(x = "Maternal Age (Years)", y = "% Pups (Mean ± SE)") +
+  labs(x = "Maternal Age (Years)", y = "Pup Survival or Recruitment/n") +
   theme_few() + 
   theme(legend.position = c(0.1,0.97), 
         legend.justification = c(0,1), 
@@ -287,6 +288,7 @@ surv_recruit_summary %>%
         axis.title = element_text(size = 13))
 
 #Why is recruitment higher than survival in some points? Add the quadratic model? Reverse order of legend in the figure
+#caption - error bars show SE. Points are mean values for maternal age. Make sure that language in the caption matches both the model and the data 
 ```
 
 The model of Survival \~ Maternal age was significant before we treated Year as a random effect. Was that because pups born earlier in the study had more time to be seen again (i.e., a sampling artifact?) If so, the plot of the random effect of year should have a negative slope.
@@ -340,51 +342,51 @@ We found that as maternal age increases, pup sex skews slightly towards males - 
 #| fig-width: 9
 #A: Pup sex shifts towards males with increasing maternal age, but it's not significant.
 
-pup_sex <- sealdat %>% 
+pup_sex_data <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
          age < 19) %>% 
+  mutate(is_male = ifelse(pupsex == "M", 1, 0))
+
+#linear
+pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
+                     data = pup_sex_data, 
+                     family = "binomial")
+summary(pup_sex_mod)
+
+# We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted. 
+
+pup_sex_pred <- ggpredict(pup_sex_mod, terms = c("age [all]")) %>% 
+  as_tibble() %>% 
+  transmute(age = x, 
+            percm = predicted, 
+            percm_lwr = conf.low, 
+            percm_upr = conf.high)
+
+pup_sex_data %>% 
   group_by(age, pupsex) %>%
-  count(pupsex) %>% 
+  summarize(n = n(), .groups = "drop") %>% 
   pivot_wider(values_from = n, names_from = pupsex) %>% 
   mutate(num = M + F,
-         percf = F / num,
-         se = (percf * (1 - percf) / num)^0.5) %>% 
-  ggplot(aes(x = age, y = percf, weight = num)) +
-  geom_hline(yintercept = 0.5, lty = 2, color = "#829BD1") +
-  geom_point() +
-  geom_errorbar(aes(ymin = percf - se, ymax = percf + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, NA)) +
+         percm = M / num,
+         se = (percm * (1 - percm) / num)^0.5) %>% 
+  ggplot(aes(x = age, y = percm)) +
+  geom_hline(yintercept = 0.5, color = "gray75", linetype = "dashed") +
+  geom_ribbon(aes(ymin = percm_lwr, ymax = percm_upr), 
+              pup_sex_pred,
+              fill = "#829BD1",
+              alpha = 0.25) + 
+  geom_line(data = pup_sex_pred, 
+            color = "#829BD1", 
+            linewidth = 1) + 
+  geom_pointrange(aes(ymin = percm - se, ymax = percm + se), 
+                  size = 0.25) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
   labs(x = "Maternal Age (Years)", y = "% Male Pups (Mean ± SE)") +
   theme_few() + 
   theme(axis.title = element_text(size = 13))
 
 
-pup_sex
-
 #take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)
-```
-
-Results of the model for pup sex ratio:
-
-```{r}
-#probably will need to take out animalID
-pup_sex_mod <- glmer(as.factor(pupsex) ~ age + (1 | animalID) + (1 | year),
-                     data = filter(sealdat, 
-                                   pupsex %in% c("M", "F"), 
-                                   age < 19), 
-                     family = "binomial")
-summary(pup_sex_mod)
-
-#quadratic 
-
-pup_sex_quad <- glmer(as.factor(pupsex) ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                            data = filter(sealdat, 
-                                   pupsex %in% c("M", "F"), 
-                                   age < 19),
-                            family = "binomial")
-summary(pup_sex_quad)
-
-
 ```
 
 ### H3b: Changes to annual cycle timing with increased maternal age
@@ -553,7 +555,7 @@ ggsave("outputs/agefig4.png", plot = , height = 9, width = 9)
 
 table(seal_phenology$age,seal_phenology$observed)
 
-
+#average the averages - global average of age-specific averages 
 ```
 
 Supplemental table
