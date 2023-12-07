@@ -40,11 +40,11 @@ Our hypotheses:
 
 1.  Elephant seal reproductive success declines with age.
 
-2.  Reproductive declines persist to the next generation (maternal effect senescence). 
+2.  Reproductive declines persist to the next generation (maternal effect senescence). That is, offspring survival and recruitment are decreased.
 
-3.  Seal phenology is shifted later for older animals and breeders.
+3.  Offspring sex ratios shift towards males with old age.
 
-**Note**: *This paper is similar to another paper about polar bears (*Ursus maritimus*)* [@naciri2022].
+4.  Phenology is shifted later for older animals and breeders.
 
 # Results
 
@@ -224,50 +224,9 @@ surv_recruit_summary %>%
 #caption - error bars show SE. Points are mean values for maternal age. Make sure that language in the caption matches both the model and the data 
 ```
 
-The model of Survival \~ Maternal age was significant before we treated Year as a random effect. Was that because pups born earlier in the study had more time to be seen again (i.e., a sampling artifact?) If so, the plot of the random effect of year should have a negative slope.
-
-We also plotted survival bias to show that 95% of pups were resighted within 7 years. Both plots are supplemental.
-
-```{r}
-#| label: fig-surv_bias
-#| fig-cap: "A: Plotting the intercept of the random effect of year shows that variation in ocean conditions is likely driving patterns in survival, rather than age of mother. B: 95% of seals that survived were resighted within ~seven years of their birth."
-#| fig-width: 9
-
-year_ranef <- ranef(pup_surv_model)$year %>% 
-  as_tibble(rownames = "year") %>% 
-  mutate(year = as.numeric(year)) %>% 
-  rename(intercept = `(Intercept)`)
-
-year_ranef_plot <- ggplot(year_ranef, aes(year, intercept)) + 
-  geom_point() + 
-  geom_smooth(method = "loess", 
-              formula = y ~ x,
-              color = "red") + 
-  theme_classic()
-
-survival_bias <- sealdat %>% 
-  group_by(animalID) %>% 
-  summarize(first_resight_yrs = min(age))
-
-survival95 <- quantile(survival_bias$first_resight_yrs, 0.95)
-#n for 95% quantile
-sum(survival_bias$first_resight_yrs > 7)
-
-survival_bias_plot <- ggplot(survival_bias, aes(x = first_resight_yrs)) +
-  stat_ecdf() +
-  geom_vline(xintercept = survival95, linetype = "dashed", color = "red") +
-  scale_x_continuous(limits = c(0, 10)) + 
-  theme_classic()
-
-plot_grid(year_ranef_plot, survival_bias_plot, nrow = 1, labels = "AUTO")
-
-```
-
-There is a drop off in recent years that seems to support the idea that recent years have a sampling bias, but the earlier portion suggests that overall the variation is caused by ocean conditions and not sampling. See the Cohort paper!
-
 ### H3a: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males.
+We found that as maternal age increases, pup sex skews slightly towards males (@fig-sex_ratio).
 
 ```{r}
 #| label: fig-sex_ratio
@@ -294,7 +253,6 @@ signif_male <- filter(pup_sex_summary, pval < 0.05)
 pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
                      data = pup_sex_data, 
                      family = "binomial")
-summary(pup_sex_mod)
 
 # We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted.
 
@@ -551,6 +509,42 @@ rbind(surv_mod_kable, recruit_mod_kable) %>%
   knitr::kable() %>% 
   kableExtra::kable_styling() %>% 
   kableExtra::collapse_rows(columns = 1)
+```
+
+Supplemental figure for survival bias:
+
+```{r}
+#| label: fig-surv_bias
+#| fig-cap: "A: Plotting the intercept of the random effect of year shows that variation in ocean conditions is likely driving patterns in survival, rather than age of mother. B: 95% of seals that survived were resighted within ~seven years of their birth."
+#| fig-width: 9
+
+year_ranef <- ranef(pup_surv_model)$year %>% 
+  as_tibble(rownames = "year") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  rename(intercept = `(Intercept)`)
+
+year_ranef_plot <- ggplot(year_ranef, aes(year, intercept)) + 
+  geom_point() + 
+  geom_smooth(method = "loess", 
+              formula = y ~ x,
+              color = "red") + 
+  theme_classic()
+
+survival_bias <- sealdat %>% 
+  group_by(animalID) %>% 
+  summarize(first_resight_yrs = min(age))
+
+survival95 <- quantile(survival_bias$first_resight_yrs, 0.95)
+#n for 95% quantile
+sum(survival_bias$first_resight_yrs > 7)
+
+survival_bias_plot <- ggplot(survival_bias, aes(x = first_resight_yrs)) +
+  stat_ecdf() +
+  geom_vline(xintercept = survival95, linetype = "dashed", color = "red") +
+  scale_x_continuous(limits = c(0, 10)) + 
+  theme_classic()
+
+plot_grid(year_ranef_plot, survival_bias_plot, nrow = 1, labels = "AUTO")
 ```
 
 Supplemental table for pup sex ratio model.
