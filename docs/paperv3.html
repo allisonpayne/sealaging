@@ -513,6 +513,106 @@ age -0.905</code></pre>
 
 </div>
 </div>
+<p>Supplemental figure for phenology models</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="paperv3_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="432"></p>
+</div>
+</div>
+<p>Supplemental table for the phenology models.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">Response</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Parameter</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Estimate</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Std. Error</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">df</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">t value</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">p value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Breeding arrival</td>
+<td style="text-align: left;">Intercept</td>
+<td style="text-align: left;">14.7</td>
+<td style="text-align: left;">1.06</td>
+<td style="text-align: left;">1660.</td>
+<td style="text-align: left;">13.8</td>
+<td style="text-align: left;">&lt;0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Breeding arrival</td>
+<td style="text-align: left;">Age (linear)</td>
+<td style="text-align: left;">0.114</td>
+<td style="text-align: left;">0.136</td>
+<td style="text-align: left;">1980.</td>
+<td style="text-align: left;">0.838</td>
+<td style="text-align: left;">0.40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Breeding departure</td>
+<td style="text-align: left;">Intercept</td>
+<td style="text-align: left;">14.7</td>
+<td style="text-align: left;">1.06</td>
+<td style="text-align: left;">1660.</td>
+<td style="text-align: left;">13.8</td>
+<td style="text-align: left;">&lt;0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Breeding departure</td>
+<td style="text-align: left;">Age (linear)</td>
+<td style="text-align: left;">0.114</td>
+<td style="text-align: left;">0.136</td>
+<td style="text-align: left;">1980.</td>
+<td style="text-align: left;">0.838</td>
+<td style="text-align: left;">0.40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Molt arrival</td>
+<td style="text-align: left;">Intercept</td>
+<td style="text-align: left;">108.</td>
+<td style="text-align: left;">2.06</td>
+<td style="text-align: left;">22.3</td>
+<td style="text-align: left;">52.7</td>
+<td style="text-align: left;">&lt;0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Molt arrival</td>
+<td style="text-align: left;">Age (linear)</td>
+<td style="text-align: left;">1.48</td>
+<td style="text-align: left;">0.137</td>
+<td style="text-align: left;">1560.</td>
+<td style="text-align: left;">10.8</td>
+<td style="text-align: left;">&lt;0.01</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Molt departure</td>
+<td style="text-align: left;">Intercept</td>
+<td style="text-align: left;">132.</td>
+<td style="text-align: left;">2.49</td>
+<td style="text-align: left;">29.1</td>
+<td style="text-align: left;">53.1</td>
+<td style="text-align: left;">&lt;0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Molt departure</td>
+<td style="text-align: left;">Age (linear)</td>
+<td style="text-align: left;">0.940</td>
+<td style="text-align: left;">0.138</td>
+<td style="text-align: left;">1630.</td>
+<td style="text-align: left;">6.80</td>
+<td style="text-align: left;">&lt;0.01</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
 <!-- -->
 
 
@@ -1402,6 +1502,101 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb3-617"><a href="#cb3-617" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
 <span id="cb3-618"><a href="#cb3-618" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">row_spec</span>(is_signif, <span class="at">bold =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb3-619"><a href="#cb3-619" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-620"><a href="#cb3-620" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-621"><a href="#cb3-621" aria-hidden="true" tabindex="-1"></a>Supplemental figure for phenology models</span>
+<span id="cb3-622"><a href="#cb3-622" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-625"><a href="#cb3-625" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb3-626"><a href="#cb3-626" aria-hidden="true" tabindex="-1"></a><span class="co">#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing</span></span>
+<span id="cb3-627"><a href="#cb3-627" aria-hidden="true" tabindex="-1"></a>BA_age <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(seal_phenology, <span class="fu">aes</span>(age, BA)) <span class="sc">+</span> </span>
+<span id="cb3-628"><a href="#cb3-628" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb3-629"><a href="#cb3-629" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">150</span>)) <span class="sc">+</span> </span>
+<span id="cb3-630"><a href="#cb3-630" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb3-631"><a href="#cb3-631" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Breeding arrival (DOY)"</span>, <span class="at">x =</span> <span class="st">"Maternal age (Years)"</span>)</span>
+<span id="cb3-632"><a href="#cb3-632" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-633"><a href="#cb3-633" aria-hidden="true" tabindex="-1"></a>BD_age <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(seal_phenology, <span class="fu">aes</span>(age, BD)) <span class="sc">+</span> </span>
+<span id="cb3-634"><a href="#cb3-634" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb3-635"><a href="#cb3-635" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">150</span>)) <span class="sc">+</span> </span>
+<span id="cb3-636"><a href="#cb3-636" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb3-637"><a href="#cb3-637" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Breeding departure (DOY)"</span>, <span class="at">x =</span> <span class="st">"Maternal age (Years)"</span>)</span>
+<span id="cb3-638"><a href="#cb3-638" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-639"><a href="#cb3-639" aria-hidden="true" tabindex="-1"></a>MA_age <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(seal_phenology, <span class="fu">aes</span>(age, MA)) <span class="sc">+</span> </span>
+<span id="cb3-640"><a href="#cb3-640" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb3-641"><a href="#cb3-641" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"#829BD1"</span>) <span class="sc">+</span> </span>
+<span id="cb3-642"><a href="#cb3-642" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="dv">200</span>)) <span class="sc">+</span> </span>
+<span id="cb3-643"><a href="#cb3-643" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb3-644"><a href="#cb3-644" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Molt arrival (DOY)"</span>, <span class="at">x =</span> <span class="st">"Maternal age (Years)"</span>)</span>
+<span id="cb3-645"><a href="#cb3-645" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-646"><a href="#cb3-646" aria-hidden="true" tabindex="-1"></a>MD_age <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(seal_phenology, <span class="fu">aes</span>(age, MD)) <span class="sc">+</span> </span>
+<span id="cb3-647"><a href="#cb3-647" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb3-648"><a href="#cb3-648" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"#829BD1"</span>) <span class="sc">+</span> </span>
+<span id="cb3-649"><a href="#cb3-649" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="dv">200</span>)) <span class="sc">+</span> </span>
+<span id="cb3-650"><a href="#cb3-650" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb3-651"><a href="#cb3-651" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Molt departure (DOY)"</span>, <span class="at">x =</span> <span class="st">"Maternal age (Years)"</span>)</span>
+<span id="cb3-652"><a href="#cb3-652" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-653"><a href="#cb3-653" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_grid</span>(BA_age, BD_age, MA_age, MD_age, <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">ncol =</span> <span class="dv">2</span>)</span>
+<span id="cb3-654"><a href="#cb3-654" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-655"><a href="#cb3-655" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-656"><a href="#cb3-656" aria-hidden="true" tabindex="-1"></a>Supplemental table for the phenology models.</span>
+<span id="cb3-657"><a href="#cb3-657" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-660"><a href="#cb3-660" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb3-661"><a href="#cb3-661" aria-hidden="true" tabindex="-1"></a>ba_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">1</span>]]</span>
+<span id="cb3-662"><a href="#cb3-662" aria-hidden="true" tabindex="-1"></a>ba_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ba_data)</span>
+<span id="cb3-663"><a href="#cb3-663" aria-hidden="true" tabindex="-1"></a>ba_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ba_mod)</span>
+<span id="cb3-664"><a href="#cb3-664" aria-hidden="true" tabindex="-1"></a>ba_ktable <span class="ot">&lt;-</span> ba_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb3-665"><a href="#cb3-665" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-666"><a href="#cb3-666" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb3-667"><a href="#cb3-667" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb3-668"><a href="#cb3-668" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb3-669"><a href="#cb3-669" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb3-670"><a href="#cb3-670" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Breeding arrival"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-671"><a href="#cb3-671" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-672"><a href="#cb3-672" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb3-673"><a href="#cb3-673" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-674"><a href="#cb3-674" aria-hidden="true" tabindex="-1"></a>bd_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">2</span>]]</span>
+<span id="cb3-675"><a href="#cb3-675" aria-hidden="true" tabindex="-1"></a>bd_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ba_data)</span>
+<span id="cb3-676"><a href="#cb3-676" aria-hidden="true" tabindex="-1"></a>bd_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ba_mod)</span>
+<span id="cb3-677"><a href="#cb3-677" aria-hidden="true" tabindex="-1"></a>bd_ktable <span class="ot">&lt;-</span> bd_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb3-678"><a href="#cb3-678" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-679"><a href="#cb3-679" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb3-680"><a href="#cb3-680" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb3-681"><a href="#cb3-681" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb3-682"><a href="#cb3-682" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb3-683"><a href="#cb3-683" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Breeding departure"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-684"><a href="#cb3-684" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-685"><a href="#cb3-685" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb3-686"><a href="#cb3-686" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-687"><a href="#cb3-687" aria-hidden="true" tabindex="-1"></a>ma_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">3</span>]]</span>
+<span id="cb3-688"><a href="#cb3-688" aria-hidden="true" tabindex="-1"></a>ma_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ma_data)</span>
+<span id="cb3-689"><a href="#cb3-689" aria-hidden="true" tabindex="-1"></a>ma_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ma_mod)</span>
+<span id="cb3-690"><a href="#cb3-690" aria-hidden="true" tabindex="-1"></a>ma_ktable <span class="ot">&lt;-</span> ma_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb3-691"><a href="#cb3-691" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-692"><a href="#cb3-692" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb3-693"><a href="#cb3-693" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb3-694"><a href="#cb3-694" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb3-695"><a href="#cb3-695" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb3-696"><a href="#cb3-696" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Molt arrival"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-697"><a href="#cb3-697" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-698"><a href="#cb3-698" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb3-699"><a href="#cb3-699" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-700"><a href="#cb3-700" aria-hidden="true" tabindex="-1"></a>md_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">4</span>]]</span>
+<span id="cb3-701"><a href="#cb3-701" aria-hidden="true" tabindex="-1"></a>md_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> md_data)</span>
+<span id="cb3-702"><a href="#cb3-702" aria-hidden="true" tabindex="-1"></a>md_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(md_mod)</span>
+<span id="cb3-703"><a href="#cb3-703" aria-hidden="true" tabindex="-1"></a>md_ktable <span class="ot">&lt;-</span> md_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb3-704"><a href="#cb3-704" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-705"><a href="#cb3-705" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb3-706"><a href="#cb3-706" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb3-707"><a href="#cb3-707" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb3-708"><a href="#cb3-708" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb3-709"><a href="#cb3-709" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Molt departure"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-710"><a href="#cb3-710" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-711"><a href="#cb3-711" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb3-712"><a href="#cb3-712" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-713"><a href="#cb3-713" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-714"><a href="#cb3-714" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(ba_ktable, bd_ktable, ma_ktable, md_ktable) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-715"><a href="#cb3-715" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-716"><a href="#cb3-716" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb3-717"><a href="#cb3-717" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">collapse_rows</span>(<span class="at">columns =</span> <span class="dv">1</span>)</span>
+<span id="cb3-718"><a href="#cb3-718" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

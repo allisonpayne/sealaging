@@ -630,29 +630,60 @@ plot_grid(BA_age, BD_age, MA_age, MD_age, nrow = 2, ncol = 2)
 Supplemental table for the phenology models.
 
 ```{r}
-BA_summary <- phenology_models$model[1]
- <- BA_summary$coefficients %>% 
+ba_data <- phenology_models$model_data[[1]]
+ba_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ba_data)
+ba_summary <- summary(ba_mod)
+ba_ktable <- ba_summary$coefficients %>% 
   as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
+  mutate(Parameter = c("Intercept", "Age (linear)"),
+         across(c(Estimate, `Std. Error`, `df`, `t value`), 
                 \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
-         Response = "Survival") %>%
-  select(-`Pr(>|z|)`) %>% 
+         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
+         Response = "Breeding arrival") %>%
+  select(-`Pr(>|t|)`) %>% 
   relocate(Response, Parameter)
 
-recruit_mod_summary <- summary(pup_recruit_model)
-recruit_mod_kable <- recruit_mod_summary$coefficients %>% 
+bd_data <- phenology_models$model_data[[2]]
+bd_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ba_data)
+bd_summary <- summary(ba_mod)
+bd_ktable <- bd_summary$coefficients %>% 
   as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
+  mutate(Parameter = c("Intercept", "Age (linear)"),
+         across(c(Estimate, `Std. Error`, `df`, `t value`), 
                 \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
-         Response = "Recruitment") %>%
-  select(-`Pr(>|z|)`) %>% 
+         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
+         Response = "Breeding departure") %>%
+  select(-`Pr(>|t|)`) %>% 
   relocate(Response, Parameter)
 
-rbind(surv_mod_kable, recruit_mod_kable) %>% 
+ma_data <- phenology_models$model_data[[3]]
+ma_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ma_data)
+ma_summary <- summary(ma_mod)
+ma_ktable <- ma_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)"),
+         across(c(Estimate, `Std. Error`, `df`, `t value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
+         Response = "Molt arrival") %>%
+  select(-`Pr(>|t|)`) %>% 
+  relocate(Response, Parameter)
+
+md_data <- phenology_models$model_data[[4]]
+md_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = md_data)
+md_summary <- summary(md_mod)
+md_ktable <- md_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)"),
+         across(c(Estimate, `Std. Error`, `df`, `t value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
+         Response = "Molt departure") %>%
+  select(-`Pr(>|t|)`) %>% 
+  relocate(Response, Parameter)
+
+
+rbind(ba_ktable, bd_ktable, ma_ktable, md_ktable) %>% 
   knitr::kable() %>% 
   kableExtra::kable_styling() %>% 
   kableExtra::collapse_rows(columns = 1)
