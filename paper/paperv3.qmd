@@ -23,6 +23,7 @@ library(merTools)
 library(tidyverse)
 library(ggeffects)
 library(patchwork)
+source(here::here("R/format.R"))
 
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"), 
                     show_col_types = FALSE) %>% 
@@ -62,15 +63,6 @@ breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
 breed_pred <- ggpredict(breeding_mod, terms = c("age [all]"))
 
 breed_mod_summary <- summary(breeding_mod)
-
-format_signif <- function(x, digits) {
-  formatC(signif(x, digits = digits), digits = digits, format = "fg", flag = "#")
-}
-format_pval <- function(p, digits) {
-  ifelse(p < 10^-digits,
-         sprintf("<%s", format(10^-digits, digits = 1, scientific = FALSE)),
-         sprintf(paste0("%0.", digits, "f"), p))
-}
 
 #change rightmost value to say p value 
 #add an extra sig fig to all columns
@@ -122,7 +114,7 @@ breed_nonbreed <- sealdat %>%
             linewidth = 1) +
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) + 
+  scale_y_continuous(labels = scales::percent, limits = c(0.5, 1)) + 
   labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
   theme_few() + 
   theme(axis.title = element_text(size = 13))
