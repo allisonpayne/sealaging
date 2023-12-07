@@ -279,14 +279,24 @@ We found that as maternal age increases, pup sex skews slightly towards males - 
 
 ```{r}
 #| label: fig-sex_ratio
-#| fig-cap: "Pup sex skews slightly towards males with increasing maternal age, but it's not significant."
+#| fig-cap: !expr "str_glue('Offspring sex ratio skews towards males with increasing maternal age (p = {format_pval(summary(pup_sex_mod)$coefficients[\"age\", \"Pr(>|z|)\"] / 2, 3)}). Mothers aged 12, 13, and 17 gave birth to significantly more male than female offspring (red stars).')"
 #| fig-width: 4.5
-#A: Pup sex shifts towards males with increasing maternal age, but it's not significant.
 
 pup_sex_data <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
          age < 19) %>% 
   mutate(is_male = ifelse(pupsex == "M", 1, 0))
+
+pup_sex_summary <- pup_sex_data %>% 
+  group_by(age, pupsex) %>%
+  summarize(n = n(), .groups = "drop") %>% 
+  pivot_wider(values_from = n, names_from = pupsex) %>% 
+  mutate(num = M + F,
+         percm = M / num,
+         se = (percm * (1 - percm) / num)^0.5,
+         pval = map2_dbl(M, num, \(x, n) binom.test(x, n, alternative = "greater")$p.value))
+
+signif_male <- filter(pup_sex_summary, pval < 0.05)
 
 #linear
 pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
@@ -303,14 +313,7 @@ pup_sex_pred <- ggpredict(pup_sex_mod, terms = c("age [all]")) %>%
             percm_lwr = conf.low, 
             percm_upr = conf.high)
 
-pup_sex_data %>% 
-  group_by(age, pupsex) %>%
-  summarize(n = n(), .groups = "drop") %>% 
-  pivot_wider(values_from = n, names_from = pupsex) %>% 
-  mutate(num = M + F,
-         percm = M / num,
-         se = (percm * (1 - percm) / num)^0.5) %>% 
-  ggplot(aes(x = age, y = percm)) +
+ggplot(pup_sex_summary, aes(x = age, y = percm)) +
   geom_hline(yintercept = 0.5, color = "gray75", linetype = "dashed") +
   geom_ribbon(aes(ymin = percm_lwr, ymax = percm_upr), 
               pup_sex_pred,
@@ -321,6 +324,10 @@ pup_sex_data %>%
             linewidth = 1) + 
   geom_pointrange(aes(ymin = percm - se, ymax = percm + se), 
                   size = 0.25) +
+  geom_point(aes(y = percm + se + 0.05),
+             signif_male,
+             shape = 8,
+             color = "firebrick") +
   scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
   labs(x = "Maternal Age (Years)", y = "% Male Pups (Mean ± SE)") +
   theme_few() + 
@@ -521,4 +528,26 @@ breed_mod_summary$coefficients %>%
   select(-`Pr(>|z|)`) %>% 
   relocate(Parameter) %>% 
   knitr::kable()
+```
+
+Supplemental table for sex ratios
+
+```{r}
+#| label: tbl-pup-sex
+#| tbl-cap: "Offspring sex ratio skewed towards males with increasing maternal age. Mothers age 12, 13, and 17 gave birth to significantly more male than female pups (bold)."
+
+pup_sex_tbl <- pup_sex_summary %>% 
+  transmute(
+    Age = age,
+    `Male pups` = M,
+    `Total pups` = num,
+    `% male` = scales::label_percent(accuracy = 0.1)(percm),
+    `p value` = format_pval(pval, 3)
+  )
+
+is_signif <- which(pup_sex_tbl$`p value` < "0.05")
+
+knitr::kable(pup_sex_tbl) %>% 
+  kableExtra::kable_styling() %>% 
+  kableExtra::row_spec(is_signif, bold = TRUE)
 ```
