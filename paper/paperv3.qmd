@@ -267,7 +267,7 @@ There is a drop off in recent years that seems to support the idea that recent y
 
 ### H3a: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males - but it's not significant.
+We found that as maternal age increases, pup sex skews slightly towards males.
 
 ```{r}
 #| label: fig-sex_ratio
@@ -296,7 +296,7 @@ pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
                      family = "binomial")
 summary(pup_sex_mod)
 
-# We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted. 
+# We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted.
 
 pup_sex_pred <- ggpredict(pup_sex_mod, terms = c("age [all]")) %>% 
   as_tibble() %>% 
@@ -503,7 +503,7 @@ Supplemental Table 1: Statistics for breeding success model.
 ```{r}
 #| label: tbl-breed-cap
 
-tbl_breed_cap <- str_glue("The results from breeding probability analyis. The random effect variance of animal id is {format_signif(VarCorr(breeding_mod)$animalID, 3)} and of year was {format_signif(VarCorr(breeding_mod)$year, 3)}.")
+tbl_breed_cap <- str_glue("The results from breeding probability analysis. The random effect variance of animal id is {format_signif(VarCorr(breeding_mod)$animalID, 3)} and of year was {format_signif(VarCorr(breeding_mod)$year, 3)}.")
 
 ```
 
@@ -522,7 +522,56 @@ breed_mod_summary$coefficients %>%
   knitr::kable()
 ```
 
-Supplemental table for sex ratios
+Supplemental table for offspring survival
+
+```{r}
+surv_mod_summary <- summary(pup_surv_model)
+surv_mod_kable <- surv_mod_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
+         across(c(Estimate, `Std. Error`, `z value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
+         Response = "Survival") %>%
+  select(-`Pr(>|z|)`) %>% 
+  relocate(Response, Parameter)
+
+recruit_mod_summary <- summary(pup_recruit_model)
+recruit_mod_kable <- recruit_mod_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
+         across(c(Estimate, `Std. Error`, `z value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
+         Response = "Recruitment") %>%
+  select(-`Pr(>|z|)`) %>% 
+  relocate(Response, Parameter)
+
+rbind(surv_mod_kable, recruit_mod_kable) %>% 
+  knitr::kable() %>% 
+  kableExtra::kable_styling() %>% 
+  kableExtra::collapse_rows(columns = 1)
+```
+
+Supplemental table for pup sex ratio model.
+
+```{r}
+pupsex_mod_summary <- summary(pup_sex_mod)
+pupsex_mod_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)"),
+         across(c(Estimate, `Std. Error`, `z value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|z|)`/2, digits = 3)) %>%
+  select(-`Pr(>|z|)`) %>% 
+  relocate(Parameter) %>% 
+  knitr::kable()
+
+
+# We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted. take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)
+```
+
+Supplemental table for male biased sex ratios at older ages.
 
 ```{r}
 #| label: tbl-pup-sex
@@ -542,4 +591,69 @@ is_signif <- which(pup_sex_tbl$`p value` < "0.05")
 knitr::kable(pup_sex_tbl) %>% 
   kableExtra::kable_styling() %>% 
   kableExtra::row_spec(is_signif, bold = TRUE)
+```
+
+Supplemental figure for phenology models
+
+```{r}
+
+#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing
+BA_age <- ggplot(seal_phenology, aes(age, BA)) + 
+  geom_point() + 
+  scale_y_continuous(limits = c(0, 150)) + 
+  theme_classic() + 
+  labs(y = "Breeding arrival (DOY)", x = "Maternal age (Years)")
+
+BD_age <- ggplot(seal_phenology, aes(age, BD)) + 
+  geom_point() + 
+  scale_y_continuous(limits = c(0, 150)) + 
+  theme_classic() + 
+  labs(y = "Breeding departure (DOY)", x = "Maternal age (Years)")
+
+MA_age <- ggplot(seal_phenology, aes(age, MA)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", color = "#829BD1") + 
+  scale_y_continuous(limits = c(50, 200)) + 
+  theme_classic() + 
+  labs(y = "Molt arrival (DOY)", x = "Maternal age (Years)")
+
+MD_age <- ggplot(seal_phenology, aes(age, MD)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", color = "#829BD1") + 
+  scale_y_continuous(limits = c(50, 200)) + 
+  theme_classic() + 
+  labs(y = "Molt departure (DOY)", x = "Maternal age (Years)")
+
+plot_grid(BA_age, BD_age, MA_age, MD_age, nrow = 2, ncol = 2)
+```
+
+Supplemental table for the phenology models.
+
+```{r}
+BA_summary <- phenology_models$model[1]
+ <- BA_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
+         across(c(Estimate, `Std. Error`, `z value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
+         Response = "Survival") %>%
+  select(-`Pr(>|z|)`) %>% 
+  relocate(Response, Parameter)
+
+recruit_mod_summary <- summary(pup_recruit_model)
+recruit_mod_kable <- recruit_mod_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
+         across(c(Estimate, `Std. Error`, `z value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
+         Response = "Recruitment") %>%
+  select(-`Pr(>|z|)`) %>% 
+  relocate(Response, Parameter)
+
+rbind(surv_mod_kable, recruit_mod_kable) %>% 
+  knitr::kable() %>% 
+  kableExtra::kable_styling() %>% 
+  kableExtra::collapse_rows(columns = 1)
 ```
