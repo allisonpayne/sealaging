@@ -1,8 +1,6 @@
 
 expand_grid(
-  age = 4:19,
-  observed = c("Breeder", "Non-breeder")
-) %>% 
+  age = 9:19) %>% 
   mutate(ba = predict(phenology_models$model[[1]],
                       newdata = .,
                       re.form = NA),
@@ -16,9 +14,7 @@ expand_grid(
                       newdata = .,
                       re.form = NA)) %>% 
   mutate(short_trip = ma - bd, 
-         molt_dur = md - ma, 
- #        long_trip = 365 - md ) %>% 
-  filter(observed == "Breeder", 
-         age %in% c(4,19)) %>% 
+         molt_dur = md - ma) %>%  
+  filter(age %in% c(9,19)) %>% 
   view()
 

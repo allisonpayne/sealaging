@@ -32,6 +32,11 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          pup_survived = pupseeneveragain > 0) %>% 
   filter(age > 3, 
          year > 1987)
+
+# 17 observations where pup recruited but did not survive
+problem_children <- filter(sealdat, puprecruited == 1 & !pup_survived)
+
+sealdat <- anti_join(sealdat, problem_children, by = c("animalID", "pupID"))
 ```
 
 # Introduction
@@ -48,6 +53,8 @@ Our hypotheses:
 
 # Results
 
+n = `r n_distinct(sealdat$animalID)` distinct animals
+
 ### H1: Age distribution and breeding status
 
 We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).
@@ -56,7 +63,7 @@ We predicted that breeding success would decline with age. We found that breedin
 #| label: age_breeding_mod
 
 breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                      data = filter(sealdat), 
+                      data = sealdat, 
                       family = "binomial", 
                       control = glmerControl(optimizer = "bobyqa"))
 
@@ -128,6 +135,8 @@ ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
 
 Population level prediction - the fact that the raw data falls above it comes from the fact that those age classes are correlated with years and individuals that were very successful.
 
+Sample size n = `r nrow(sealdat)`.
+
 ### H2: Maternal effect senescence
 
 We predicted that reproductive declines would carry over to the next generation - that is, pups born to older mothers would have decreased survival and recruitment success.
@@ -142,6 +151,8 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 #| fig-width: 4.5
 
 #B Pup survival and recruitment doesn't change with increased maternal age.
+
+##NOTE: Need to take out the instances where recruitment > survival
 
 surv_recruit_data <- sealdat %>% 
   drop_na(pupID) %>% 
@@ -224,6 +235,8 @@ surv_recruit_summary %>%
 #caption - error bars show SE. Points are mean values for maternal age. Make sure that language in the caption matches both the model and the data 
 ```
 
+Sample size n = `r nrow(surv_recruit_data)`.
+
 ### H3a: Changes in pup sex ratio with increased maternal age
 
 We found that as maternal age increases, pup sex skews slightly towards males (@fig-sex_ratio).
@@ -286,6 +299,8 @@ ggplot(pup_sex_summary, aes(x = age, y = percm)) +
 
 #take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)
 ```
+
+Sample size n = `r nrow(pup_sex_data)`.
 
 ### H3b: Changes to annual cycle timing with increased maternal age
 
@@ -453,6 +468,8 @@ plot_grid(
 
 #white dashed lines average the averages - global average of age-specific averages 
 ```
+
+Sample size n = `r nrow(seal_phenology)`.
 
 ### Supplemental Material
 
