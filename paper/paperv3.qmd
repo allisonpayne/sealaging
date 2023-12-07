@@ -85,21 +85,6 @@ format_pval <- function(p, digits) {
 ```
 
 ```{r}
-#| tbl-cap: str_glue("The results from breeding probability analyis. The random effect variance of animal id is {VarCorr(breeding_mod, digits = 3)[1]} and year was VarCorr(breeding_mod, digits = 3)[2].")
-#| eval: true
-
-breed_mod_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
-                \(x) format_signif(x, digits = 3)),
-         P_value = format_pval(`Pr(>|z|)`, digits = 2)) %>%
-  select(-`Pr(>|z|)`) %>% 
-  relocate(Parameter) %>% 
-  knitr::kable()
-```
-
-```{r}
 #| label: fig-age_dist
 #| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
 #| fig-width: 9
@@ -137,7 +122,7 @@ breed_nonbreed <- sealdat %>%
             linewidth = 1) +
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(.4, 1)) + 
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) + 
   labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
   theme_few() + 
   theme(axis.title = element_text(size = 13))
@@ -151,45 +136,6 @@ ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
 
 Population level prediction - the fact that the raw data falls above it comes from the fact that those age classes are correlated with years and individuals that were very successful.
 
-```{r}
-#| label: fig-breeding_bias
-#| fig-width: 9
-
-
-year_coef <- as_tibble(ranef(breeding_mod)$year, 
-                       rownames = "year") %>% 
-    mutate(year = as.numeric(year)) %>% 
-    rename(coef = `(Intercept)`)
-
-animal_coef <- as_tibble(ranef(breeding_mod)$animalID, 
-                         rownames = "animalID") %>% 
-    mutate(animalID = as.numeric(animalID)) %>% 
-    rename(coef = `(Intercept)`)
-
-year_bias <- sealdat %>% 
-  left_join(year_coef, by = "year") %>% 
-  mutate(age = factor(age)) %>% 
-  ggplot(aes(age, coef)) +
-  geom_boxplot() +
-  geom_hline(yintercept = 0, color = "#829BD1", linetype = "dashed") +
-  scale_x_discrete("Maternal Age (Years)", breaks = seq(5, 20, by = 5)) +
-  ylab("Random effect of year") +
-  theme_few()
-
-animalID_bias <- sealdat %>% 
-  left_join(animal_coef, by = "animalID") %>% 
-  mutate(age = factor(age)) %>% 
-  ggplot(aes(age, coef)) +
-  geom_boxplot() +
-  geom_hline(yintercept = 0, color = "#829BD1", linetype = "dashed") +
-  scale_x_discrete("Maternal Age (Years)", breaks = seq(5, 20, by = 5)) +  
-  ylab("Random effect of individual") +
-  theme_few()
-
-plot_grid(breed_nonbreed, year_bias, animalID_bias, nrow = 1)
-
-```
-
 ### H2: Maternal effect senescence
 
 We predicted that reproductive declines would carry over to the next generation - that is, pups born to older mothers would have decreased survival and recruitment success.
@@ -200,15 +146,10 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 
 ```{r}
 #| label: fig-repro_age
-#| fig-cap: "Pup survival decreases slightly, but survival and recruitment are not significantly affected by maternal age."
+#| fig-cap: "Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE."
 #| fig-width: 4.5
 
-
 #B Pup survival and recruitment doesn't change with increased maternal age.
-
-## NOTE: REMOVED RANDOM EFFECT OF INDIVIDUAL, OTHERWISE SINGULAR FIT (HYPOTHESIS: 
-## INSUFFICIENT SAMPLE SIZES PER INDIVIDUAL)
-
 
 surv_recruit_data <- sealdat %>% 
   drop_na(pupID) %>% 
@@ -276,7 +217,7 @@ surv_recruit_summary %>%
   scale_y_continuous(labels = scales::percent) + 
   scale_color_manual(values = c("#829BD1", "#E9B668")) + 
   scale_fill_manual(values = c("#829BD1", "#E9B668")) + 
-  scale_linetype_manual(values = c("solid", "dashed")) +
+  scale_linetype_manual(values = c("dashed", "dashed")) +
   scale_alpha_manual(values = c(0.25, 0.1)) +
   expand_limits(y = c(0, 0.5)) +
   labs(x = "Maternal Age (Years)", y = "Pup Survival or Recruitment") +
@@ -554,4 +495,30 @@ plot_grid(
 # table(seal_phenology$age,seal_phenology$observed)
 
 #white dashed lines average the averages - global average of age-specific averages 
+```
+
+### Supplemental Material
+
+Supplemental Table 1: Statistics for breeding success model.
+
+```{r}
+#| label: tbl-breed-cap
+
+tbl_breed_cap <- str_glue("The results from breeding probability analyis. The random effect variance of animal id is {format_signif(VarCorr(breeding_mod)$animalID, 3)} and of year was {format_signif(VarCorr(breeding_mod)$year, 3)}.")
+
+```
+
+```{r}
+#| label: tbl-breed-success
+#| tbl-cap: !expr "tbl_breed_cap"
+
+breed_mod_summary$coefficients %>% 
+  as_tibble() %>% 
+  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
+         across(c(Estimate, `Std. Error`, `z value`), 
+                \(x) format_signif(x, digits = 3)),
+         `p value` = format_pval(`Pr(>|z|)`, digits = 2)) %>%
+  select(-`Pr(>|z|)`) %>% 
+  relocate(Parameter) %>% 
+  knitr::kable()
 ```
