@@ -34,11 +34,6 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          year > 1987) %>% 
   mutate(across(c(animalID, year), factor),
          age10 = age / 10)
-
-# 17 observations where pup recruited but did not survive
-problem_children <- filter(sealdat, puprecruited == 1 & !pup_survived)
-
-sealdat <- anti_join(sealdat, problem_children, by = c("animalID", "pupID"))
 ```
 
 # Introduction
@@ -580,7 +575,7 @@ Supplemental table for pup sex ratio model.
 ```{r}
 #| label: tbl-pupsex-cap
 
-pupsex_cap <- str_glue("The results from offspring sex ratio analyses. In the model, the random effect variance of animal id is {format_signif(VarCorr(pup_sex_mod)$animalID, 3)} and of year was {format_signif(VarCorr(pup_sex_mod)$year, 3)}. 
+pupsex_cap <- str_glue("The results from offspring sex ratio analyses. In the model, the random effect variance of animal id is {format_signif(VarCorr(pup_sex_mod)$animalID, 3)} and of year was {format_signif(VarCorr(pup_sex_mod)$year, 3)}.") 
 ```
 
 ```{r}
