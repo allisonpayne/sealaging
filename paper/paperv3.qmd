@@ -174,7 +174,7 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 ```{r}
 #| label: fig-repro_age
 #| fig-cap: "Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE."
-#| fig-width: 4.5
+#| fig-width: 5.5
 
 #B Pup survival and recruitment doesn't change with increased maternal age.
 
@@ -532,9 +532,19 @@ breed_mod_summary$coefficients %>%
   knitr::kable()
 ```
 
+```{r}
+#| label: tbl-survrecruit-cap
+
+surv_recruit_cap <- str_glue("The results from offspring survival and recruitment analyses. In the offspring survival model, the random effect variance of animal id is {format_signif(VarCorr(pup_surv_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_surv_model)$year, 3)}. In the offspring recruitment model, the random effect variance of animal id is {format_signif(VarCorr(pup_recruit_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_recruit_model)$year, 3)}")
+
+```
+
 Supplemental table for offspring survival
 
 ```{r}
+#| tbl-cap: !expr "surv_recruit_cap"
+#| label: tbl-surv_recruit
+
 surv_mod_summary <- summary(pup_surv_model)
 surv_mod_kable <- surv_mod_summary$coefficients %>% 
   as_tibble() %>% 
@@ -561,47 +571,22 @@ rbind(surv_mod_kable, recruit_mod_kable) %>%
   knitr::kable() %>% 
   kableExtra::kable_styling() %>% 
   kableExtra::collapse_rows(columns = 1)
-```
 
-Supplemental figure for survival bias:
 
-```{r}
-#| label: fig-surv_bias
-#| fig-cap: "A: Plotting the intercept of the random effect of year shows that variation in ocean conditions is likely driving patterns in survival, rather than age of mother. B: 95% of seals that survived were resighted within ~seven years of their birth."
-#| fig-width: 9
-
-year_ranef <- ranef(pup_surv_model)$year %>% 
-  as_tibble(rownames = "year") %>% 
-  mutate(year = as.numeric(year)) %>% 
-  rename(intercept = `(Intercept)`)
-
-year_ranef_plot <- ggplot(year_ranef, aes(year, intercept)) + 
-  geom_point() + 
-  geom_smooth(method = "loess", 
-              formula = y ~ x,
-              color = "red") + 
-  theme_classic()
-
-survival_bias <- sealdat %>% 
-  group_by(animalID) %>% 
-  summarize(first_resight_yrs = min(age))
-
-survival95 <- quantile(survival_bias$first_resight_yrs, 0.95)
-#n for 95% quantile
-sum(survival_bias$first_resight_yrs > 7)
-
-survival_bias_plot <- ggplot(survival_bias, aes(x = first_resight_yrs)) +
-  stat_ecdf() +
-  geom_vline(xintercept = survival95, linetype = "dashed", color = "red") +
-  scale_x_continuous(limits = c(0, 10)) + 
-  theme_classic()
-
-plot_grid(year_ranef_plot, survival_bias_plot, nrow = 1, labels = "AUTO")
 ```
 
 Supplemental table for pup sex ratio model.
 
 ```{r}
+#| label: tbl-pupsex-cap
+
+pupsex_cap <- str_glue("The results from offspring sex ratio analyses. In the model, the random effect variance of animal id is {format_signif(VarCorr(pup_sex_mod)$animalID, 3)} and of year was {format_signif(VarCorr(pup_sex_mod)$year, 3)}. 
+```
+
+```{r}
+#| label: tbl-pupsex
+#| tbl-cap: !expr "pupsex_cap"
+
 pupsex_mod_summary <- summary(pup_sex_mod)
 pupsex_mod_summary$coefficients %>% 
   as_tibble() %>% 

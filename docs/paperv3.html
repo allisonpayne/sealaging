@@ -240,7 +240,7 @@ p(10,2,r=TRUE)2  0.912 -0.982         </code></pre>
 <div class="cell-output-display">
 <div id="fig-repro_age" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
-<p><img src="paperv3_files/figure-html/fig-repro_age-1.png" class="img-fluid figure-img" width="432"></p>
+<p><img src="paperv3_files/figure-html/fig-repro_age-1.png" class="img-fluid figure-img" width="528"></p>
 <figcaption class="figure-caption">Figure&nbsp;2: Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE.</figcaption>
 </figure>
 </div>
@@ -356,6 +356,9 @@ age -0.904</code></pre>
 </table>
 </div>
 </div>
+</div>
+<div id="tbl-survrecruit-cap" class="cell tbl-parent quarto-layout-panel anchored">
+
 </div>
 <p>Supplemental table for offspring survival</p>
 <div class="cell">
@@ -605,7 +608,7 @@ age -0.904</code></pre>
 <p>Supplemental figure for phenology models</p>
 <div class="cell">
 <div class="cell-output-display">
-<p><img src="paperv3_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="432"></p>
+<p><img src="paperv3_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="432"></p>
 </div>
 </div>
 <p>Supplemental table for the phenology models.</p>
@@ -1169,7 +1172,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-182"><a href="#cb6-182" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb6-183"><a href="#cb6-183" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-repro_age</span></span>
 <span id="cb6-184"><a href="#cb6-184" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE."</span></span>
-<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 4.5</span></span>
+<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 5.5</span></span>
 <span id="cb6-186"><a href="#cb6-186" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-187"><a href="#cb6-187" aria-hidden="true" tabindex="-1"></a><span class="co">#B Pup survival and recruitment doesn't change with increased maternal age.</span></span>
 <span id="cb6-188"><a href="#cb6-188" aria-hidden="true" tabindex="-1"></a></span>
@@ -1526,194 +1529,203 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb6-549"><a href="#cb6-549" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span>
 <span id="cb6-550"><a href="#cb6-550" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb6-551"><a href="#cb6-551" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-552"><a href="#cb6-552" aria-hidden="true" tabindex="-1"></a>Supplemental table for offspring survival</span>
-<span id="cb6-553"><a href="#cb6-553" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-556"><a href="#cb6-556" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-557"><a href="#cb6-557" aria-hidden="true" tabindex="-1"></a>surv_mod_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(pup_surv_model)</span>
-<span id="cb6-558"><a href="#cb6-558" aria-hidden="true" tabindex="-1"></a>surv_mod_kable <span class="ot">&lt;-</span> surv_mod_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-559"><a href="#cb6-559" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-560"><a href="#cb6-560" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>, <span class="st">"Age (quadratic)"</span>),</span>
-<span id="cb6-561"><a href="#cb6-561" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">z value</span><span class="st">`</span>), </span>
-<span id="cb6-562"><a href="#cb6-562" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-563"><a href="#cb6-563" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
-<span id="cb6-564"><a href="#cb6-564" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Survival"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-565"><a href="#cb6-565" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-566"><a href="#cb6-566" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
-<span id="cb6-567"><a href="#cb6-567" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-568"><a href="#cb6-568" aria-hidden="true" tabindex="-1"></a>recruit_mod_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(pup_recruit_model)</span>
-<span id="cb6-569"><a href="#cb6-569" aria-hidden="true" tabindex="-1"></a>recruit_mod_kable <span class="ot">&lt;-</span> recruit_mod_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-570"><a href="#cb6-570" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-571"><a href="#cb6-571" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>, <span class="st">"Age (quadratic)"</span>),</span>
-<span id="cb6-572"><a href="#cb6-572" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">z value</span><span class="st">`</span>), </span>
-<span id="cb6-573"><a href="#cb6-573" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-574"><a href="#cb6-574" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
-<span id="cb6-575"><a href="#cb6-575" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Recruitment"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-576"><a href="#cb6-576" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-577"><a href="#cb6-577" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
-<span id="cb6-578"><a href="#cb6-578" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-579"><a href="#cb6-579" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(surv_mod_kable, recruit_mod_kable) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-580"><a href="#cb6-580" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-581"><a href="#cb6-581" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-582"><a href="#cb6-582" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">collapse_rows</span>(<span class="at">columns =</span> <span class="dv">1</span>)</span>
-<span id="cb6-583"><a href="#cb6-583" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-584"><a href="#cb6-584" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-585"><a href="#cb6-585" aria-hidden="true" tabindex="-1"></a>Supplemental figure for survival bias:</span>
-<span id="cb6-586"><a href="#cb6-586" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-589"><a href="#cb6-589" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-590"><a href="#cb6-590" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-surv_bias</span></span>
-<span id="cb6-591"><a href="#cb6-591" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "A: Plotting the intercept of the random effect of year shows that variation in ocean conditions is likely driving patterns in survival, rather than age of mother. B: 95% of seals that survived were resighted within ~seven years of their birth."</span></span>
-<span id="cb6-592"><a href="#cb6-592" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
+<span id="cb6-554"><a href="#cb6-554" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-555"><a href="#cb6-555" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-survrecruit-cap</span></span>
+<span id="cb6-556"><a href="#cb6-556" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-557"><a href="#cb6-557" aria-hidden="true" tabindex="-1"></a>surv_recruit_cap <span class="ot">&lt;-</span> <span class="fu">str_glue</span>(<span class="st">"The results from offspring survival and recruitment analyses. In the offspring survival model, the random effect variance of animal id is {format_signif(VarCorr(pup_surv_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_surv_model)$year, 3)}. In the offspring recruitment model, the random effect variance of animal id is {format_signif(VarCorr(pup_recruit_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_recruit_model)$year, 3)}"</span>)</span>
+<span id="cb6-558"><a href="#cb6-558" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-559"><a href="#cb6-559" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-560"><a href="#cb6-560" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-561"><a href="#cb6-561" aria-hidden="true" tabindex="-1"></a>Supplemental table for offspring survival</span>
+<span id="cb6-562"><a href="#cb6-562" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-565"><a href="#cb6-565" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-566"><a href="#cb6-566" aria-hidden="true" tabindex="-1"></a>surv_mod_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(pup_surv_model)</span>
+<span id="cb6-567"><a href="#cb6-567" aria-hidden="true" tabindex="-1"></a>surv_mod_kable <span class="ot">&lt;-</span> surv_mod_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-568"><a href="#cb6-568" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-569"><a href="#cb6-569" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>, <span class="st">"Age (quadratic)"</span>),</span>
+<span id="cb6-570"><a href="#cb6-570" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">z value</span><span class="st">`</span>), </span>
+<span id="cb6-571"><a href="#cb6-571" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-572"><a href="#cb6-572" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb6-573"><a href="#cb6-573" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Survival"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-574"><a href="#cb6-574" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-575"><a href="#cb6-575" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb6-576"><a href="#cb6-576" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-577"><a href="#cb6-577" aria-hidden="true" tabindex="-1"></a>recruit_mod_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(pup_recruit_model)</span>
+<span id="cb6-578"><a href="#cb6-578" aria-hidden="true" tabindex="-1"></a>recruit_mod_kable <span class="ot">&lt;-</span> recruit_mod_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-579"><a href="#cb6-579" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-580"><a href="#cb6-580" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>, <span class="st">"Age (quadratic)"</span>),</span>
+<span id="cb6-581"><a href="#cb6-581" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">z value</span><span class="st">`</span>), </span>
+<span id="cb6-582"><a href="#cb6-582" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-583"><a href="#cb6-583" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb6-584"><a href="#cb6-584" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Recruitment"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-585"><a href="#cb6-585" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-586"><a href="#cb6-586" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb6-587"><a href="#cb6-587" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-588"><a href="#cb6-588" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(surv_mod_kable, recruit_mod_kable) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-589"><a href="#cb6-589" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-590"><a href="#cb6-590" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-591"><a href="#cb6-591" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">collapse_rows</span>(<span class="at">columns =</span> <span class="dv">1</span>)</span>
+<span id="cb6-592"><a href="#cb6-592" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-593"><a href="#cb6-593" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-594"><a href="#cb6-594" aria-hidden="true" tabindex="-1"></a>year_ranef <span class="ot">&lt;-</span> <span class="fu">ranef</span>(pup_surv_model)<span class="sc">$</span>year <span class="sc">%&gt;%</span> </span>
-<span id="cb6-595"><a href="#cb6-595" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"year"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-596"><a href="#cb6-596" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="fu">as.numeric</span>(year)) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-597"><a href="#cb6-597" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">intercept =</span> <span class="st">`</span><span class="at">(Intercept)</span><span class="st">`</span>)</span>
-<span id="cb6-598"><a href="#cb6-598" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-599"><a href="#cb6-599" aria-hidden="true" tabindex="-1"></a>year_ranef_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(year_ranef, <span class="fu">aes</span>(year, intercept)) <span class="sc">+</span> </span>
-<span id="cb6-600"><a href="#cb6-600" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
-<span id="cb6-601"><a href="#cb6-601" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, </span>
-<span id="cb6-602"><a href="#cb6-602" aria-hidden="true" tabindex="-1"></a>              <span class="at">formula =</span> y <span class="sc">~</span> x,</span>
-<span id="cb6-603"><a href="#cb6-603" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span> </span>
-<span id="cb6-604"><a href="#cb6-604" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
-<span id="cb6-605"><a href="#cb6-605" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-606"><a href="#cb6-606" aria-hidden="true" tabindex="-1"></a>survival_bias <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
-<span id="cb6-607"><a href="#cb6-607" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(animalID) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-608"><a href="#cb6-608" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">first_resight_yrs =</span> <span class="fu">min</span>(age))</span>
+<span id="cb6-594"><a href="#cb6-594" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-595"><a href="#cb6-595" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-596"><a href="#cb6-596" aria-hidden="true" tabindex="-1"></a>Supplemental figure for survival bias:</span>
+<span id="cb6-597"><a href="#cb6-597" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-600"><a href="#cb6-600" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-601"><a href="#cb6-601" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-surv_bias</span></span>
+<span id="cb6-602"><a href="#cb6-602" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "A: Plotting the intercept of the random effect of year shows that variation in ocean conditions is likely driving patterns in survival, rather than age of mother. B: 95% of seals that survived were resighted within ~seven years of their birth."</span></span>
+<span id="cb6-603"><a href="#cb6-603" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
+<span id="cb6-604"><a href="#cb6-604" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-605"><a href="#cb6-605" aria-hidden="true" tabindex="-1"></a>year_ranef <span class="ot">&lt;-</span> <span class="fu">ranef</span>(pup_surv_model)<span class="sc">$</span>year <span class="sc">%&gt;%</span> </span>
+<span id="cb6-606"><a href="#cb6-606" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"year"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-607"><a href="#cb6-607" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="fu">as.numeric</span>(year)) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-608"><a href="#cb6-608" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">intercept =</span> <span class="st">`</span><span class="at">(Intercept)</span><span class="st">`</span>)</span>
 <span id="cb6-609"><a href="#cb6-609" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-610"><a href="#cb6-610" aria-hidden="true" tabindex="-1"></a>survival95 <span class="ot">&lt;-</span> <span class="fu">quantile</span>(survival_bias<span class="sc">$</span>first_resight_yrs, <span class="fl">0.95</span>)</span>
-<span id="cb6-611"><a href="#cb6-611" aria-hidden="true" tabindex="-1"></a><span class="co">#n for 95% quantile</span></span>
-<span id="cb6-612"><a href="#cb6-612" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(survival_bias<span class="sc">$</span>first_resight_yrs <span class="sc">&gt;</span> <span class="dv">7</span>)</span>
-<span id="cb6-613"><a href="#cb6-613" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-614"><a href="#cb6-614" aria-hidden="true" tabindex="-1"></a>survival_bias_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(survival_bias, <span class="fu">aes</span>(<span class="at">x =</span> first_resight_yrs)) <span class="sc">+</span></span>
-<span id="cb6-615"><a href="#cb6-615" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_ecdf</span>() <span class="sc">+</span></span>
-<span id="cb6-616"><a href="#cb6-616" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> survival95, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb6-617"><a href="#cb6-617" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)) <span class="sc">+</span> </span>
-<span id="cb6-618"><a href="#cb6-618" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
-<span id="cb6-619"><a href="#cb6-619" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-620"><a href="#cb6-620" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_grid</span>(year_ranef_plot, survival_bias_plot, <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">labels =</span> <span class="st">"AUTO"</span>)</span>
-<span id="cb6-621"><a href="#cb6-621" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-622"><a href="#cb6-622" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-623"><a href="#cb6-623" aria-hidden="true" tabindex="-1"></a>Supplemental table for pup sex ratio model.</span>
+<span id="cb6-610"><a href="#cb6-610" aria-hidden="true" tabindex="-1"></a>year_ranef_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(year_ranef, <span class="fu">aes</span>(year, intercept)) <span class="sc">+</span> </span>
+<span id="cb6-611"><a href="#cb6-611" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb6-612"><a href="#cb6-612" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, </span>
+<span id="cb6-613"><a href="#cb6-613" aria-hidden="true" tabindex="-1"></a>              <span class="at">formula =</span> y <span class="sc">~</span> x,</span>
+<span id="cb6-614"><a href="#cb6-614" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span> </span>
+<span id="cb6-615"><a href="#cb6-615" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
+<span id="cb6-616"><a href="#cb6-616" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-617"><a href="#cb6-617" aria-hidden="true" tabindex="-1"></a>survival_bias <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
+<span id="cb6-618"><a href="#cb6-618" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(animalID) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-619"><a href="#cb6-619" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">first_resight_yrs =</span> <span class="fu">min</span>(age))</span>
+<span id="cb6-620"><a href="#cb6-620" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-621"><a href="#cb6-621" aria-hidden="true" tabindex="-1"></a>survival95 <span class="ot">&lt;-</span> <span class="fu">quantile</span>(survival_bias<span class="sc">$</span>first_resight_yrs, <span class="fl">0.95</span>)</span>
+<span id="cb6-622"><a href="#cb6-622" aria-hidden="true" tabindex="-1"></a><span class="co">#n for 95% quantile</span></span>
+<span id="cb6-623"><a href="#cb6-623" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(survival_bias<span class="sc">$</span>first_resight_yrs <span class="sc">&gt;</span> <span class="dv">7</span>)</span>
 <span id="cb6-624"><a href="#cb6-624" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-627"><a href="#cb6-627" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-628"><a href="#cb6-628" aria-hidden="true" tabindex="-1"></a>pupsex_mod_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(pup_sex_mod)</span>
-<span id="cb6-629"><a href="#cb6-629" aria-hidden="true" tabindex="-1"></a>pupsex_mod_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-630"><a href="#cb6-630" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-631"><a href="#cb6-631" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
-<span id="cb6-632"><a href="#cb6-632" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">z value</span><span class="st">`</span>), </span>
-<span id="cb6-633"><a href="#cb6-633" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-634"><a href="#cb6-634" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span><span class="sc">/</span><span class="dv">2</span>, <span class="at">digits =</span> <span class="dv">3</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb6-635"><a href="#cb6-635" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-636"><a href="#cb6-636" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Parameter) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-637"><a href="#cb6-637" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span>
-<span id="cb6-638"><a href="#cb6-638" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-639"><a href="#cb6-639" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-640"><a href="#cb6-640" aria-hidden="true" tabindex="-1"></a><span class="co"># We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted. take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)</span></span>
-<span id="cb6-641"><a href="#cb6-641" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-642"><a href="#cb6-642" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-643"><a href="#cb6-643" aria-hidden="true" tabindex="-1"></a>Supplemental table for male biased sex ratios at older ages.</span>
-<span id="cb6-644"><a href="#cb6-644" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-647"><a href="#cb6-647" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-648"><a href="#cb6-648" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-pup-sex</span></span>
-<span id="cb6-649"><a href="#cb6-649" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Offspring sex ratio skewed towards males with increasing maternal age. Mothers age 12, 13, and 17 gave birth to significantly more male than female pups (bold)."</span></span>
+<span id="cb6-625"><a href="#cb6-625" aria-hidden="true" tabindex="-1"></a>survival_bias_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(survival_bias, <span class="fu">aes</span>(<span class="at">x =</span> first_resight_yrs)) <span class="sc">+</span></span>
+<span id="cb6-626"><a href="#cb6-626" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_ecdf</span>() <span class="sc">+</span></span>
+<span id="cb6-627"><a href="#cb6-627" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> survival95, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb6-628"><a href="#cb6-628" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">10</span>)) <span class="sc">+</span> </span>
+<span id="cb6-629"><a href="#cb6-629" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
+<span id="cb6-630"><a href="#cb6-630" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-631"><a href="#cb6-631" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_grid</span>(year_ranef_plot, survival_bias_plot, <span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">labels =</span> <span class="st">"AUTO"</span>)</span>
+<span id="cb6-632"><a href="#cb6-632" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-633"><a href="#cb6-633" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-634"><a href="#cb6-634" aria-hidden="true" tabindex="-1"></a>Supplemental table for pup sex ratio model.</span>
+<span id="cb6-635"><a href="#cb6-635" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-638"><a href="#cb6-638" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-639"><a href="#cb6-639" aria-hidden="true" tabindex="-1"></a>pupsex_mod_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(pup_sex_mod)</span>
+<span id="cb6-640"><a href="#cb6-640" aria-hidden="true" tabindex="-1"></a>pupsex_mod_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-641"><a href="#cb6-641" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-642"><a href="#cb6-642" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb6-643"><a href="#cb6-643" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">z value</span><span class="st">`</span>), </span>
+<span id="cb6-644"><a href="#cb6-644" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-645"><a href="#cb6-645" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span><span class="sc">/</span><span class="dv">2</span>, <span class="at">digits =</span> <span class="dv">3</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb6-646"><a href="#cb6-646" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|z|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-647"><a href="#cb6-647" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Parameter) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-648"><a href="#cb6-648" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span>
+<span id="cb6-649"><a href="#cb6-649" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-650"><a href="#cb6-650" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-651"><a href="#cb6-651" aria-hidden="true" tabindex="-1"></a>pup_sex_tbl <span class="ot">&lt;-</span> pup_sex_summary <span class="sc">%&gt;%</span> </span>
-<span id="cb6-652"><a href="#cb6-652" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
-<span id="cb6-653"><a href="#cb6-653" aria-hidden="true" tabindex="-1"></a>    <span class="at">Age =</span> age,</span>
-<span id="cb6-654"><a href="#cb6-654" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Male pups</span><span class="st">`</span> <span class="ot">=</span> M,</span>
-<span id="cb6-655"><a href="#cb6-655" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Total pups</span><span class="st">`</span> <span class="ot">=</span> num,</span>
-<span id="cb6-656"><a href="#cb6-656" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">% male</span><span class="st">`</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">label_percent</span>(<span class="at">accuracy =</span> <span class="fl">0.1</span>)(percm),</span>
-<span id="cb6-657"><a href="#cb6-657" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(pval, <span class="dv">3</span>)</span>
-<span id="cb6-658"><a href="#cb6-658" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-659"><a href="#cb6-659" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-660"><a href="#cb6-660" aria-hidden="true" tabindex="-1"></a>is_signif <span class="ot">&lt;-</span> <span class="fu">which</span>(pup_sex_tbl<span class="sc">$</span><span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="sc">&lt;</span> <span class="st">"0.05"</span>)</span>
+<span id="cb6-651"><a href="#cb6-651" aria-hidden="true" tabindex="-1"></a><span class="co"># We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted. take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)</span></span>
+<span id="cb6-652"><a href="#cb6-652" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-653"><a href="#cb6-653" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-654"><a href="#cb6-654" aria-hidden="true" tabindex="-1"></a>Supplemental table for male biased sex ratios at older ages.</span>
+<span id="cb6-655"><a href="#cb6-655" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-658"><a href="#cb6-658" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-659"><a href="#cb6-659" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-pup-sex</span></span>
+<span id="cb6-660"><a href="#cb6-660" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Offspring sex ratio skewed towards males with increasing maternal age. Mothers age 12, 13, and 17 gave birth to significantly more male than female pups (bold)."</span></span>
 <span id="cb6-661"><a href="#cb6-661" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-662"><a href="#cb6-662" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(pup_sex_tbl) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-663"><a href="#cb6-663" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-664"><a href="#cb6-664" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">row_spec</span>(is_signif, <span class="at">bold =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb6-665"><a href="#cb6-665" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-666"><a href="#cb6-666" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-667"><a href="#cb6-667" aria-hidden="true" tabindex="-1"></a>Supplemental figure for phenology models</span>
-<span id="cb6-668"><a href="#cb6-668" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-671"><a href="#cb6-671" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-672"><a href="#cb6-672" aria-hidden="true" tabindex="-1"></a><span class="co">#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing. Maybe make boxplots also..?</span></span>
-<span id="cb6-673"><a href="#cb6-673" aria-hidden="true" tabindex="-1"></a>seal_phenology <span class="sc">%&gt;%</span> </span>
-<span id="cb6-674"><a href="#cb6-674" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">`</span><span class="at">Breeding</span><span class="sc">\n</span><span class="at">arrival</span><span class="st">`</span> <span class="ot">=</span> BA,</span>
-<span id="cb6-675"><a href="#cb6-675" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Breeding</span><span class="sc">\n</span><span class="at">departure</span><span class="st">`</span> <span class="ot">=</span> BD,</span>
-<span id="cb6-676"><a href="#cb6-676" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Molt</span><span class="sc">\n</span><span class="at">arrival</span><span class="st">`</span> <span class="ot">=</span> MA,</span>
-<span id="cb6-677"><a href="#cb6-677" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Molt</span><span class="sc">\n</span><span class="at">departure</span><span class="st">`</span> <span class="ot">=</span> MD) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-678"><a href="#cb6-678" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="st">`</span><span class="at">Breeding</span><span class="sc">\n</span><span class="at">arrival</span><span class="st">`</span><span class="sc">:</span><span class="st">`</span><span class="at">Molt</span><span class="sc">\n</span><span class="at">departure</span><span class="st">`</span>, </span>
-<span id="cb6-679"><a href="#cb6-679" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"event"</span>, </span>
-<span id="cb6-680"><a href="#cb6-680" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"DOY"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-681"><a href="#cb6-681" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y =</span> DOY)) <span class="sc">+</span></span>
-<span id="cb6-682"><a href="#cb6-682" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="fu">factor</span>(age))) <span class="sc">+</span></span>
-<span id="cb6-683"><a href="#cb6-683" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="fu">aes</span>(<span class="fu">as.integer</span>(<span class="fu">factor</span>(age))), <span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">formula =</span> y <span class="sc">~</span> x, <span class="at">se =</span> <span class="cn">TRUE</span>) <span class="sc">+</span></span>
-<span id="cb6-684"><a href="#cb6-684" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> event, <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
-<span id="cb6-685"><a href="#cb6-685" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Age (years)"</span>, <span class="at">y =</span> <span class="st">"Day of year"</span>) <span class="sc">+</span></span>
-<span id="cb6-686"><a href="#cb6-686" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
-<span id="cb6-687"><a href="#cb6-687" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb6-688"><a href="#cb6-688" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-689"><a href="#cb6-689" aria-hidden="true" tabindex="-1"></a>Supplemental table for the phenology models.</span>
-<span id="cb6-690"><a href="#cb6-690" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-693"><a href="#cb6-693" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb6-694"><a href="#cb6-694" aria-hidden="true" tabindex="-1"></a>ba_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">1</span>]]</span>
-<span id="cb6-695"><a href="#cb6-695" aria-hidden="true" tabindex="-1"></a>ba_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ba_data)</span>
-<span id="cb6-696"><a href="#cb6-696" aria-hidden="true" tabindex="-1"></a>ba_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ba_mod)</span>
-<span id="cb6-697"><a href="#cb6-697" aria-hidden="true" tabindex="-1"></a>ba_ktable <span class="ot">&lt;-</span> ba_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-698"><a href="#cb6-698" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-699"><a href="#cb6-699" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
-<span id="cb6-700"><a href="#cb6-700" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
-<span id="cb6-701"><a href="#cb6-701" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-702"><a href="#cb6-702" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
-<span id="cb6-703"><a href="#cb6-703" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Breeding arrival"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-704"><a href="#cb6-704" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-705"><a href="#cb6-705" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
-<span id="cb6-706"><a href="#cb6-706" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-707"><a href="#cb6-707" aria-hidden="true" tabindex="-1"></a>bd_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">2</span>]]</span>
-<span id="cb6-708"><a href="#cb6-708" aria-hidden="true" tabindex="-1"></a>bd_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ba_data)</span>
-<span id="cb6-709"><a href="#cb6-709" aria-hidden="true" tabindex="-1"></a>bd_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ba_mod)</span>
-<span id="cb6-710"><a href="#cb6-710" aria-hidden="true" tabindex="-1"></a>bd_ktable <span class="ot">&lt;-</span> bd_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-711"><a href="#cb6-711" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-712"><a href="#cb6-712" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
-<span id="cb6-713"><a href="#cb6-713" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
-<span id="cb6-714"><a href="#cb6-714" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-715"><a href="#cb6-715" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
-<span id="cb6-716"><a href="#cb6-716" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Breeding departure"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-717"><a href="#cb6-717" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-718"><a href="#cb6-718" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
-<span id="cb6-719"><a href="#cb6-719" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-720"><a href="#cb6-720" aria-hidden="true" tabindex="-1"></a>ma_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">3</span>]]</span>
-<span id="cb6-721"><a href="#cb6-721" aria-hidden="true" tabindex="-1"></a>ma_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ma_data)</span>
-<span id="cb6-722"><a href="#cb6-722" aria-hidden="true" tabindex="-1"></a>ma_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ma_mod)</span>
-<span id="cb6-723"><a href="#cb6-723" aria-hidden="true" tabindex="-1"></a>ma_ktable <span class="ot">&lt;-</span> ma_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-724"><a href="#cb6-724" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-725"><a href="#cb6-725" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
-<span id="cb6-726"><a href="#cb6-726" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
-<span id="cb6-727"><a href="#cb6-727" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-728"><a href="#cb6-728" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
-<span id="cb6-729"><a href="#cb6-729" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Molt arrival"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-730"><a href="#cb6-730" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-731"><a href="#cb6-731" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
-<span id="cb6-732"><a href="#cb6-732" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-733"><a href="#cb6-733" aria-hidden="true" tabindex="-1"></a>md_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">4</span>]]</span>
-<span id="cb6-734"><a href="#cb6-734" aria-hidden="true" tabindex="-1"></a>md_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> md_data)</span>
-<span id="cb6-735"><a href="#cb6-735" aria-hidden="true" tabindex="-1"></a>md_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(md_mod)</span>
-<span id="cb6-736"><a href="#cb6-736" aria-hidden="true" tabindex="-1"></a>md_ktable <span class="ot">&lt;-</span> md_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
-<span id="cb6-737"><a href="#cb6-737" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-738"><a href="#cb6-738" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
-<span id="cb6-739"><a href="#cb6-739" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
-<span id="cb6-740"><a href="#cb6-740" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
-<span id="cb6-741"><a href="#cb6-741" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
-<span id="cb6-742"><a href="#cb6-742" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Molt departure"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb6-743"><a href="#cb6-743" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-744"><a href="#cb6-744" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
-<span id="cb6-745"><a href="#cb6-745" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-746"><a href="#cb6-746" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-747"><a href="#cb6-747" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(ba_ktable, bd_ktable, ma_ktable, md_ktable) <span class="sc">%&gt;%</span> </span>
-<span id="cb6-748"><a href="#cb6-748" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-749"><a href="#cb6-749" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb6-750"><a href="#cb6-750" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">collapse_rows</span>(<span class="at">columns =</span> <span class="dv">1</span>)</span>
-<span id="cb6-751"><a href="#cb6-751" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-662"><a href="#cb6-662" aria-hidden="true" tabindex="-1"></a>pup_sex_tbl <span class="ot">&lt;-</span> pup_sex_summary <span class="sc">%&gt;%</span> </span>
+<span id="cb6-663"><a href="#cb6-663" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb6-664"><a href="#cb6-664" aria-hidden="true" tabindex="-1"></a>    <span class="at">Age =</span> age,</span>
+<span id="cb6-665"><a href="#cb6-665" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Male pups</span><span class="st">`</span> <span class="ot">=</span> M,</span>
+<span id="cb6-666"><a href="#cb6-666" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Total pups</span><span class="st">`</span> <span class="ot">=</span> num,</span>
+<span id="cb6-667"><a href="#cb6-667" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">% male</span><span class="st">`</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">label_percent</span>(<span class="at">accuracy =</span> <span class="fl">0.1</span>)(percm),</span>
+<span id="cb6-668"><a href="#cb6-668" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(pval, <span class="dv">3</span>)</span>
+<span id="cb6-669"><a href="#cb6-669" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-670"><a href="#cb6-670" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-671"><a href="#cb6-671" aria-hidden="true" tabindex="-1"></a>is_signif <span class="ot">&lt;-</span> <span class="fu">which</span>(pup_sex_tbl<span class="sc">$</span><span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="sc">&lt;</span> <span class="st">"0.05"</span>)</span>
+<span id="cb6-672"><a href="#cb6-672" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-673"><a href="#cb6-673" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(pup_sex_tbl) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-674"><a href="#cb6-674" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-675"><a href="#cb6-675" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">row_spec</span>(is_signif, <span class="at">bold =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-676"><a href="#cb6-676" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-677"><a href="#cb6-677" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-678"><a href="#cb6-678" aria-hidden="true" tabindex="-1"></a>Supplemental figure for phenology models</span>
+<span id="cb6-679"><a href="#cb6-679" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-682"><a href="#cb6-682" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-683"><a href="#cb6-683" aria-hidden="true" tabindex="-1"></a><span class="co">#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing. Maybe make boxplots also..?</span></span>
+<span id="cb6-684"><a href="#cb6-684" aria-hidden="true" tabindex="-1"></a>seal_phenology <span class="sc">%&gt;%</span> </span>
+<span id="cb6-685"><a href="#cb6-685" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">`</span><span class="at">Breeding</span><span class="sc">\n</span><span class="at">arrival</span><span class="st">`</span> <span class="ot">=</span> BA,</span>
+<span id="cb6-686"><a href="#cb6-686" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Breeding</span><span class="sc">\n</span><span class="at">departure</span><span class="st">`</span> <span class="ot">=</span> BD,</span>
+<span id="cb6-687"><a href="#cb6-687" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Molt</span><span class="sc">\n</span><span class="at">arrival</span><span class="st">`</span> <span class="ot">=</span> MA,</span>
+<span id="cb6-688"><a href="#cb6-688" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Molt</span><span class="sc">\n</span><span class="at">departure</span><span class="st">`</span> <span class="ot">=</span> MD) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-689"><a href="#cb6-689" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="st">`</span><span class="at">Breeding</span><span class="sc">\n</span><span class="at">arrival</span><span class="st">`</span><span class="sc">:</span><span class="st">`</span><span class="at">Molt</span><span class="sc">\n</span><span class="at">departure</span><span class="st">`</span>, </span>
+<span id="cb6-690"><a href="#cb6-690" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"event"</span>, </span>
+<span id="cb6-691"><a href="#cb6-691" aria-hidden="true" tabindex="-1"></a>               <span class="at">values_to =</span> <span class="st">"DOY"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-692"><a href="#cb6-692" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">y =</span> DOY)) <span class="sc">+</span></span>
+<span id="cb6-693"><a href="#cb6-693" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="fu">factor</span>(age))) <span class="sc">+</span></span>
+<span id="cb6-694"><a href="#cb6-694" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="fu">aes</span>(<span class="fu">as.integer</span>(<span class="fu">factor</span>(age))), <span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">formula =</span> y <span class="sc">~</span> x, <span class="at">se =</span> <span class="cn">TRUE</span>) <span class="sc">+</span></span>
+<span id="cb6-695"><a href="#cb6-695" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> event, <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb6-696"><a href="#cb6-696" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Age (years)"</span>, <span class="at">y =</span> <span class="st">"Day of year"</span>) <span class="sc">+</span></span>
+<span id="cb6-697"><a href="#cb6-697" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span>
+<span id="cb6-698"><a href="#cb6-698" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-699"><a href="#cb6-699" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-700"><a href="#cb6-700" aria-hidden="true" tabindex="-1"></a>Supplemental table for the phenology models.</span>
+<span id="cb6-701"><a href="#cb6-701" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-704"><a href="#cb6-704" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-705"><a href="#cb6-705" aria-hidden="true" tabindex="-1"></a>ba_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">1</span>]]</span>
+<span id="cb6-706"><a href="#cb6-706" aria-hidden="true" tabindex="-1"></a>ba_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ba_data)</span>
+<span id="cb6-707"><a href="#cb6-707" aria-hidden="true" tabindex="-1"></a>ba_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ba_mod)</span>
+<span id="cb6-708"><a href="#cb6-708" aria-hidden="true" tabindex="-1"></a>ba_ktable <span class="ot">&lt;-</span> ba_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-709"><a href="#cb6-709" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-710"><a href="#cb6-710" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb6-711"><a href="#cb6-711" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb6-712"><a href="#cb6-712" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-713"><a href="#cb6-713" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb6-714"><a href="#cb6-714" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Breeding arrival"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-715"><a href="#cb6-715" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-716"><a href="#cb6-716" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb6-717"><a href="#cb6-717" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-718"><a href="#cb6-718" aria-hidden="true" tabindex="-1"></a>bd_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">2</span>]]</span>
+<span id="cb6-719"><a href="#cb6-719" aria-hidden="true" tabindex="-1"></a>bd_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ba_data)</span>
+<span id="cb6-720"><a href="#cb6-720" aria-hidden="true" tabindex="-1"></a>bd_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ba_mod)</span>
+<span id="cb6-721"><a href="#cb6-721" aria-hidden="true" tabindex="-1"></a>bd_ktable <span class="ot">&lt;-</span> bd_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-722"><a href="#cb6-722" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-723"><a href="#cb6-723" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb6-724"><a href="#cb6-724" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb6-725"><a href="#cb6-725" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-726"><a href="#cb6-726" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb6-727"><a href="#cb6-727" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Breeding departure"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-728"><a href="#cb6-728" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-729"><a href="#cb6-729" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb6-730"><a href="#cb6-730" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-731"><a href="#cb6-731" aria-hidden="true" tabindex="-1"></a>ma_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">3</span>]]</span>
+<span id="cb6-732"><a href="#cb6-732" aria-hidden="true" tabindex="-1"></a>ma_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> ma_data)</span>
+<span id="cb6-733"><a href="#cb6-733" aria-hidden="true" tabindex="-1"></a>ma_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(ma_mod)</span>
+<span id="cb6-734"><a href="#cb6-734" aria-hidden="true" tabindex="-1"></a>ma_ktable <span class="ot">&lt;-</span> ma_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-735"><a href="#cb6-735" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-736"><a href="#cb6-736" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb6-737"><a href="#cb6-737" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb6-738"><a href="#cb6-738" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-739"><a href="#cb6-739" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb6-740"><a href="#cb6-740" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Molt arrival"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-741"><a href="#cb6-741" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-742"><a href="#cb6-742" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb6-743"><a href="#cb6-743" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-744"><a href="#cb6-744" aria-hidden="true" tabindex="-1"></a>md_data <span class="ot">&lt;-</span> phenology_models<span class="sc">$</span>model_data[[<span class="dv">4</span>]]</span>
+<span id="cb6-745"><a href="#cb6-745" aria-hidden="true" tabindex="-1"></a>md_mod <span class="ot">&lt;-</span> <span class="fu">lmer</span>(doy <span class="sc">~</span> age <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year), <span class="at">data =</span> md_data)</span>
+<span id="cb6-746"><a href="#cb6-746" aria-hidden="true" tabindex="-1"></a>md_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(md_mod)</span>
+<span id="cb6-747"><a href="#cb6-747" aria-hidden="true" tabindex="-1"></a>md_ktable <span class="ot">&lt;-</span> md_summary<span class="sc">$</span>coefficients <span class="sc">%&gt;%</span> </span>
+<span id="cb6-748"><a href="#cb6-748" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-749"><a href="#cb6-749" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Age (linear)"</span>),</span>
+<span id="cb6-750"><a href="#cb6-750" aria-hidden="true" tabindex="-1"></a>         <span class="fu">across</span>(<span class="fu">c</span>(Estimate, <span class="st">`</span><span class="at">Std. Error</span><span class="st">`</span>, <span class="st">`</span><span class="at">df</span><span class="st">`</span>, <span class="st">`</span><span class="at">t value</span><span class="st">`</span>), </span>
+<span id="cb6-751"><a href="#cb6-751" aria-hidden="true" tabindex="-1"></a>                \(x) <span class="fu">format_signif</span>(x, <span class="at">digits =</span> <span class="dv">3</span>)),</span>
+<span id="cb6-752"><a href="#cb6-752" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">p value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">format_pval</span>(<span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>, <span class="at">digits =</span> <span class="dv">2</span>),</span>
+<span id="cb6-753"><a href="#cb6-753" aria-hidden="true" tabindex="-1"></a>         <span class="at">Response =</span> <span class="st">"Molt departure"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-754"><a href="#cb6-754" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="st">`</span><span class="at">Pr(&gt;|t|)</span><span class="st">`</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-755"><a href="#cb6-755" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(Response, Parameter)</span>
+<span id="cb6-756"><a href="#cb6-756" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-757"><a href="#cb6-757" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-758"><a href="#cb6-758" aria-hidden="true" tabindex="-1"></a><span class="fu">rbind</span>(ba_ktable, bd_ktable, ma_ktable, md_ktable) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-759"><a href="#cb6-759" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-760"><a href="#cb6-760" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_styling</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb6-761"><a href="#cb6-761" aria-hidden="true" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">collapse_rows</span>(<span class="at">columns =</span> <span class="dv">1</span>)</span>
+<span id="cb6-762"><a href="#cb6-762" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

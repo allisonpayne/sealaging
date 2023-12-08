@@ -54,6 +54,7 @@ outall$withpupCor[outall$withpup==0]=0
 #Encounter History
 g1=as.data.frame.matrix(with(outall,table(animalID,calyear))) #table : combinations of observation year and animal ID
 #presence/absence with only encounter history (no breeding info, and no multiple sightings per year)
+gg=g1
 ############################################ NEW***
 g1[g1<=3]=0 #seen less than or equal to 3 times means "missing" = 0
 g1[g1!=0]=1 #seen more than 3 times is "seen" = 1
@@ -160,7 +161,7 @@ rows=rownames(subset(final,!is.na(pupID)))
 
 for(i in rows){ #for each row of those rows
   #make encounter history subset of g1 where the row names of g1 are equal to the pup ID
-  enc=subset(g1,row.names(g1)==final$pupID[rownames(final)==i])
+  enc=subset(gg,row.names(gg)==final$pupID[rownames(final)==i])
   if(nrow(enc)>0&final$firstyearindicator[rownames(final)==i]!=2024){
     final[i,"pupseeneveragain"]=sum(enc[,final$indices[rownames(final)==i]:ncol(g1)])
     encb=subset(g1b,row.names(g1b)==final$pupID[rownames(final)==i])
