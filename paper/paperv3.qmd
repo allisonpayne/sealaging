@@ -31,7 +31,9 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          observed_int = if_else(observed == "Breeder", 1, 0), 
          pup_survived = pupseeneveragain > 0) %>% 
   filter(age > 3, 
-         year > 1987)
+         year > 1987) %>% 
+  mutate(across(c(animalID, year), factor),
+         age10 = age / 10)
 
 # 17 observations where pup recruited but did not survive
 problem_children <- filter(sealdat, puprecruited == 1 & !pup_survived)
@@ -62,14 +64,28 @@ We predicted that breeding success would decline with age. We found that breedin
 ```{r}
 #| label: age_breeding_mod
 
-breeding_mod <- glmer(observed_int ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                      data = sealdat, 
-                      family = "binomial", 
-                      control = glmerControl(optimizer = "bobyqa"))
+breeding_mod <- glmer(
+  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
+  data = sealdat, 
+  family = "binomial",
+  control = glmerControl(optimizer="bobyqa")
+)
 
-breed_pred <- ggpredict(breeding_mod, terms = c("age [all]"))
+breed_pred <- ggpredict(breeding_mod, terms = "age10 [all]") %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10)
+
+ranef_year <- ranef(breeding_mod)$year %>% 
+  as_tibble(rownames = "year") %>% 
+  arrange(`(Intercept)`) %>% 
+  slice(1, floor(nrow(.) * c(0.25, 0.5, 0.75, 1))) %>% 
+  expand_grid(age10 = unique(sealdat$age10)) %>% 
+  mutate(predicted = predict(breeding_mod, newdata = ., re.form = ~ (1 | year), type = "response"),
+         age = age10 * 10)
 
 breed_mod_summary <- summary(breeding_mod)
+
+breed_mod_summary
 
 #change rightmost value to say p value 
 #add an extra sig fig to all columns
@@ -109,12 +125,22 @@ breed_nonbreed <- sealdat %>%
             se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
   filter(age < 22) %>%
   ggplot(aes(x = age, y = perc_breed)) + 
-  geom_ribbon(aes(x, ymin = conf.low, ymax = conf.high),
+  geom_ribbon(aes(age, ymin = conf.low, ymax = conf.high),
               breed_pred,
               inherit.aes = FALSE,
               fill = "#829BD1",
               alpha = 0.25) +
-  geom_line(aes(x, predicted),
+  geom_line(aes(age, predicted, group = year),
+            ranef_year,
+            inherit.aes = FALSE,
+            alpha = 0.2) +
+  geom_text(aes(x = 22.1, predicted, label = year),
+            filter(ranef_year, age == 22),
+            inherit.aes = FALSE,
+            hjust = 0,
+            alpha = 0.5,
+            size = 3) +
+  geom_line(aes(age, predicted),
             breed_pred,
             inherit.aes = FALSE,
             color = "#829BD1",
@@ -122,10 +148,10 @@ breed_nonbreed <- sealdat %>%
   geom_point() + 
   geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(0.5, 1)) + 
+  expand_limits(x = 23) +
   labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
   theme_few() + 
   theme(axis.title = element_text(size = 13))
-
 
 plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
 
@@ -153,6 +179,8 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 #B Pup survival and recruitment doesn't change with increased maternal age.
 
 ##NOTE: Need to take out the instances where recruitment > survival
+#what does ggpredict do with random effects? 
+#thin gray lines for the different year effects? show the interannual variation (5 that include extreme ones, just something to illustrate the variation of year)
 
 surv_recruit_data <- sealdat %>% 
   drop_na(pupID) %>% 
@@ -163,22 +191,28 @@ surv_recruit_data <- sealdat %>%
   mutate(n_pups = n()) %>% 
   ungroup() %>% 
   filter(n_pups >= 5)
-pup_surv_model <- glmer(pup_survived_dbl ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                        data = surv_recruit_data, 
-                        family = "binomial")
-pup_surv_pred <- ggpredict(pup_surv_model, terms = c("age [all]")) %>% 
+pup_surv_model <- glmer(
+  pup_survived_dbl ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
+  data = surv_recruit_data, 
+  family = "binomial"
+)
+summary(pup_surv_model)
+pup_surv_pred <- ggpredict(pup_surv_model, terms = c("age10 [all]")) %>% 
   as_tibble() %>% 
-  transmute(age = x, 
+  transmute(age = x * 10, 
             metric = "surv", 
             mean = predicted, 
             mean_lwr = conf.low, 
             mean_upr = conf.high)
-pup_recruit_model <- glmer(puprecruited ~ poly(age, 2) + (1 | animalID) + (1 | year),
-                           data = surv_recruit_data, 
-                           family = "binomial")
-pup_recruit_pred <- ggpredict(pup_recruit_model, terms = c("age [all]")) %>% 
+pup_recruit_model <- glmer(
+  puprecruited ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
+  data = surv_recruit_data, 
+  family = "binomial"
+)
+summary(pup_recruit_model)
+pup_recruit_pred <- ggpredict(pup_recruit_model, terms = c("age10 [all]")) %>% 
   as_tibble() %>% 
-  transmute(age = x, 
+  transmute(age = x * 10, 
             metric = "recruit", 
             mean = predicted, 
             mean_lwr = conf.low, 
@@ -266,6 +300,7 @@ signif_male <- filter(pup_sex_summary, pval < 0.05)
 pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
                      data = pup_sex_data, 
                      family = "binomial")
+summary(pup_sex_mod)
 
 # We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted.
 
@@ -312,8 +347,8 @@ We found that as maternal age increases, there are slight adjustments to the tim
 
 seal_phenology <- sealdat %>% 
   filter(observed == "Breeder") %>% 
-  mutate(BA = firstobsbreeddoy, 
-         BD = firstobsbreeddoy + breeddur, 
+  mutate(BA = ifelse(firstobsbreeddoy > 200, firstobsbreeddoy - 365, firstobsbreeddoy), 
+         BD = BA + breeddur, 
          MA = lastobsmoltdoy - moltdur, 
          MD = lastobsmoltdoy) %>% 
   drop_na(age, BA, BD, MA, MD)
@@ -608,34 +643,21 @@ Supplemental figure for phenology models
 
 ```{r}
 
-#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing
-BA_age <- ggplot(seal_phenology, aes(age, BA)) + 
-  geom_point() + 
-  scale_y_continuous(limits = c(0, 150)) + 
-  theme_classic() + 
-  labs(y = "Breeding arrival (DOY)", x = "Maternal age (Years)")
-
-BD_age <- ggplot(seal_phenology, aes(age, BD)) + 
-  geom_point() + 
-  scale_y_continuous(limits = c(0, 150)) + 
-  theme_classic() + 
-  labs(y = "Breeding departure (DOY)", x = "Maternal age (Years)")
-
-MA_age <- ggplot(seal_phenology, aes(age, MA)) + 
-  geom_point() + 
-  geom_smooth(method = "lm", color = "#829BD1") + 
-  scale_y_continuous(limits = c(50, 200)) + 
-  theme_classic() + 
-  labs(y = "Molt arrival (DOY)", x = "Maternal age (Years)")
-
-MD_age <- ggplot(seal_phenology, aes(age, MD)) + 
-  geom_point() + 
-  geom_smooth(method = "lm", color = "#829BD1") + 
-  scale_y_continuous(limits = c(50, 200)) + 
-  theme_classic() + 
-  labs(y = "Molt departure (DOY)", x = "Maternal age (Years)")
-
-plot_grid(BA_age, BD_age, MA_age, MD_age, nrow = 2, ncol = 2)
+#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing. Maybe make boxplots also..?
+seal_phenology %>% 
+  rename(`Breeding\narrival` = BA,
+         `Breeding\ndeparture` = BD,
+         `Molt\narrival` = MA,
+         `Molt\ndeparture` = MD) %>% 
+  pivot_longer(`Breeding\narrival`:`Molt\ndeparture`, 
+               names_to = "event", 
+               values_to = "DOY") %>% 
+ggplot(aes(y = DOY)) +
+  geom_boxplot(aes(factor(age))) +
+  geom_smooth(aes(as.integer(factor(age))), method = "lm", formula = y ~ x, se = TRUE) +
+  facet_wrap(~ event, nrow = 2, scales = "free_y") +
+  labs(x = "Age (years)", y = "Day of year") +
+  theme_classic()
 ```
 
 Supplemental table for the phenology models.
