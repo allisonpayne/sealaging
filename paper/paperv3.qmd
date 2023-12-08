@@ -266,7 +266,7 @@ surv_recruit_summary %>%
 
 Sample size n = `r nrow(surv_recruit_data)`.
 
-### H3a: Changes in pup sex ratio with increased maternal age
+### H3: Changes in pup sex ratio with increased maternal age
 
 We found that as maternal age increases, pup sex skews slightly towards males (@fig-sex_ratio).
 
@@ -297,7 +297,14 @@ pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
                      family = "binomial")
 summary(pup_sex_mod)
 
+
 # We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted.
+
+pup_sex_quad <- glmer(
+  is_male ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
+  data = pup_sex_data, 
+  family = "binomial"
+  )
 
 pup_sex_pred <- ggpredict(pup_sex_mod, terms = c("age [all]")) %>% 
   as_tibble() %>% 
@@ -332,7 +339,7 @@ ggplot(pup_sex_summary, aes(x = age, y = percm)) +
 
 Sample size n = `r nrow(pup_sex_data)`.
 
-### H3b: Changes to annual cycle timing with increased maternal age
+### H4: Changes to annual cycle timing with increased maternal age
 
 We predicted that seals would shift the timing of their annual cycle.
 
@@ -583,6 +590,7 @@ pupsex_cap <- str_glue("The results from offspring sex ratio analyses. In the mo
 #| tbl-cap: !expr "pupsex_cap"
 
 pupsex_mod_summary <- summary(pup_sex_mod)
+pupsex_quad_summary <- summary(pup_sex_quad)
 pupsex_mod_summary$coefficients %>% 
   as_tibble() %>% 
   mutate(Parameter = c("Intercept", "Age (linear)"),
@@ -622,6 +630,7 @@ knitr::kable(pup_sex_tbl) %>%
 Supplemental figure for phenology models
 
 ```{r}
+#| fig-width: 8
 
 #NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing. Maybe make boxplots also..?
 seal_phenology %>% 
