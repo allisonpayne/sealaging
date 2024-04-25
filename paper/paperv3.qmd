@@ -62,9 +62,13 @@ resight <- resight %>%
   dplyr::select(animalID, resightID, season, date, timeofyear, calyear) %>% 
   mutate(animalID = as.factor(animalID))
 
-full <- semi_join(resight, sealdat, "animalID") %>% group_by(animalID, calyear) %>% count(calyear)
+full <- semi_join(resight, sealdat, "animalID") %>% 
+  group_by(animalID, calyear) %>% 
+  count(calyear) %>% 
+  mutate(year = as.numeric(calyear)) %>% 
+  filter(year > 1987)
 
-ggplot(full, aes(calyear, n)) + 
+ggplot(full, aes(year, n)) + 
   geom_point()
 
 ```
