@@ -34,6 +34,9 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          year > 1987) %>% 
   mutate(across(c(animalID, year), factor),
          age10 = age / 10)
+
+resight <- read.csv(here::here("data/raw/fullresights.csv"))
+
 ```
 
 # Introduction
@@ -50,7 +53,25 @@ Our hypotheses:
 
 # Results
 
-n = `r n_distinct(sealdat$animalID)` distinct animals
+First, address detection probability. We do resights near-daily during breeding and molting seasons, so while we may miss an individual on a given day, it is unlikely that we miss a marked individual throughout the entire breeding or molting season.
+
+```{r}
+#| label: detection-prob
+
+resight <- resight %>% 
+  dplyr::select(animalID, resightID, season, date, timeofyear, calyear) %>% 
+  mutate(animalID = as.factor(animalID))
+
+full <- semi_join(resight, sealdat, "animalID") %>% group_by(animalID, calyear) %>% count(calyear)
+
+ggplot(full, aes(calyear, n)) + 
+  geom_point()
+
+```
+
+# 
+
+n = `r n_distinct(sealdat$animalID)` distinct animals.
 
 ### H1: Age distribution and breeding status
 

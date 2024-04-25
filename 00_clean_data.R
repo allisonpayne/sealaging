@@ -6,8 +6,8 @@ library(patchwork)
 library(marked)
 library(RMark)
 
-animal <- read_csv(here::here("data/raw/animalforallison.csv"))
-resight <- read_csv(here::here("data/raw/resightforallison.csv"))
+animal <- read_csv(here::here("data/raw/animal.csv"))
+resight <- read_csv(here::here("data/raw/resight.csv"))
 
 # specify which animals (pups) to select
 animals_to_select <- animal %>%
@@ -46,10 +46,14 @@ outall <- merge(# merge resight
 
 outall$calyear=year(outall$date) #make a new column for the calendar year of that observation
 
+
 #correct pup status for weird character values
 outall$withpupCor=NA
 outall$withpupCor[outall$withpup%in%c(as.character(1:8),"2+","3+",">8","1 or 2",">1")]=1
 outall$withpupCor[outall$withpup==0]=0
+
+write.csv(outall,here::here("data/raw/fullresights.csv"),
+          row.names=FALSE)
 
 #Encounter History
 g1=as.data.frame.matrix(with(outall,table(animalID,calyear))) #table : combinations of observation year and animal ID
