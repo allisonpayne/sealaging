@@ -35,7 +35,9 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
   mutate(across(c(animalID, year), factor),
          age10 = age / 10)
 
-resight <- read.csv(here::here("data/raw/fullresights.csv"))
+resight <- read.csv(here::here("data/raw/fullresights.csv")) %>% 
+  dplyr::select(animalID, resightID, season, date, timeofyear, calyear, yday) %>% 
+  mutate(animalID = as.factor(animalID))
 
 ```
 
@@ -58,17 +60,78 @@ First, address detection probability. We do resights near-daily during breeding 
 ```{r}
 #| label: detection-prob
 
-resight <- resight %>% 
-  dplyr::select(animalID, resightID, season, date, timeofyear, calyear) %>% 
-  mutate(animalID = as.factor(animalID))
-
 full <- semi_join(resight, sealdat, "animalID") %>% 
-  group_by(animalID, calyear) %>% 
-  count(calyear) %>% 
-  mutate(year = as.numeric(calyear)) %>% 
+  mutate(fiscalyear = ifelse(yday > 200, calyear + 1, calyear)) %>% 
+  group_by(animalID, fiscalyear) %>% 
+  count(fiscalyear) %>% 
+  mutate(year = as.numeric(fiscalyear)) %>% 
   filter(year > 1987)
 
-ggplot(full, aes(year, n)) + 
+full %>% 
+  group_by(year) %>% 
+  summarize(across(n, list(median = median, 
+                           q25 = \(x) quantile(x, 0.25), 
+                           q75 = \(x) quantile(x, 0.75)))) %>% 
+  ggplot(aes(year, n_median)) +
+  geom_ribbon(aes(ymin = n_q25, ymax = n_q75), fill = "grey80") +
+  geom_line() +
+  geom_hline(yintercept = 3, linetype = "dashed", color = "firebrick") +
+  labs(y = "Resights per year") + 
+  theme_classic()
+
+#some animals have multiple rows because they have multiple pups associated with them...
+sealdat %>% 
+  group_by(animalID, year) %>% 
+  mutate(n = n()) %>% 
+  filter(n > 2)
+
+skips <- sealdat %>% 
+  distinct(animalID, year) %>% 
+  group_by(animalID) %>% 
+  summarize(n_obs = n(),
+            obs_window = max(year) - min(year) + 1,
+            skips = obs_window - n_obs) %>% 
+  group_by(obs_window, skips) %>% 
+  summarize(ind = n(), .groups = "drop")
+
+resights_per_year <- full %>% 
+  group_by(year) %>% 
+  summarize(median_resights = median(n))
+
+skips_per_year <- skips
+
+skip_frac <- sealdat %>% 
+  distinct(animalID, year) %>% 
+  mutate(year = as.numeric(as.character(year))) %>% 
+  group_by(animalID) %>% 
+  summarize(firstobs = min(year),
+            lastobs = max(year)) %>% 
+  mutate(n = lastobs - firstobs + 1) %>% 
+  uncount(n) %>% 
+  group_by(animalID) %>% 
+  mutate(year = firstobs + seq(n()) - 1) %>% 
+  ungroup() %>% 
+  mutate(year = factor(year)) %>% 
+  left_join(transmute(sealdat, animalID, year, skip = 0), by = c("animalID", "year")) %>% 
+  mutate(skip = ifelse(is.na(skip), 1, 0)) %>% 
+  group_by(year) %>% 
+  summarize(skip_frac = sum(skip) / n())
+
+resights_per_year %>% 
+  mutate(year = factor(year)) %>% 
+  left_join(skip_frac, by = "year") %>% 
+  mutate(year = as.numeric(as.character(year))) %>% 
+  ggplot(aes(median_resights, skip_frac)) +
+  geom_point(aes(fill = year), shape = 21, color = "grey20", size = 2) +
+  ggrepel::geom_label_repel(aes(label = year), max.overlaps = 8) +
+  scale_y_continuous("Skip fraction", labels = scales::percent) +
+  scale_fill_distiller(palette = "PuRd") +
+  labs(x = "Median resights") +
+  theme_classic()
+
+#mark recapture model is necessary? could have bred at another colony. Many skips!!
+
+ggplot(skips, aes(obs_window, skips, size = ind)) +
   geom_point()
 
 ```
