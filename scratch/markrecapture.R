@@ -1,4 +1,6 @@
+library(posterior)
 library(tidyverse)
+library(rstan)
 
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv")) %>% 
   filter(age > 3)
@@ -34,18 +36,36 @@ for (i in seq(n_indiv)) {
 # Seal resight map
 image(years, seq_along(animalIDs), t(sealobs))
 
+# Basic model -------------------------------------------------------------
+
 # Fit the dang model
 markrecapdat <- list(
   nind = n_indiv, 
   n_occasions = n_occ, 
   y = sealobs
 )
-markrecapmod <- rstan::stan("scratch/multistate.stan", 
-                            data = markrecapdat, 
-                            chains = 1, iter = 200)
+markrecapmod <- stan("scratch/multistate.stan", 
+                     data = markrecapdat, 
+                     chains = 4, iter = 2000, cores = 4)
 
 # Look at posterior distribution
-library(posterior)
 markrecapdraws <- as_draws_df(markrecapmod) %>% 
   subset_draws(variable = names(markrecapmod)[1:10])
 summarize_draws(markrecapdraws)
+
+# Time varying detection  -------------------------------------------------
+
+# Fit the dang model
+markrecapdat <- list(
+  nind = n_indiv, 
+  n_occasions = n_occ, 
+  y = sealobs
+)
+markrecapmod <- stan("scratch/multistate2.stan", 
+                     data = markrecapdat, 
+                     chains = 4, iter = 2000, cores = 4)
+
+# Look at posterior distribution
+markrecapdraws <- as_draws_df(markrecapmod)
+summarize_draws(markrecapdraws)
+
