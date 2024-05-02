@@ -2,6 +2,15 @@ library(posterior)
 library(tidyverse)
 library(rstan)
 
+args <- commandArgs(trailingOnly = TRUE)
+if (args[1] == "test") {
+  test <- TRUE
+} else if (args[1] == "full") {
+  test <- FALSE
+} else {
+  stop(sprintf("command line argument must be 'test' or 'full', not %s", args[1]))
+}
+
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv")) %>% 
   filter(age > 3,
          year < 2023)
@@ -44,7 +53,7 @@ colnames(sealobs) <- years
 # Seal resight map
 image(years, seq_along(animalIDs), t(sealobs))
 
-test <- FALSE
+# Test parameters
 n_indiv_test <- 100
 animalIDs_test <- sample(animalIDs, n_indiv_test)
 
