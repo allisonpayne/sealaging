@@ -38,11 +38,11 @@ functions {
    * @param lp   N-dimension vector
    * @return (N+1)-simplex of given vector and 0
    */
-  vector softmax_0(vector lp) {
-    vector[num_elements(lp) + 1] lp_temp;
+  vector softmax_0(real lp) {
+    vector[2] lp_temp;
     
-    lp_temp[1 : num_elements(lp)] = lp;
-    lp_temp[num_elements(lp) + 1] = 0;
+    lp_temp[1] = lp;
+    lp_temp[2] = 0;
     return softmax(lp_temp);
   }
 }
@@ -50,6 +50,7 @@ data {
   int<lower=0> nind;
   int<lower=0> n_occasions;
   array[nind, n_occasions] int<lower=1, upper=3> y;
+  array[nind] int birth_year; // years since start of study period, not actual year
 }
 transformed data {
   int n_occ_minus_1 = n_occasions - 1;
@@ -60,33 +61,46 @@ transformed data {
   }
 }
 parameters {
-  real<lower=0, upper=1> phiA; // Survival probability if breeding
-  real<lower=0, upper=1> phiB; // Survival probability if non-breeding
+  real alpha_phiA; // Survival intercept if breeding
+  real beta_phiA;  // Survival coef for age if breeding
+  real alpha_phiB; // Survival intercept if non-breeding
+  real beta_phiB;  // Survival coef for age if non-breeding
   vector<lower=0, upper=1>[n_occasions] pA; // Detection probability if breeding
   vector<lower=0, upper=1>[n_occasions] pB; // Detection probability if non-breeding
-  vector[1] lpsiA; // Logit of movement probability from breeding
-  vector[1] lpsiB; // Logit of movement probability from non-breeding
+  real lpsiA;       // Logit of movement probability from breeding
+  real alpha_lpsiA; // Intercept of age for transition from breeding 
+  real beta_lpsiA;  // Coef for age for transition from breeding
+  real lpsiB;       // Logit of movement probability from non-breeding
+  real alpha_lpsiB; // Intercept of age for transition from non-breeding 
+  real beta_lpsiB;  // Coef for age for transition from non-breeding
+  
 }
 transformed parameters {
   simplex[2] psiA; // Movement probability from breeding
   simplex[2] psiB; // Movement probability from non breeding
   array[3, nind, n_occ_minus_1] simplex[3] ps;
   array[3, nind, n_occ_minus_1] simplex[3] po;
+  matrix[nind, n_occ_minus_1] phiA;
+  matrix[nind, n_occ_minus_1] phiB;
   
-  // Constrain the transitions such that their sum is < 1
-  psiA = softmax_0(lpsiA);
-  psiB = softmax_0(lpsiB);
+  // Constrain the transitions 0-1
+  psiA = softmax_0(alpha_lpsiA + beta_lpsiA * lpsiA);
+  psiB = softmax_0(alpha_lpsiB + beta_lpsiB * lpsiB);
 
   // Define state-transition and observation matrices
   for (i in 1 : nind) {
     // Define probabilities of state S(t+1) given S(t)
     for (t in 1 : n_occ_minus_1) {
-      ps[1, i, t, 1] = phiA * psiA[1];
-      ps[1, i, t, 2] = phiA * psiA[2];
-      ps[1, i, t, 3] = 1.0 - phiA;
-      ps[2, i, t, 1] = phiB * psiB[1];
-      ps[2, i, t, 2] = phiB * psiB[2];
-      ps[2, i, t, 3] = 1.0 - phiB;
+      int age;
+      age = t - birth_year[i];
+      phiA[i, t] = inv_logit(alpha_phiA + beta_phiA * age);
+      phiB[i, t] = inv_logit(alpha_phiB + beta_phiB * age);
+      ps[1, i, t, 1] = phiA[i, t] * psiA[1];
+      ps[1, i, t, 2] = phiA[i, t] * psiA[2];
+      ps[1, i, t, 3] = 1.0 - phiA[i, t];
+      ps[2, i, t, 1] = phiB[i, t] * psiB[1];
+      ps[2, i, t, 2] = phiB[i, t] * psiB[2];
+      ps[2, i, t, 3] = 1.0 - phiB[i, t];
       ps[3, i, t, 1] = 0.0;
       ps[3, i, t, 2] = 0.0;
       ps[3, i, t, 3] = 1.0;
@@ -119,6 +133,12 @@ model {
   // Normal priors on logit of all but one transition probs
   lpsiA ~ normal(0, sqrt(1000));
   lpsiB ~ normal(0, sqrt(1000));
+  
+  // Normal priors on alpha and beta for phi
+  alpha_phiA ~ normal(0, sqrt(1000));
+  beta_phiA ~ normal(0, sqrt(1000));
+  alpha_phiB ~ normal(0, sqrt(1000));
+  beta_phiB ~ normal(0, sqrt(1000));
 
   // Likelihood
   // Forward algorithm derived from Stan Modeling Language
