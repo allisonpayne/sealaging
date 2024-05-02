@@ -58,8 +58,9 @@ n_indiv_test <- 100
 animalIDs_test <- sample(animalIDs, n_indiv_test)
 
 #Setting up directory to save plots
-direct_name <- here::here(file.path("cluster", Sys.time() %>% format("%Y%m%d%H%M")))
-dir.create(direct_name)
+output_dir <- paste0("output", format(Sys.time(), "%Y%m%d%H%M"))
+output_path <- here::here(file.path("cluster", output_dir))
+dir.create(output_path)
 
 # Basic model -------------------------------------------------------------
 
@@ -137,7 +138,7 @@ p1 <- markrecapdraws2 %>%
                                 `Non-breeder` = "cornflowerblue")) +
   labs(x = "Year", y = "Detection probability") +
   theme_classic()
-ggsave(file.path(direct_name, "DetectProbTimeVary.png"), p1)
+ggsave(file.path(output_path, "DetectProbTimeVary.png"), p1)
 
 
 # Survival for breeders and non-breeders
@@ -152,7 +153,7 @@ p2 <- markrecapdraws2 %>%
   scale_color_manual(values = c(Breeder = "firebrick", 
                                 `Non-breeder` = "cornflowerblue")) +
   theme_classic()
-ggsave(file.path(direct_name, "SurvivalTimeVary.png"), p2)
+ggsave(file.path(output_path, "SurvivalTimeVary.png"), p2)
 
 # Add fixed effect of year on survival and repro --------------------------
 
@@ -206,7 +207,7 @@ p3 <- markrecapdraws3 %>%
   labs(x = "Year", y = "Detection probability") +
   theme_classic() +
   theme(legend.position = "none")
-ggsave(file.path(direct_name, "DetectProbFixedEffect.png"), p3)
+ggsave(file.path(output_path, "DetectProbFixedEffect.png"), p3)
 
 # Survival by age
 inv_logit <- function(x) exp(x) / (1 + exp(x))
@@ -232,4 +233,4 @@ p4 <- markrecapdraws3 %>%
   theme_classic() +
   theme(legend.position = "none")
 
-ggsave(file.path(direct_name, "SurvivalFixedEffect.png"), p4)
+ggsave(file.path(output_path, "SurvivalFixedEffect.png"), p4)
