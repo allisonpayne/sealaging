@@ -57,6 +57,10 @@ image(years, seq_along(animalIDs), t(sealobs))
 n_indiv_test <- 100
 animalIDs_test <- sample(animalIDs, n_indiv_test)
 
+#Setting up directory to save plots
+direct_name <- here::here(file.path("cluster", Sys.time() %>% format("%Y%m%d%H%M")))
+dir.create(direct_name)
+
 # Basic model -------------------------------------------------------------
 
 # Fit the dang model
@@ -66,7 +70,7 @@ if (test) {
     n_occasions = n_occ, 
     y = sealobs[animalIDs %in% animalIDs_test, ]
   )
-  markrecapmod <- stan("scratch/multistate.stan", 
+  markrecapmod <- stan("cluster/multistate.stan", 
                        data = markrecapdat, 
                        chains = 1, iter = 200, cores = 1)
 } else {
@@ -75,7 +79,7 @@ if (test) {
     n_occasions = n_occ, 
     y = sealobs
   )
-  markrecapmod <- stan("scratch/multistate.stan", 
+  markrecapmod <- stan("cluster/multistate.stan", 
                        data = markrecapdat, 
                        chains = 4, iter = 2000, cores = 4)
 }
@@ -94,7 +98,7 @@ if (test) {
     n_occasions = n_occ, 
     y = sealobs[animalIDs %in% animalIDs_test, ]
   )
-  markrecapmod2 <- stan("scratch/multistate2.stan", 
+  markrecapmod2 <- stan("cluster/multistate2.stan", 
                         data = markrecapdat2, 
                         chains = 1, iter = 200, cores = 1)
 } else {
@@ -103,7 +107,7 @@ if (test) {
     n_occasions = n_occ, 
     y = sealobs
   )
-  markrecapmod2 <- stan("scratch/multistate2.stan", 
+  markrecapmod2 <- stan("cluster/multistate2.stan", 
                         data = markrecapdat2, 
                         chains = 4, iter = 2000, cores = 4)
 }
@@ -111,7 +115,7 @@ if (test) {
 # Look at posterior distribution
 markrecapdraws2 <- as_draws_df(markrecapmod2)
 # Detection probability for breeders and non-breeders
-markrecapdraws2 %>% 
+p1 <- markrecapdraws2 %>% 
   select(starts_with(c("pA[", "pB["))) %>% 
   pivot_longer(everything(), 
                names_to = "year", 
@@ -133,8 +137,11 @@ markrecapdraws2 %>%
                                 `Non-breeder` = "cornflowerblue")) +
   labs(x = "Year", y = "Detection probability") +
   theme_classic()
+ggsave(file.path(direct_name, "DetectProbTimeVary.png"), p1)
+
+
 # Survival for breeders and non-breeders
-markrecapdraws2 %>% 
+p2 <- markrecapdraws2 %>% 
   select(Breeder = phiA, `Non-breeder` = phiB) %>% 
   pivot_longer(everything(),
                names_to = "State",
@@ -145,6 +152,7 @@ markrecapdraws2 %>%
   scale_color_manual(values = c(Breeder = "firebrick", 
                                 `Non-breeder` = "cornflowerblue")) +
   theme_classic()
+ggsave(file.path(direct_name, "SurvivalTimeVary.png"), p2)
 
 # Add fixed effect of year on survival and repro --------------------------
 
@@ -156,7 +164,7 @@ if (test) {
     y = sealobs[animalIDs %in% animalIDs_test, ],
     birth_year = birth_years[animalIDs %in% animalIDs_test]
   )
-  markrecapmod3 <- stan("scratch/multistate3.stan", 
+  markrecapmod3 <- stan("cluster/multistate3.stan", 
                         data = markrecapdat3, 
                         chains = 1, iter = 200, cores = 1)
 } else {
@@ -166,7 +174,7 @@ if (test) {
     y = sealobs,
     birth_year = birth_years
   )
-  markrecapmod3 <- stan("scratch/multistate3.stan", 
+  markrecapmod3 <- stan("cluster/multistate3.stan", 
                         data = markrecapdat, 
                         chains = 4, iter = 2000, cores = 4)
 }
@@ -175,13 +183,13 @@ if (test) {
 markrecapdraws3 <- as_draws_df(markrecapmod3)
 
 # Detection probability for breeders and non-breeders
-markrecapdraws3 %>% 
+p3 <- markrecapdraws3 %>% 
   select(starts_with(c("pA[", "pB["))) %>% 
   pivot_longer(everything(), 
                names_to = "year", 
                values_to = "detect_prob") %>% 
   mutate(state = ifelse(substr(year, 2, 2) == "A", "Breeder", "Non-breeder"),
-         year = years[as.numeric(str_extract(year, "[0-9]+"))]) %>% )
+         year = years[as.numeric(str_extract(year, "[0-9]+"))]) %>%
   group_by(year, state) %>% 
   summarize(across(detect_prob, list(mean = mean, 
                                      q025 = \(x) quantile(x, 0.025),
@@ -198,10 +206,11 @@ markrecapdraws3 %>%
   labs(x = "Year", y = "Detection probability") +
   theme_classic() +
   theme(legend.position = "none")
+ggsave(file.path(direct_name, "DetectProbFixedEffect.png"), p3)
 
 # Survival by age
 inv_logit <- function(x) exp(x) / (1 + exp(x))
-markrecapdraws3 %>% 
+p4 <- markrecapdraws3 %>% 
   select(alpha_phiA, alpha_phiB, beta_phiA, beta_phiB) %>% 
   cross_join(tibble(age = 3:22)) %>% 
   mutate(Breeder = inv_logit(alpha_phiA + beta_phiA * age),
@@ -223,3 +232,4 @@ markrecapdraws3 %>%
   theme_classic() +
   theme(legend.position = "none")
 
+ggsave(file.path(direct_name, "SurvivalFixedEffect.png"), p4)
