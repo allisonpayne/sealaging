@@ -6,7 +6,7 @@
 #SBATCH --time=20
 #SBATCH --ntasks=1
 #SBATCH --mem=4G
-#SBATCH --n=4
+#SBATCH --cpus-per-task=1
 
 module load miniconda3.9
 conda activate sealaging
