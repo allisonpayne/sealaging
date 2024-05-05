@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=MRtest
+#SBATCH --job-name=MRfull
 #SBATCH --mail-user=mczapans@ucsc.edu
 #SBATCH --mail-type=ALL
 #SBATCH --time=08:00:00
