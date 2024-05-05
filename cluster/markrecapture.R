@@ -57,9 +57,8 @@ image(years, seq_along(animalIDs), t(sealobs))
 n_indiv_test <- 100
 animalIDs_test <- sample(animalIDs, n_indiv_test)
 
-#Setting up directory to save plots
-output_dir <- paste0("output", format(Sys.time(), "%Y%m%d%H%M"))
-output_path <- file.path("cluster", output_dir)
+# Setting up directory to save plots
+output_path <- args[2]
 dir.create(output_path)
 
 # Basic model -------------------------------------------------------------
