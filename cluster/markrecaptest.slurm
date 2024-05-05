@@ -15,4 +15,4 @@ datetime=$(date +"%Y%m%d%H%M")
 Rscript cluster/markrecapture.R test cluster/output$datetime
 
 echo Transfer outputs locally with:
-echo scp mczapans@hb.ucsc.edu:sealaging/
+echo scp -r mczapans@hb.ucsc.edu:sealaging/cluster/output$datetime/ \<path-to-output\>
