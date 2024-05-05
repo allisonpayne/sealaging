@@ -11,7 +11,7 @@ if (args[1] == "test") {
   stop(sprintf("command line argument must be 'test' or 'full', not %s", args[1]))
 }
 
-sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv")) %>% 
+sealdat <- read_csv("data/raw/128L pull 2023_12_05.csv") %>% 
   filter(age > 3,
          year < 2023)
 
@@ -59,7 +59,7 @@ animalIDs_test <- sample(animalIDs, n_indiv_test)
 
 #Setting up directory to save plots
 output_dir <- paste0("output", format(Sys.time(), "%Y%m%d%H%M"))
-output_path <- here::here(file.path("cluster", output_dir))
+output_path <- file.path("cluster", output_dir)
 dir.create(output_path)
 
 # Basic model -------------------------------------------------------------
