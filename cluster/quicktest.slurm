@@ -10,5 +10,4 @@
 
 module load miniconda3.9
 conda activate sealaging
-cd sealaging
 Rscript cluster/markrecapture.R test 
