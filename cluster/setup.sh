@@ -1,7 +1,6 @@
 # You should have already cloned the reo
 # git clone https://github.com/FlukeAndFeather/sealaging
 
-
 # Set up conda environment
 module load miniconda3.9
 conda create -n sealaging r-essentials r-base
