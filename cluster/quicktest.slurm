@@ -15,4 +15,4 @@ conda activate sealaging
 datetime=$(date +"%Y%m%d%H%M")
 #Rscript cluster/markrecapture.R test cluster/output$datetime
 echo Copy results locally with:
-echo scp mczapans@hb.ucsc.edu:sealaging/cluster/output$datetime \<path-to-output/>
+echo scp mczapans@hb.ucsc.edu:sealaging/cluster/output$datetime \<path-to-output\>
