@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=MRtest
+#SBATCH --job-name=quicktest
 #SBATCH --mail-user=alrpayne@ucsc.edu
 #SBATCH --mail-type=ALL
 #SBATCH --time=2
