@@ -3,9 +3,9 @@
 #SBATCH --job-name=MRtest
 #SBATCH --mail-user=alrpayne@ucsc.edu
 #SBATCH --mail-type=ALL
-#SBATCH --time=20
+#SBATCH --time=2
 #SBATCH --ntasks=1
-#SBATCH --mem=4G
+#SBATCH --mem=20M
 #SBATCH --cpus-per-task=1
 
 module load miniconda3.9
