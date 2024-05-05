@@ -10,4 +10,9 @@
 
 module load miniconda3.9
 conda activate sealaging
-Rscript cluster/markrecapture.R test 
+
+# Output folder
+datetime=$(date +"%Y%m%d%H%M")
+#Rscript cluster/markrecapture.R test cluster/output$datetime
+echo Copy results locally with:
+echo scp mczapans@hb.ucsc.edu:sealaging/cluster/output$datetime
