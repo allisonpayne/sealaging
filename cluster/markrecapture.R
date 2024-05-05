@@ -63,6 +63,8 @@ dir.create(output_path)
 
 # Basic model -------------------------------------------------------------
 
+print("BEGINNING BASIC MODEL")
+
 # Fit the dang model
 if (test) {
   markrecapdat <- list(
@@ -89,7 +91,11 @@ markrecapdraws <- as_draws_df(markrecapmod) %>%
   subset_draws(variable = names(markrecapmod)[1:10])
 summarize_draws(markrecapdraws)
 
+print("BASIC MODEL COMPLETE")
+
 # Time varying detection  -------------------------------------------------
+
+print("BEGINNING TIME-VARYING DETECTION MODEL")
 
 # Fit the dang model
 if (test) {
@@ -154,7 +160,11 @@ p2 <- markrecapdraws2 %>%
   theme_classic()
 ggsave(file.path(output_path, "SurvivalTimeVary.png"), p2)
 
+print("TIME-VARYING DETECTION MODEL COMPLETE")
+
 # Add fixed effect of year on survival and repro --------------------------
+
+print("BEGINNING AGE FIXED EFFECT MODEL")
 
 # Fit the dang model
 if (test) {
@@ -233,3 +243,5 @@ p4 <- markrecapdraws3 %>%
   theme(legend.position = "none")
 
 ggsave(file.path(output_path, "SurvivalFixedEffect.png"), p4)
+
+print("AGE FIXED EFFECT MODEL COMPLETE")

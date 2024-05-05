@@ -10,7 +10,6 @@
 
 module load miniconda3.9
 conda activate sealaging
-cd sealaging
 
 datetime=$(date +"%Y%m%d%H%M")
 Rscript cluster/markrecapture.R test cluster/output$datetime
