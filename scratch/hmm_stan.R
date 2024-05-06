@@ -25,8 +25,8 @@ psi1 <- rbeta(1e5, psi1ab[, 1]^2, psi1ab[, 2]^2)
 
 # plot
 # Psi1 alpha and beta
-psi1ab_plot <- tibble(`psi[1*a]` = psi1ab[, 1]^2, 
-                      `psi[1*b]` = psi1ab[, 2]^2) %>% 
+psi1ab_plot <- tibble(`psi[1*alpha]` = psi1ab[, 1]^2, 
+                      `psi[1*beta]` = psi1ab[, 2]^2) %>% 
   pivot_longer(everything()) %>% 
   ggplot(aes(value, color = name)) + 
   geom_density(linewidth = 1.5) + 
@@ -60,8 +60,8 @@ psi2 <- rbeta(1e5, psi2ab[, 1]^2, psi2ab[, 2]^2)
 
 # plot
 # Psi1 alpha and beta
-psi2ab_plot <- tibble(`psi[2*a]` = psi2ab[, 1]^2, 
-                      `psi[2*b]` = psi2ab[, 2]^2) %>% 
+psi2ab_plot <- tibble(`psi[2*alpha]` = psi2ab[, 1]^2, 
+                      `psi[2*beta]` = psi2ab[, 2]^2) %>% 
   pivot_longer(everything()) %>% 
   ggplot(aes(value, color = name)) + 
   geom_density(linewidth = 1.5) + 
