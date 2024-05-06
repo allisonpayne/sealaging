@@ -5,7 +5,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --time=08:00:00
 #SBATCH --ntasks=1
-#SBATCH --mem=8G
+#SBATCH --mem=24G
 #SBATCH --cpus-per-task=4
 
 module load miniconda3.9
