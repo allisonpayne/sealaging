@@ -23,6 +23,7 @@ library(merTools)
 library(tidyverse)
 library(ggeffects)
 library(patchwork)
+library(segmented)
 source(here::here("R/format.R"))
 
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"), 
@@ -32,11 +33,12 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          pup_survived = pupseeneveragain > 0) %>% 
   filter(age > 3, 
          year > 1987) %>% 
-  mutate(across(c(animalID, year), factor),
+  mutate(animalID = factor(animalID),
+         year_fct = factor(year),
          age10 = age / 10)
 
 resight <- read.csv(here::here("data/raw/fullresights.csv")) %>% 
-  dplyr::select(animalID, resightID, season, date, timeofyear, calyear, yday) %>% 
+  select(animalID, resightID, season, date, timeofyear, calyear, yday) %>% 
   mutate(animalID = as.factor(animalID))
 
 ```
@@ -102,7 +104,6 @@ skips_per_year <- skips
 
 skip_frac <- sealdat %>% 
   distinct(animalID, year) %>% 
-  mutate(year = as.numeric(as.character(year))) %>% 
   group_by(animalID) %>% 
   summarize(firstobs = min(year),
             lastobs = max(year)) %>% 
@@ -111,16 +112,14 @@ skip_frac <- sealdat %>%
   group_by(animalID) %>% 
   mutate(year = firstobs + seq(n()) - 1) %>% 
   ungroup() %>% 
-  mutate(year = factor(year)) %>% 
-  left_join(transmute(sealdat, animalID, year, skip = 0), by = c("animalID", "year")) %>% 
+  left_join(transmute(sealdat, animalID, year, skip = 0), 
+            by = c("animalID", "year")) %>% 
   mutate(skip = ifelse(is.na(skip), 1, 0)) %>% 
   group_by(year) %>% 
   summarize(skip_frac = sum(skip) / n())
 
 resights_per_year %>% 
-  mutate(year = factor(year)) %>% 
   left_join(skip_frac, by = "year") %>% 
-  mutate(year = as.numeric(as.character(year))) %>% 
   ggplot(aes(median_resights, skip_frac)) +
   geom_point(aes(fill = year), shape = 21, color = "grey20", size = 2) +
   ggrepel::geom_label_repel(aes(label = year), max.overlaps = 8) +
@@ -148,7 +147,7 @@ We predicted that breeding success would decline with age. We found that breedin
 #| label: age_breeding_mod
 
 breeding_mod <- glmer(
-  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
+  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
   data = sealdat, 
   family = "binomial",
   control = glmerControl(optimizer="bobyqa")
@@ -158,12 +157,15 @@ breed_pred <- ggpredict(breeding_mod, terms = "age10 [all]") %>%
   as_tibble() %>% 
   mutate(age = x * 10)
 
-ranef_year <- ranef(breeding_mod)$year %>% 
-  as_tibble(rownames = "year") %>% 
+ranef_year <- ranef(breeding_mod)$year_fct %>% 
+  as_tibble(rownames = "year_fct") %>% 
   arrange(`(Intercept)`) %>% 
   slice(1, floor(nrow(.) * c(0.25, 0.5, 0.75, 1))) %>% 
   expand_grid(age10 = unique(sealdat$age10)) %>% 
-  mutate(predicted = predict(breeding_mod, newdata = ., re.form = ~ (1 | year), type = "response"),
+  mutate(year_fct = factor(year_fct, levels = levels(sealdat$year_fct))) %>% 
+  mutate(predicted = predict(breeding_mod, 
+                             newdata = ., 
+                             re.form = ~ (1 | year_fct), type = "response"),
          age = age10 * 10)
 
 breed_mod_summary <- summary(breeding_mod)
@@ -179,6 +181,56 @@ breed_mod_summary
 #intercept, age (linear), age (quadratic) as row names 
 #in figure caption say "results from x analyis. The random effect variance of animal id is X (from results) and year was X. Apply to all the other stats. 
 #analyses fit to the age in which we have larger sample sizes fit also have a quadratic fit and don't change the story
+
+```
+
+Trying segmented analysis. Note: `segmented` does NOT support mixed effect GLMs!
+
+```{r}
+#| label: age_breeding_seg
+
+breeding_mod2 <- glm(
+  observed_int ~ age,
+  data = sealdat, 
+  family = "binomial"
+)
+breed_nseg <- lapply(
+  list(15, c(9, 15)),
+  \(.psi) {
+    segmented(breeding_mod2, seg.Z = ~age, psi = .psi)
+  }
+)
+AIC(breeding_mod2, breed_nseg[[1]], breed_nseg[[2]]) %>% 
+  as_tibble() %>% 
+  mutate(model = paste(1:3, "segments")) %>% 
+  transmute(model, AIC, dAIC = AIC - min(AIC)) %>% 
+  arrange(dAIC)
+
+breeding_best <- breed_nseg[[1]]
+breeding_pred <- tibble(age = seq(4, 22, length.out = 100)) %>% 
+  predict(breeding_best, 
+          newdata = ., 
+          type = "response", 
+          interval = "confidence") %>% 
+  as_tibble() %>% 
+  set_names(c("bred", "bred_lwr", "bred_upr")) %>% 
+  mutate(age = seq(4, 22, length.out = 100))
+breed_nonbreed <- sealdat %>% 
+  group_by(age) %>% 
+  summarize(n_observed = sum(!is.na(observed)), 
+            perc_breed = sum(observed == "Breeder") / n_observed, 
+            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
+  filter(age < 22)
+
+ggplot(breeding_pred, aes(age)) +
+  geom_ribbon(aes(ymin = bred_lwr, ymax = bred_upr),
+              fill = "grey90") + 
+  geom_line(aes(y = bred)) +
+  geom_point(aes(y = perc_breed), breed_nonbreed) + 
+  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), 
+                breed_nonbreed,
+                width = 0) +
+  theme_classic()
 
 ```
 
@@ -213,11 +265,11 @@ breed_nonbreed <- sealdat %>%
               inherit.aes = FALSE,
               fill = "#829BD1",
               alpha = 0.25) +
-  geom_line(aes(age, predicted, group = year),
+  geom_line(aes(age, predicted, group = year_fct),
             ranef_year,
             inherit.aes = FALSE,
             alpha = 0.2) +
-  geom_text(aes(x = 22.1, predicted, label = year),
+  geom_text(aes(x = 22.1, predicted, label = year_fct),
             filter(ranef_year, age == 22),
             inherit.aes = FALSE,
             hjust = 0,
@@ -229,7 +281,8 @@ breed_nonbreed <- sealdat %>%
             color = "#829BD1",
             linewidth = 1) +
   geom_point() + 
-  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), width = 0) +
+  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), 
+                width = 0) +
   scale_y_continuous(labels = scales::percent, limits = c(0.5, 1)) + 
   expand_limits(x = 23) +
   labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
