@@ -26,6 +26,8 @@ library(ggridges)
 library(patchwork)
 source(here::here("R/format.R"))
 
+age_senesce <- 12
+
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"), 
                     show_col_types = FALSE) %>% 
   mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
@@ -39,25 +41,9 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
   group_by(animalID) %>% 
   mutate(longevity = ifelse(max(year) < 2020,
                             max(age),
-                            NA))
-
-all_years <- sealdat %>% 
-  group_by(animalID, yearborn, longevity) %>% 
-  summarize(age4 = yearborn[1] + 4,
-            first_obs = min(year),
-            last_obs = max(year),
-            .groups = "keep") %>% 
-  reframe(year = seq(age4, last_obs)) %>% 
-  filter(between(year, 1987, 2020)) %>% 
-  left_join(select(sealdat, animalID, year, observed),
-            by = c("animalID", "year")) %>% 
-  mutate(observed2 = factor(ifelse(is.na(observed), 
-                                   "Non-breeder", 
-                                   observed),
-                            levels = c("Non-breeder", "Breeder")),
-         year_fct = factor(year),
-         age = year - yearborn,
-         age10 = age / 10)
+                            NA),
+         longevity10 = longevity / 10) %>% 
+  ungroup()
 
 resight <- read.csv(here::here("data/raw/fullresights.csv")) %>% 
   select(animalID, resightID, season, date, timeofyear, calyear, yday) %>% 
@@ -168,150 +154,128 @@ n = `r n_distinct(sealdat$animalID)` distinct animals.
 #| fig-width: 9
 #| fig-height: 6
 
-breed_age_mod <- glmer(
-  observed2 ~ age10 + (1 | animalID) + (1 | year_fct),
-  data = all_years, 
-  family = "binomial",
-  control = glmerControl(optimizer="bobyqa")
+breed_age_mod1 <- glmer(
+    observed_int ~ age10 + (1 | animalID) + (1 | year_fct),
+    data = filter(sealdat, age < age_senesce),
+    family = "binomial",
+    control = glmerControl(optimizer="bobyqa")
+)
+breed_age_mod2 <- glmer(
+    observed_int ~ age10 + (1 | animalID) + (1 | year_fct),
+    data = filter(sealdat, age >= age_senesce),
+    family = "binomial",
+    control = glmerControl(optimizer="bobyqa")
 )
 
-year_ranef <- ranef(breed_age_mod)$year_fct %>% 
-  as_tibble(rownames = "year") %>% 
-  mutate(year = as.numeric(year)) %>% 
-  rename(ranef = 2) %>% 
-  arrange(ranef)
+breed_pred <- rbind(
+  ggpredict(
+    breed_age_mod1,
+    terms = c("age10 [all]"),
+    type = "fixed",
+    interval = "confidence"
+  ) %>% 
+    as_tibble() %>% 
+    mutate(age = x * 10,
+           age_class = "young"),
+  ggpredict(
+    breed_age_mod2,
+    terms = c("age10 [all]"),
+    type = "fixed",
+    interval = "confidence"
+  ) %>% 
+    as_tibble() %>% 
+    mutate(age = x * 10,
+           age_class = "old")
+) %>% 
+  filter(age <= 20)
 
-year_ranef2 <- slice(year_ranef, 
-                     round(seq(1, nrow(year_ranef), length.out = 5)))
+get_ranefs <- function(model, r, reduce = TRUE) {
+  result <- ranef(model)[[r]] %>% 
+    as_tibble(rownames = r) %>% 
+    rename(ranef = 2) %>% 
+    arrange(ranef)
+  
+  if (reduce)
+    slice(result, round(seq(1, nrow(result), length.out = 5)))
+  else 
+    result
+}
 
-indiv_ranef <- ranef(breed_age_mod)$animalID %>% 
-  as_tibble(rownames = "animalID") %>% 
-  mutate(animalID = factor(animalID)) %>% 
-  rename(ranef = 2) %>% 
-  arrange(ranef)
+year_ranef1 <- get_ranefs(breed_age_mod1, "year_fct")
+year_ranef2 <- get_ranefs(breed_age_mod2, "year_fct")
+indiv_ranef1 <- get_ranefs(breed_age_mod1, "animalID")
+indiv_ranef2 <- get_ranefs(breed_age_mod2, "animalID")
 
-indiv_ranef2 <- slice(indiv_ranef, 
-                      round(seq(1, nrow(indiv_ranef), length.out = 5)))
-
-breed_age_pred_year <- ggpredict(breed_age_mod, 
-                                 terms = c("age10 [all]", "year_fct"), 
-                                 type = "random",
-                                 interval = "confidence") %>% 
+get_ranef_pred <- function(model, r, keep) {
+  ggpredict(model,
+            terms = c("age10 [all]", r), 
+                             type = "random",
+                             interval = "confidence") %>% 
   as_tibble() %>% 
   mutate(age = x * 10,
-         year_fct = group,
-         year = as.numeric(as.character(group))) %>% 
-  semi_join(year_ranef2, by = "year") %>% 
-  filter(age <= 20) 
+         "{r}" := group) %>% 
+  semi_join(keep, by = r) %>% 
+  filter(age <= 20)
+}
 
-breed_age_pred_indiv <- ggpredict(breed_age_mod, 
-                                  terms = c("age10 [all]", "animalID"), 
-                                  type = "random",
-                                  interval = "confidence") %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         animalID = group) %>% 
-  semi_join(indiv_ranef2, by = "animalID") %>% 
-  filter(age <= 20) 
+breed_pred_year <- rbind(
+  get_ranef_pred(breed_age_mod1, "year_fct", year_ranef1) %>% 
+    mutate(age_class = "young"),
+  get_ranef_pred(breed_age_mod2, "year_fct", year_ranef2) %>% 
+    mutate(age_class = "old")
+) %>% 
+  filter(age <= 20)
 
-breed_age_pred <- ggpredict(breed_age_mod, 
-                                 terms = "age10 [all]", 
-                                 type = "fixed",
-                                 interval = "confidence") %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10) %>% 
-  filter(age <= 20) 
+breed_pred_indiv <- rbind(
+  get_ranef_pred(breed_age_mod1, "animalID", indiv_ranef1) %>% 
+    mutate(age_class = "young"),
+  get_ranef_pred(breed_age_mod2, "animalID", indiv_ranef2) %>% 
+    mutate(age_class = "old")
+) %>% 
+  filter(age <= 20)
 
-breed_nonbreed <- all_years %>% 
+breed_nonbreed <- sealdat %>% 
   group_by(age) %>% 
-  summarize(n_observed = sum(!is.na(observed2)), 
-            perc_breed = sum(observed2 == "Breeder") / n_observed, 
+  summarize(n_observed = n(), 
+            perc_breed = sum(observed_int) / n_observed, 
             se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
   filter(age <= 20)
 
-pred_year_plot <- ggplot(breed_age_pred_year, aes(age)) +
+ggplot(breed_pred_year, aes(age)) +
   # Prediction across years (fixed effect only)
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
-              breed_age_pred,
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
+                  group = age_class),
+              breed_pred,
               fill = "grey", alpha = 0.5) +
-  geom_line(aes(y = predicted), 
-            breed_age_pred,
-            color = "firebrick", linewidth = 1.5) +
+  geom_line(aes(y = predicted, color = age_class), 
+            breed_pred,
+            linewidth = 1.5) +
   # Predictions for specific years (random effect)
-  geom_line(aes(y = predicted, group = year_fct), 
-            color = "cornflowerblue", linewidth = 1) +
+  geom_line(aes(y = predicted, group = interaction(year_fct, age_class)),
+            linewidth = 0.75, alpha = 0.5) +
   # Raw data
   geom_pointrange(aes(y = perc_breed, 
                       ymin = perc_breed - se, 
                       ymax = perc_breed + se),
                   breed_nonbreed) + 
   # Year labels
-  geom_text(aes(y = predicted, label = year_fct), 
-            filter(breed_age_pred_year, age == 20),
+  geom_text(aes(y = predicted, label = year_fct),
+            filter(breed_pred_year, age == 20),
             x = 20.2,
             hjust = 0,
             size = 3) +
-  scale_x_continuous("Age", limits = c(NA, 21)) +
-  scale_y_continuous("Breeding %", 
-                     limits = c(0, 1), 
-                     labels = scales::percent) +
-  theme_classic()
-
-pred_indiv_plot <- ggplot(breed_age_pred_indiv, aes(age)) +
-  # Prediction across years (fixed effect only)
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
-              breed_age_pred,
-              fill = "grey", alpha = 0.5) +
-  geom_line(aes(y = predicted), 
-            breed_age_pred,
-            color = "firebrick", linewidth = 1.5) +
-  # Predictions for specific years (random effect)
-  geom_line(aes(y = predicted, group = animalID), 
-            color = "cornflowerblue", linewidth = 1) +
-  # Raw data
-  geom_pointrange(aes(y = perc_breed, 
-                      ymin = perc_breed - se, 
-                      ymax = perc_breed + se),
-                  breed_nonbreed) + 
-  # Individual labels
-  geom_text(aes(y = predicted, label = animalID), 
-            filter(breed_age_pred_indiv, age == 20),
-            x = 20.2,
-            hjust = 0,
+  geom_text(aes(y = predicted, label = year_fct),
+            filter(breed_pred_year, age == 4),
+            x = 3.8,
+            hjust = 1,
             size = 3) +
-  scale_x_continuous("Age", limits = c(NA, 21)) +
+  scale_x_continuous("Age", limits = c(3.5, 20.5)) +
   scale_y_continuous("Breeding %", 
-                     limits = c(0, 1), 
+                     limits = c(NA, 1), 
                      labels = scales::percent) +
-  theme_classic()
-
-pred_year_plot | pred_indiv_plot
-
-year_plot <- all_years %>% 
-  filter(age <= 20) %>% 
-  left_join(year_ranef, by = "year") %>% 
-  group_by(age) %>% 
-  summarize(across(ranef, list(mean = mean, sd = sd))) %>% 
-  ggplot(aes(age, ranef_mean)) +
-  geom_pointrange(aes(ymin = ranef_mean - ranef_sd,
-                      ymax = ranef_mean + ranef_sd)) +
-  geom_hline(yintercept = 0, color = "firebrick", linewidth = 1.5) +
-  labs(x = "Age", y = "Year ranef") +
-  theme_classic()
-
-indiv_plot <- all_years %>% 
-  filter(age <= 20) %>% 
-  left_join(indiv_ranef, by = "animalID") %>% 
-  group_by(age) %>% 
-  summarize(across(ranef, list(mean = mean, sd = sd))) %>% 
-  ggplot(aes(age, ranef_mean)) +
-  geom_pointrange(aes(ymin = ranef_mean - ranef_sd,
-                      ymax = ranef_mean + ranef_sd)) +
-  geom_hline(yintercept = 0, color = "firebrick", linewidth = 1.5) +
-  labs(x = "Age", y = "Indiv ranef") +
-  theme_classic()
-
-year_plot | indiv_plot
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  theme_classic() +
+  theme(legend.position = "none")
   
 ```
 
