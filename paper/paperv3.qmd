@@ -65,83 +65,7 @@ Our hypotheses:
 
 # Results
 
-First, address detection probability. We do resights near-daily during breeding and molting seasons, so while we may miss an individual on a given day, it is unlikely that we miss a marked individual throughout the entire breeding or molting season.
-
-```{r}
-#| label: detection-prob
-
-full <- semi_join(resight, sealdat, "animalID") %>% 
-  mutate(fiscalyear = ifelse(yday > 200, calyear + 1, calyear)) %>% 
-  group_by(animalID, fiscalyear) %>% 
-  count(fiscalyear) %>% 
-  mutate(year = as.numeric(fiscalyear)) %>% 
-  filter(year > 1987)
-
-full %>% 
-  group_by(year) %>% 
-  summarize(across(n, list(median = median, 
-                           q25 = \(x) quantile(x, 0.25), 
-                           q75 = \(x) quantile(x, 0.75)))) %>% 
-  ggplot(aes(year, n_median)) +
-  geom_ribbon(aes(ymin = n_q25, ymax = n_q75), fill = "grey80") +
-  geom_line() +
-  geom_hline(yintercept = 3, linetype = "dashed", color = "firebrick") +
-  labs(y = "Resights per year") + 
-  theme_classic()
-
-#some animals have multiple rows because they have multiple pups associated with them...
-sealdat %>% 
-  group_by(animalID, year) %>% 
-  mutate(n = n()) %>% 
-  filter(n > 2)
-
-skips <- sealdat %>% 
-  distinct(animalID, year) %>% 
-  group_by(animalID) %>% 
-  summarize(n_obs = n(),
-            obs_window = max(year) - min(year) + 1,
-            skips = obs_window - n_obs) %>% 
-  group_by(obs_window, skips) %>% 
-  summarize(ind = n(), .groups = "drop")
-
-resights_per_year <- full %>% 
-  group_by(year) %>% 
-  summarize(median_resights = median(n))
-
-skips_per_year <- skips
-
-skip_frac <- sealdat %>% 
-  distinct(animalID, year) %>% 
-  group_by(animalID) %>% 
-  summarize(firstobs = min(year),
-            lastobs = max(year)) %>% 
-  mutate(n = lastobs - firstobs + 1) %>% 
-  uncount(n) %>% 
-  group_by(animalID) %>% 
-  mutate(year = firstobs + seq(n()) - 1) %>% 
-  ungroup() %>% 
-  left_join(transmute(sealdat, animalID, year, skip = 0), 
-            by = c("animalID", "year")) %>% 
-  mutate(skip = ifelse(is.na(skip), 1, 0)) %>% 
-  group_by(year) %>% 
-  summarize(skip_frac = sum(skip) / n())
-
-resights_per_year %>% 
-  left_join(skip_frac, by = "year") %>% 
-  ggplot(aes(median_resights, skip_frac)) +
-  geom_point(aes(fill = year), shape = 21, color = "grey20", size = 2) +
-  ggrepel::geom_label_repel(aes(label = year), max.overlaps = 8) +
-  scale_y_continuous("Skip fraction", labels = scales::percent) +
-  scale_fill_distiller(palette = "PuRd") +
-  labs(x = "Median resights") +
-  theme_classic()
-
-#mark recapture model is necessary? could have bred at another colony. Many skips!!
-
-ggplot(skips, aes(obs_window, skips, size = ind)) +
-  geom_point()
-
-```
+First, address detection probability. DO THIS IN MARK.
 
 n = `r n_distinct(sealdat$animalID)` distinct animals.
 
@@ -150,16 +74,19 @@ n = `r n_distinct(sealdat$animalID)` distinct animals.
 ~~We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).~~
 
 ```{r}
-#| label: breeding-mod 
-#| fig-width: 9
-#| fig-height: 6
+#| label: breeding-mod
 
+# Fit separate GLMMs to the data subsetted before and after onset of senescence
+# We a priori chose age 12 for that (age_senesce)
+# Pre-senescence model
 breed_age_mod1 <- glmer(
     observed_int ~ age10 + (1 | animalID) + (1 | year_fct),
+    # Here's the age filter
     data = filter(sealdat, age < age_senesce),
     family = "binomial",
     control = glmerControl(optimizer="bobyqa")
 )
+# Post-senescence model
 breed_age_mod2 <- glmer(
     observed_int ~ age10 + (1 | animalID) + (1 | year_fct),
     data = filter(sealdat, age >= age_senesce),
@@ -167,7 +94,40 @@ breed_age_mod2 <- glmer(
     control = glmerControl(optimizer="bobyqa")
 )
 
+tibble(
+  model = c("Pre-senescence", "Post-senescence"),
+  age_coef = c(fixef(breed_age_mod1)["age10"],
+               fixef(breed_age_mod2)["age10"]),
+  age_coef_se = c(summary(breed_age_mod1)$coef["age10", "Std. Error"],
+                  summary(breed_age_mod2)$coef["age10", "Std. Error"]),
+  `p(coef<0)` = c(pnorm(summary(breed_age_mod1)$coef["age10", "z value"]),
+                  pnorm(summary(breed_age_mod2)$coef["age10", "z value"]))
+) %>% 
+  mutate(across(where(is.numeric), \(x) signif(x, 3)))
+
+```
+
+```{r}
+#| label: fig-breeding-mod 
+#| fig-width: 9
+#| fig-height: 6
+
+# Age distribution panel A 
+
+age_dist <- sealdat %>% 
+  filter(age < 22) %>% 
+  group_by(age) %>% 
+  count(age) %>% 
+  ggplot(aes(x = age, y = n)) + 
+  geom_col(fill = "grey50") + 
+  labs(x = "Age (Years)", y = "Number of individuals") + 
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
+
+# Create POPULATION-LEVEL (i.e. without rand effects) predictions for both
+# models and row bind them together
 breed_pred <- rbind(
+  # Pre-senescence
   ggpredict(
     breed_age_mod1,
     terms = c("age10 [all]"),
@@ -176,7 +136,9 @@ breed_pred <- rbind(
   ) %>% 
     as_tibble() %>% 
     mutate(age = x * 10,
+           # Add an age_class variable to facilitate plotting
            age_class = "young"),
+  # Post-senescence
   ggpredict(
     breed_age_mod2,
     terms = c("age10 [all]"),
@@ -189,6 +151,8 @@ breed_pred <- rbind(
 ) %>% 
   filter(age <= 20)
 
+# Now create rand effect predictions
+# This utility function pulls rand effect *coefs* from a model
 get_ranefs <- function(model, r, reduce = TRUE) {
   result <- ranef(model)[[r]] %>% 
     as_tibble(rownames = r) %>% 
@@ -201,11 +165,13 @@ get_ranefs <- function(model, r, reduce = TRUE) {
     result
 }
 
+# Get year and individual random effeccts from pre- and post-senescence models
 year_ranef1 <- get_ranefs(breed_age_mod1, "year_fct")
 year_ranef2 <- get_ranefs(breed_age_mod2, "year_fct")
 indiv_ranef1 <- get_ranefs(breed_age_mod1, "animalID")
 indiv_ranef2 <- get_ranefs(breed_age_mod2, "animalID")
 
+# This util fun pulls rand effect *predictions* from a model
 get_ranef_pred <- function(model, r, keep) {
   ggpredict(model,
             terms = c("age10 [all]", r), 
@@ -218,14 +184,19 @@ get_ranef_pred <- function(model, r, keep) {
   filter(age <= 20)
 }
 
+# Predictions based on 5 different *years* (min, q1, median, q3, max ranef
+# coef)
 breed_pred_year <- rbind(
+  # Pre-senescence
   get_ranef_pred(breed_age_mod1, "year_fct", year_ranef1) %>% 
     mutate(age_class = "young"),
+  # Post-senescence
   get_ranef_pred(breed_age_mod2, "year_fct", year_ranef2) %>% 
     mutate(age_class = "old")
 ) %>% 
   filter(age <= 20)
 
+# As above, but 5 different *individuals*
 breed_pred_indiv <- rbind(
   get_ranef_pred(breed_age_mod1, "animalID", indiv_ranef1) %>% 
     mutate(age_class = "young"),
@@ -234,6 +205,7 @@ breed_pred_indiv <- rbind(
 ) %>% 
   filter(age <= 20)
 
+# The actual raw data
 breed_nonbreed <- sealdat %>% 
   group_by(age) %>% 
   summarize(n_observed = n(), 
@@ -241,17 +213,17 @@ breed_nonbreed <- sealdat %>%
             se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
   filter(age <= 20)
 
-ggplot(breed_pred_year, aes(age)) +
+# Figure with raw data and model predictions
+breed_fig <- ggplot(breed_pred, aes(x = age)) +
   # Prediction across years (fixed effect only)
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
                   group = age_class),
-              breed_pred,
               fill = "grey", alpha = 0.5) +
   geom_line(aes(y = predicted, color = age_class), 
-            breed_pred,
             linewidth = 1.5) +
   # Predictions for specific years (random effect)
   geom_line(aes(y = predicted, group = interaction(year_fct, age_class)),
+            breed_pred_year,
             linewidth = 0.75, alpha = 0.5) +
   # Raw data
   geom_pointrange(aes(y = perc_breed, 
@@ -269,207 +241,20 @@ ggplot(breed_pred_year, aes(age)) +
             x = 3.8,
             hjust = 1,
             size = 3) +
+  # Add visual indicator for senescence
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_x_continuous("Age", limits = c(3.5, 20.5)) +
   scale_y_continuous("Breeding %", 
                      limits = c(NA, 1), 
                      labels = scales::percent) +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  theme_classic() +
-  theme(legend.position = "none")
+  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
+  theme_few() +
+  theme(legend.position = "none",
+        axis.title = element_text(size = 13))
+
+age_dist | breed_fig
   
 ```
-
-```{r}
-#| label: age_breeding_b4after
-
-senescence_age <- 12
-
-breeding_mod_b4 <- glmer(
-  observed2 ~ age10 + (1 | animalID) + (1 | year_fct),
-  data = filter(all_years, age <= senescence_age), 
-  family = "binomial",
-  control = glmerControl(optimizer="bobyqa")
-)
-
-breeding_mod_after <- glmer(
-  observed2 ~ age10 + (1 | animalID) + (1 | year_fct),
-  data = filter(all_years, age > senescence_age), 
-  family = "binomial",
-  control = glmerControl(optimizer="bobyqa")
-)
-
-summary(breeding_mod_b4)
-summary(breeding_mod_after)
-
-```
-
-```{r}
-#| label: fig-age_breeding
-#| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
-#| fig-width: 9
-
-#Age distribution panel A 
-
-age_dist <- all_years %>% 
-  filter(age < 22) %>% 
-  group_by(age) %>% 
-  count(age) %>% 
-  ggplot(aes(x = age, y = n)) + 
-  geom_col(fill = "#829BD1") + 
-  labs(x = "Age (Years)", y = "Number of individuals") + 
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
-   
-#Panel B: percentage of each age class that were breeders or  nonbreeders
-
-breed_pred <- rbind(
-  ggpredict(breeding_mod_b4,
-            terms = "age10 [all]") %>% 
-    as_tibble(),
-  ggpredict(breeding_mod_after,
-            terms = "age10 [all]") %>% 
-    as_tibble()
-) %>% 
-    mutate(age = x * 10,
-           age_class = ifelse(age <= senescence_age,
-                              "Before",
-                              "After"))
-  
-breed_nonbreed <- all_years %>% 
-  group_by(age) %>% 
-  summarize(n_observed = sum(!is.na(observed2)), 
-            perc_breed = sum(observed2 == "Breeder") / n_observed, 
-            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
-  filter(age < 22) %>%
-  ggplot(aes(x = age, y = perc_breed)) + 
-  geom_ribbon(aes(age, ymin = conf.low, ymax = conf.high, group = age_class),
-              breed_pred,
-              inherit.aes = FALSE,
-              fill = "#829BD1",
-              alpha = 0.25) +
-  geom_line(aes(age, predicted, group = age_class),
-            breed_pred,
-            inherit.aes = FALSE,
-            color = "#829BD1",
-            linewidth = 1) +
-  geom_point() + 
-  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), 
-                width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(0.4, 1)) +
-  expand_limits(x = 23) +
-  labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
-
-plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
-
-ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
-
-```
-
-```{r}
-#| label: age_breeding_mod
-
-breeding_mod <- glmer(
-  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
-  data = sealdat, 
-  family = "binomial",
-  control = glmerControl(optimizer="bobyqa")
-)
-
-breed_pred <- ggpredict(breeding_mod, terms = "age10 [all]") %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10)
-
-ranef_year <- ranef(breeding_mod)$year_fct %>% 
-  as_tibble(rownames = "year_fct") %>% 
-  arrange(`(Intercept)`) %>% 
-  slice(1, floor(nrow(.) * c(0.25, 0.5, 0.75, 1))) %>% 
-  expand_grid(age10 = unique(sealdat$age10)) %>% 
-  mutate(year_fct = factor(year_fct, levels = levels(sealdat$year_fct))) %>% 
-  mutate(predicted = predict(breeding_mod, 
-                             newdata = ., 
-                             re.form = ~ (1 | year_fct), type = "response"),
-         age = age10 * 10)
-
-breed_mod_summary <- summary(breeding_mod)
-
-breed_mod_summary
-
-#change rightmost value to say p value 
-#add an extra sig fig to all columns
-#p values are also rounded....
-
-#table s1, look at roxannes ecology letters paper supplemental 
-#Pull out the fixed effects table with 2 sfs, can paste in excel to adjust digits 
-#intercept, age (linear), age (quadratic) as row names 
-#in figure caption say "results from x analyis. The random effect variance of animal id is X (from results) and year was X. Apply to all the other stats. 
-#analyses fit to the age in which we have larger sample sizes fit also have a quadratic fit and don't change the story
-
-```
-
-```{r}
-#| label: fig-age_dist
-#| fig-cap: "A: Age structure of northern elephant seals at Año Nuevo. B: Percentage of each age class that were observed breeding."
-#| fig-width: 9
-
-#Age distribution panel A 
-
-age_dist <- all_years %>% 
-  filter(age < 22) %>% 
-  group_by(age) %>% 
-  count(age) %>% 
-  ggplot(aes(x = age, y = n)) + 
-  geom_col(fill = "#829BD1") + 
-  labs(x = "Age (Years)", y = "Number of individuals") + 
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
-
-#Panel B: percentage of each age class that were breeders or  nonbreeders
-
-breed_nonbreed <- sealdat %>% 
-  group_by(age) %>% 
-  summarize(n_observed = sum(!is.na(observed)), 
-            perc_breed = sum(observed == "Breeder") / n_observed, 
-            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
-  filter(age < 22) %>%
-  ggplot(aes(x = age, y = perc_breed)) + 
-  geom_ribbon(aes(age, ymin = conf.low, ymax = conf.high),
-              breed_pred,
-              inherit.aes = FALSE,
-              fill = "#829BD1",
-              alpha = 0.25) +
-  geom_line(aes(age, predicted, group = year_fct),
-            ranef_year,
-            inherit.aes = FALSE,
-            alpha = 0.2) +
-  geom_text(aes(x = 22.1, predicted, label = year_fct),
-            filter(ranef_year, age == 22),
-            inherit.aes = FALSE,
-            hjust = 0,
-            alpha = 0.5,
-            size = 3) +
-  geom_line(aes(age, predicted),
-            breed_pred,
-            inherit.aes = FALSE,
-            color = "#829BD1",
-            linewidth = 1) +
-  geom_point() + 
-  geom_errorbar(aes(ymin = perc_breed - se, ymax = perc_breed + se), 
-                width = 0) +
-  scale_y_continuous(labels = scales::percent, limits = c(0.5, 1)) + 
-  expand_limits(x = 23) +
-  labs(x = "Maternal Age (Years)", y = "% Breeders (Mean ± SE)") + 
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
-
-plot_grid(age_dist, breed_nonbreed, nrow = 1, labels = "AUTO")
-
-ggsave("outputs/agefig1.png", plot = , height = 4, width = 9)
-
-```
-
-Population level prediction - the fact that the raw data falls above it comes from the fact that those age classes are correlated with years and individuals that were very successful.
 
 Sample size n = `r nrow(sealdat)`.
 
