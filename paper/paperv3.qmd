@@ -69,6 +69,27 @@ First, address detection probability. DO THIS IN MARK.
 
 n = `r n_distinct(sealdat$animalID)` distinct animals.
 
+### Raw data
+
+Resighting plot (image) and age structure bar plot
+
+```{r}
+#| label: fig-raw-data
+
+age_dist <- sealdat %>% 
+  filter(age < 22) %>% 
+  group_by(age) %>% 
+  count(age) %>% 
+  ggplot(aes(x = age, y = n)) + 
+  geom_col(fill = "grey50") + 
+  labs(x = "Age (Years)", y = "Number of individuals") + 
+  theme_few() + 
+  theme(axis.title = element_text(size = 13))
+
+age_dist
+
+```
+
 ### H1: Age distribution and breeding status
 
 ~~We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).~~
@@ -94,7 +115,7 @@ breed_age_mod2 <- glmer(
     control = glmerControl(optimizer="bobyqa")
 )
 
-tibble(
+breed_summ <- tibble(
   model = c("Pre-senescence", "Post-senescence"),
   age_coef = c(fixef(breed_age_mod1)["age10"],
                fixef(breed_age_mod2)["age10"]),
@@ -102,8 +123,15 @@ tibble(
                   summary(breed_age_mod2)$coef["age10", "Std. Error"]),
   `p(coef<0)` = c(pnorm(summary(breed_age_mod1)$coef["age10", "z value"]),
                   pnorm(summary(breed_age_mod2)$coef["age10", "z value"]))
-) %>% 
-  mutate(across(where(is.numeric), \(x) signif(x, 3)))
+) 
+
+breed_summ %>% 
+  mutate(across(where(is.numeric), \(x) signif(x, 3))) %>%
+  set_names(c("Age class", 
+              "Age", 
+              "se(Age)",
+              "p(Age) < 0")) %>% 
+  knitr::kable()
 
 ```
 
@@ -111,18 +139,6 @@ tibble(
 #| label: fig-breeding-mod 
 #| fig-width: 9
 #| fig-height: 6
-
-# Age distribution panel A 
-
-age_dist <- sealdat %>% 
-  filter(age < 22) %>% 
-  group_by(age) %>% 
-  count(age) %>% 
-  ggplot(aes(x = age, y = n)) + 
-  geom_col(fill = "grey50") + 
-  labs(x = "Age (Years)", y = "Number of individuals") + 
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
 
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions for both
 # models and row bind them together
@@ -252,7 +268,22 @@ breed_fig <- ggplot(breed_pred, aes(x = age)) +
   theme(legend.position = "none",
         axis.title = element_text(size = 13))
 
-age_dist | breed_fig
+# Coefficient panel
+breed_coef_fig <- breed_summ %>% 
+  mutate(model = fct_rev(model)) %>% 
+  ggplot(aes(color = model)) + 
+  geom_pointrange(aes(ymin = age_coef - age_coef_se,
+                      y = age_coef,
+                      ymax = age_coef + age_coef_se,
+                      x = model)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  labs(y = "Age coefficient") +
+  theme_few() +
+  theme(legend.position = "none",
+        axis.title.x = element_blank())
+
+(breed_fig | breed_coef_fig) + plot_layout(widths = c(3, 1))
   
 ```
 
@@ -665,16 +696,16 @@ Sample size n = `r nrow(seal_phenology)`.
 
 Supplemental Table 1: Statistics for breeding success model.
 
-```{r}
+```{r, code = FALSE}
 #| label: tbl-breed-cap
 
 tbl_breed_cap <- str_glue("The results from breeding probability analysis. The random effect variance of animal id is {format_signif(VarCorr(breeding_mod)$animalID, 3)} and of year was {format_signif(VarCorr(breeding_mod)$year, 3)}.")
 
 ```
 
-```{r}
+```{r, code = FALSE}
 #| label: tbl-breed-success
-#| tbl-cap: !expr "tbl_breed_cap"
+tbl-cap: !expr "tbl_breed_cap"
 
 breed_mod_summary$coefficients %>% 
   as_tibble() %>% 
@@ -687,7 +718,7 @@ breed_mod_summary$coefficients %>%
   knitr::kable()
 ```
 
-```{r}
+```{r, code = FALSE}
 #| label: tbl-survrecruit-cap
 
 surv_recruit_cap <- str_glue("The results from offspring survival and recruitment analyses. In the offspring survival model, the random effect variance of animal id is {format_signif(VarCorr(pup_surv_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_surv_model)$year, 3)}. In the offspring recruitment model, the random effect variance of animal id is {format_signif(VarCorr(pup_recruit_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_recruit_model)$year, 3)}")
@@ -696,9 +727,9 @@ surv_recruit_cap <- str_glue("The results from offspring survival and recruitmen
 
 Supplemental table for offspring survival
 
-```{r}
-#| tbl-cap: !expr "surv_recruit_cap"
+```{r, code = FALSE}
 #| label: tbl-surv_recruit
+tbl-cap: !expr "surv_recruit_cap"
 
 surv_mod_summary <- summary(pup_surv_model)
 surv_mod_kable <- surv_mod_summary$coefficients %>% 
@@ -732,15 +763,15 @@ rbind(surv_mod_kable, recruit_mod_kable) %>%
 
 Supplemental table for pup sex ratio model.
 
-```{r}
+```{r, code = FALSE}
 #| label: tbl-pupsex-cap
 
 pupsex_cap <- str_glue("The results from offspring sex ratio analyses. In the model, the random effect variance of animal id is {format_signif(VarCorr(pup_sex_mod)$animalID, 3)} and of year was {format_signif(VarCorr(pup_sex_mod)$year, 3)}.") 
 ```
 
-```{r}
+```{r, code = FALSE}
 #| label: tbl-pupsex
-#| tbl-cap: !expr "pupsex_cap"
+tbl-cap: !expr "pupsex_cap"
 
 pupsex_mod_summary <- summary(pup_sex_mod)
 pupsex_quad_summary <- summary(pup_sex_quad)
@@ -760,7 +791,7 @@ pupsex_mod_summary$coefficients %>%
 
 Supplemental table for male biased sex ratios at older ages.
 
-```{r}
+```{r, code = FALSE}
 #| label: tbl-pup-sex
 #| tbl-cap: "Offspring sex ratio skewed towards males with increasing maternal age. Mothers age 12, 13, and 17 gave birth to significantly more male than female pups (bold)."
 
@@ -782,7 +813,7 @@ knitr::kable(pup_sex_tbl) %>%
 
 Supplemental figure for phenology models
 
-```{r}
+```{r, code = FALSE}
 #| fig-width: 8
 
 #NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing. Maybe make boxplots also..?
@@ -804,7 +835,7 @@ ggplot(aes(y = DOY)) +
 
 Supplemental table for the phenology models.
 
-```{r}
+```{r, code = FALSE}
 ba_data <- phenology_models$model_data[[1]]
 ba_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ba_data)
 ba_summary <- summary(ba_mod)
