@@ -3,8 +3,8 @@ title: "Elephant Seal Age JAE Intraspecific Variation"
 format: 
   html: 
     echo: false
-    fig-width: 4.5
-    fig-height: 4.5
+    fig-width: 5
+    fig-height: 5
     code-fold: true
     code-tools: true
     warning: false
@@ -25,6 +25,7 @@ library(ggeffects)
 library(ggridges)
 library(patchwork)
 source(here::here("R/format.R"))
+theme_set(theme_few(base_size = 13))
 
 age_senesce <- 12
 
@@ -76,6 +77,60 @@ Resighting plot (image) and age structure bar plot
 ```{r}
 #| label: fig-raw-data
 
+sighting_img <- sealdat %>% 
+  group_by(animalID) %>% 
+  summarize(yearborn = yearborn[1],
+            first_obs = min(year),
+            last_obs = max(year),
+            .groups = "keep") %>% 
+  reframe(yearborn = yearborn,
+          year = yearborn:last_obs,
+          age = year - yearborn,
+          prerecruit = year < first_obs) %>% 
+  filter(year > 1987) %>% 
+  left_join(sealdat %>% 
+              group_by(animalID, year) %>% 
+              summarize(observed_int = max(observed_int),
+                        .groups = "drop"),
+            by = c("animalID", "year")) %>% 
+  mutate(
+    observed = case_when(
+      age == 0 ~ "Born",
+      prerecruit ~ "Pre-recruit",
+      observed_int == 0 ~ "Non-breeder",
+      observed_int == 1 ~ "Breeder",
+      is.na(observed_int) ~ "Unobserved"
+    ),
+    observed = factor(observed, levels = c("Born",
+                                           "Pre-recruit",
+                                           "Non-breeder",
+                                           "Breeder",
+                                           "Unobserved"))
+  ) %>% 
+  group_by(animalID) %>% 
+  mutate(longevity = max(age),
+         yearborn = na.omit(yearborn)[1]) %>% 
+  ungroup() %>% 
+  arrange(yearborn, longevity, animalID) %>% 
+  mutate(animalID = factor(animalID, levels = unique(animalID))) %>% 
+  ggplot(aes(year, animalID)) +
+  geom_raster(aes(fill = observed)) +
+  scale_fill_viridis_d(direction = -1) +
+  guides(fill = guide_legend(position = "inside", 
+                             direction = "horizontal",
+                             ncol = 1,
+                             byrow = TRUE)) +
+  labs(y ="Individual") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position.inside = c(0.01, 0.99),
+        legend.justification = c(0, 1),
+        legend.background = element_blank(),
+        legend.key.size = unit(4, "mm"),
+        legend.text = element_text(size = 8))
+
 age_dist <- sealdat %>% 
   filter(age < 22) %>% 
   group_by(age) %>% 
@@ -83,10 +138,9 @@ age_dist <- sealdat %>%
   ggplot(aes(x = age, y = n)) + 
   geom_col(fill = "grey50") + 
   labs(x = "Age (Years)", y = "Number of individuals") + 
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
+  theme()
 
-age_dist
+(sighting_img | age_dist) + plot_layout(widths = c(2, 1))
 
 ```
 
@@ -137,8 +191,7 @@ breed_summ %>%
 
 ```{r}
 #| label: fig-breeding-mod 
-#| fig-width: 9
-#| fig-height: 6
+#| fig-width: 7.5
 
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions for both
 # models and row bind them together
@@ -251,16 +304,16 @@ breed_fig <- ggplot(breed_pred, aes(x = age)) +
             filter(breed_pred_year, age == 20),
             x = 20.2,
             hjust = 0,
-            size = 3) +
+            size = 2.5) +
   geom_text(aes(y = predicted, label = year_fct),
             filter(breed_pred_year, age == 4),
             x = 3.8,
             hjust = 1,
-            size = 3) +
+            size = 2.5) +
   # Add visual indicator for senescence
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_x_continuous("Age", limits = c(3.5, 20.5)) +
-  scale_y_continuous("Breeding %", 
+  scale_y_continuous("Adult female breeding", 
                      limits = c(NA, 1), 
                      labels = scales::percent) +
   scale_color_manual(values = c("firebrick", "cornflowerblue")) +
@@ -270,7 +323,8 @@ breed_fig <- ggplot(breed_pred, aes(x = age)) +
 
 # Coefficient panel
 breed_coef_fig <- breed_summ %>% 
-  mutate(model = fct_rev(model)) %>% 
+  mutate(model = str_extract(model, ".*-"),
+         model = fct_rev(model)) %>% 
   ggplot(aes(color = model)) + 
   geom_pointrange(aes(ymin = age_coef - age_coef_se,
                       y = age_coef,
@@ -278,12 +332,14 @@ breed_coef_fig <- breed_summ %>%
                       x = model)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  labs(y = "Age coefficient") +
+  labs(x = "Senescence",
+       y = "Age coefficient") +
   theme_few() +
-  theme(legend.position = "none",
-        axis.title.x = element_blank())
+  theme(legend.position = "none")
 
-(breed_fig | breed_coef_fig) + plot_layout(widths = c(3, 1))
+(breed_fig | breed_coef_fig) + 
+  plot_layout(widths = c(3, 1)) +
+  plot_annotation(tag_levels = "A")
   
 ```
 
@@ -317,12 +373,16 @@ surv_recruit_data <- sealdat %>%
   filter(n_pups >= 5)
 
 # Fit pup *survival* models pre- and post-senescence
+# Commented-out formulae vary age10 coef by pupsex, end up with similar
+# results. Can add to supplemental?
 pup_surv_model1 <- glmer(
+  # pup_survived_int ~ age10 : pupsex + (1 | animalID) + (1 | year),
   pup_survived_int ~ age10 + (1 | animalID) + (1 | year),
   data = filter(surv_recruit_data, age < age_senesce),
   family = "binomial"
 )
 pup_surv_model2 <- glmer(
+  # pup_survived_int ~ age10 : pupsex + (1 | animalID) + (1 | year),
   pup_survived_int ~ age10 + (1 | animalID) + (1 | year),
   data = filter(surv_recruit_data, age >= age_senesce),
   family = "binomial"
@@ -347,7 +407,7 @@ pup_recr_model2 <- glmer(
 )
 
 # Summary table
-tibble(
+surv_recr_summ <- tibble(
   response = rep(c("Survival", "Recruitment"), each = 2),
   n = map_dbl(
     list(pup_surv_model1@frame, 
@@ -369,14 +429,17 @@ tibble(
                   pnorm(summary(pup_surv_model2)$coef["age10", "z value"]),
                   pnorm(summary(pup_recr_model1)$coef["age10", "z value"]),
                   pnorm(summary(pup_recr_model2)$coef["age10", "z value"]))
-) %>% 
-  mutate(across(where(is.numeric), \(x) signif(x, 3)))
+)
+
+surv_recr_summ %>% 
+  mutate(across(where(is.numeric), \(x) signif(x, 3))) %>% 
+  knitr::kable()
 
 ```
 
 ```{r}
 #| label: fig-repro-age
-#| fig-cap: "Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE."
+#| fig-cap: "Offspring survival decreases as mothers senesce. **A** Survival of female and male offspring (filled points) is not negatively impacted by maternal age (blue line) prior to age 12 (vertical dashed line). After age 12, offspring survival declines with maternal age (red line), i.e., maternal effect senescence. Hollow points represent female offspring recruitment, which did not significantly decline with maternal age after age 12. **B** The coefficient of age w.r.t. offspring survival (solid points) was not significantly negative before age 12 (blue), but was significantly negative after (red). The coefficient of age w.r.t. female offspring recruitment (hollow points) was not significant in either maternal age class. Lines represent standard error of the coefficient, which is ommitted for the post-age 12 offspring recruitment coefficent (hollow red point) because the standard error was too large (14.8) to visually represent without hiding other patterns. Numbers at top indicate sample size in each model."
 #| fig-width: 5.5
 
 #B Pup survival and recruitment doesn't change with increased maternal age.
@@ -406,18 +469,24 @@ surv_pred <- rbind(
 )
 
 repro_raw <- surv_recruit_data %>% 
-  mutate(pupsex = factor(pupsex, labels = c("Female", "Male"))) %>% 
-  group_by(age, pupsex) %>% 
+  # Uncomment to group by female and male offspring
+  # mutate(
+  #   pupsex = factor(pupsex, 
+  #                   labels = c("Female offspring", "Male offspring"))
+  # ) %>% 
+  # group_by(age, pupsex) %>% 
+  group_by(age) %>% 
   summarize(n_born = n(), 
             n_surv = sum(pup_survived_int),
             perc_surv = n_surv / n_born, 
             se_surv = (perc_surv * (1 - perc_surv) / n_born)^0.5,
-            n_recr = sum(puprecruited),
-            perc_recr = n_recr / n_born,
-            se_recr = (perc_recr * (1 - perc_recr) / n_born)^0.5,
+            f_born = sum(pupsex == "F"),
+            f_recr = sum(puprecruited & pupsex == "F"),
+            perc_recr = f_recr / f_born,
+            se_recr = (perc_recr * (1 - perc_recr) / f_born)^0.5,
             .groups = "drop") 
 
-ggplot(surv_pred, aes(x = age)) +
+surv_recr_fig <- ggplot(surv_pred, aes(x = age)) +
   # Survival by age (fixed effect only)
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
                   group = age_class),
@@ -432,19 +501,52 @@ ggplot(surv_pred, aes(x = age)) +
   geom_pointrange(aes(y = perc_recr,
                       ymin = perc_recr - se_recr,
                       ymax = perc_recr + se_recr),
-                  shape = 21,
-                  filter(repro_raw, pupsex == "Female")) +
+                  repro_raw,
+                  shape = 21) +
   # Add visual indicator for senescence
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_x_continuous("Age", limits = c(3.5, 18.5)) +
-  scale_y_continuous("Pup survival/recruitment", 
+  scale_y_continuous("Offspring survival/recruitment", 
                      limits = c(0, 0.65), 
                      labels = scales::percent) +
   scale_color_manual(values = c("firebrick", "cornflowerblue")) +
-  facet_wrap(~pupsex) +
+  # Uncomment to facet by offspring sex
+  # facet_wrap(~pupsex) +
   theme_few() +
   theme(legend.position = "none",
         axis.title = element_text(size = 13))
+
+# Survival/recruitment figure. In the caption, mention the post-senescence
+# recruitment std err was omitted because it was 14.8, so it swamps all the
+# other std errs
+surv_recr_coef_fig <- surv_recr_summ %>% 
+  mutate(response = fct_rev(str_sub(response, 1, 4)),
+         model = fct_rev(str_extract(model, ".*-")),
+         # Remove post-senescence recruitment std err
+         age_coef_se = c(age_coef_se[1:3], 0)) %>% 
+  ggplot(aes(x = response, ymax = 1.1)) +
+  geom_pointrange(aes(ymin = age_coef - age_coef_se, 
+                      y = age_coef,
+                      ymax = age_coef + age_coef_se,
+                      color = model,
+                      shape = response),
+                  position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = n, group = model), 
+            y = 0.9, 
+            size = 3,
+            angle = 30,
+            hjust = 0,
+            position = position_dodge(width = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_shape_manual(values = c(16, 1)) +
+  labs(x = "Response", y = "Age coefficient") +
+  expand_limits(y = 1.1) +
+  theme(legend.position = "none")
+
+(surv_recr_fig | surv_recr_coef_fig) + 
+  plot_layout(widths = c(3, 1)) +
+  plot_annotation(tag_levels = "A")
 
 ```
 
