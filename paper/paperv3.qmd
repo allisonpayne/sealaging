@@ -262,106 +262,159 @@ Sample size n = `r nrow(sealdat)`.
 
 We predicted that reproductive declines would carry over to the next generation - that is, pups born to older mothers would have decreased survival and recruitment success.
 
-We found that neither pup survival nor recruitment is significantly affected by maternal age (@fig-repro_age).
+We found that neither pup survival nor recruitment is significantly affected by maternal age (@fig-repro-age).
 
 We reject our hypothesis: reproductive declines do not persist to the next generation, and there is no evidence of maternal effect senescence.
 
 ```{r}
-#| label: fig-repro_age
-#| fig-cap: "Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE."
-#| fig-width: 5.5
-
-#B Pup survival and recruitment doesn't change with increased maternal age.
+#| label: repro-age
 
 ##NOTE: Need to take out the instances where recruitment > survival
 #what does ggpredict do with random effects? 
 #thin gray lines for the different year effects? show the interannual variation (5 that include extreme ones, just something to illustrate the variation of year)
 
+# Isolate pup survival/recruitment 
 surv_recruit_data <- sealdat %>% 
   drop_na(pupID) %>% 
-  filter(pupsex == "F",
-         pupyearborn < 2016) %>% 
-  mutate(pup_survived_dbl = ifelse(pup_survived, 1, 0)) %>% 
+  # Only pups born 2016 or earlier (otherwise survival biiased)
+  filter(pupyearborn <= 2016) %>% 
+  mutate(pup_survived_int = ifelse(pup_survived, 1L, 0L)) %>% 
+  # Only keep maternal age classes with 5+ births, which drops moms 19+
   group_by(age) %>% 
   mutate(n_pups = n()) %>% 
-  ungroup() %>% 
+  ungroup() %>%
   filter(n_pups >= 5)
-pup_surv_model <- glmer(
-  pup_survived_dbl ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
-  data = surv_recruit_data, 
-  family = "binomial"
-)
-summary(pup_surv_model)
-pup_surv_pred <- ggpredict(pup_surv_model, terms = c("age10 [all]")) %>% 
-  as_tibble() %>% 
-  transmute(age = x * 10, 
-            metric = "surv", 
-            mean = predicted, 
-            mean_lwr = conf.low, 
-            mean_upr = conf.high)
-pup_recruit_model <- glmer(
-  puprecruited ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
-  data = surv_recruit_data, 
-  family = "binomial"
-)
-summary(pup_recruit_model)
-pup_recruit_pred <- ggpredict(pup_recruit_model, terms = c("age10 [all]")) %>% 
-  as_tibble() %>% 
-  transmute(age = x * 10, 
-            metric = "recruit", 
-            mean = predicted, 
-            mean_lwr = conf.low, 
-            mean_upr = conf.high)
-surv_recruit_pred <- rbind(pup_surv_pred, pup_recruit_pred) %>% 
-  mutate(metric = factor(metric, 
-                         levels = c("surv", "recruit"), 
-                         labels = c("Survival", "Recruitment")))
 
-surv_recruit_summary <- surv_recruit_data %>% 
-  group_by(age) %>%
-  summarize(n_pups = n(),
-            n_surv = sum(pup_survived),
-            mean_surv = n_surv / n_pups,  
-            se_surv = (mean_surv * (1 - mean_surv) / n_pups)^0.5,
-            n_recruit = sum(puprecruited), 
-            mean_recruit = n_recruit / n_pups, 
-            se_recruit = (mean_recruit * (1 - mean_recruit) / n_pups)^0.5)  %>%  
-  pivot_longer(cols = c(mean_surv, se_surv, mean_recruit, se_recruit), 
-               names_to = c("stat", "metric"), 
-               names_pattern = "(.*)_(.*)") %>% 
-  pivot_wider(names_from = "stat", 
-              values_from = "value") %>% 
-  mutate(low = mean - se, 
-         high = mean + se, 
-         age = age + ifelse(metric == "surv", -0.1, 0.1), 
-         metric = factor(metric, 
-                         levels = c("surv", "recruit"), 
-                         labels = c("Survival", "Recruitment")))
-  
-surv_recruit_summary %>% 
-  ggplot(aes(x = age, y = mean, color = metric, fill = metric)) + 
-  geom_ribbon(aes(ymin = mean_lwr, ymax = mean_upr, alpha = metric),
-              surv_recruit_pred,
-              color = NA) +
-  geom_pointrange(aes(ymin = low, ymax = high)) +
-  geom_line(aes(linetype = metric),
-            surv_recruit_pred) +
-  scale_y_continuous(labels = scales::percent) + 
-  scale_color_manual(values = c("#829BD1", "#E9B668")) + 
-  scale_fill_manual(values = c("#829BD1", "#E9B668")) + 
-  scale_linetype_manual(values = c("dashed", "dashed")) +
-  scale_alpha_manual(values = c(0.25, 0.1)) +
-  expand_limits(y = c(0, 0.5)) +
-  labs(x = "Maternal Age (Years)", y = "Pup Survival or Recruitment") +
-  theme_few() + 
-  theme(legend.position = c(0.1,0.97), 
-        legend.justification = c(0,1), 
-        legend.title = element_blank(), 
-        legend.direction = "horizontal", 
+# Fit pup *survival* models pre- and post-senescence
+pup_surv_model1 <- glmer(
+  pup_survived_int ~ age10 + (1 | animalID) + (1 | year),
+  data = filter(surv_recruit_data, age < age_senesce),
+  family = "binomial"
+)
+pup_surv_model2 <- glmer(
+  pup_survived_int ~ age10 + (1 | animalID) + (1 | year),
+  data = filter(surv_recruit_data, age >= age_senesce),
+  family = "binomial"
+)
+
+# Fit pup *recruitment* models pre- and post-senescence
+pup_recr_model1 <- glmer(
+  puprecruited ~ age10 + (1 | animalID) + (1 | year),
+  # For recruitment, ONLY female pups
+  data = filter(surv_recruit_data, 
+                age < age_senesce,
+                pupsex == "F"),
+  family = "binomial"
+)
+pup_recr_model2 <- glmer(
+  puprecruited ~ age10 + (1 | animalID) + (1 | year),
+  data = filter(surv_recruit_data, 
+                age >= age_senesce,
+                pupsex == "F"),
+  family = "binomial",
+  control = glmerControl(optimizer="bobyqa")
+)
+
+# Summary table
+tibble(
+  response = rep(c("Survival", "Recruitment"), each = 2),
+  n = map_dbl(
+    list(pup_surv_model1@frame, 
+         pup_surv_model2@frame, 
+         pup_recr_model1@frame, 
+         pup_recr_model2@frame),
+    nrow
+  ),
+  model = rep(c("Pre-senescence", "Post-senescence"), 2),
+  age_coef = c(fixef(pup_surv_model1)["age10"],
+               fixef(pup_surv_model2)["age10"],
+               fixef(pup_recr_model1)["age10"],
+               fixef(pup_recr_model2)["age10"]),
+  age_coef_se = c(summary(pup_surv_model1)$coef["age10", "Std. Error"],
+                  summary(pup_surv_model2)$coef["age10", "Std. Error"],
+                  summary(pup_recr_model1)$coef["age10", "Std. Error"],
+                  summary(pup_recr_model2)$coef["age10", "Std. Error"]),
+  `p(coef<0)` = c(pnorm(summary(pup_surv_model1)$coef["age10", "z value"]),
+                  pnorm(summary(pup_surv_model2)$coef["age10", "z value"]),
+                  pnorm(summary(pup_recr_model1)$coef["age10", "z value"]),
+                  pnorm(summary(pup_recr_model2)$coef["age10", "z value"]))
+) %>% 
+  mutate(across(where(is.numeric), \(x) signif(x, 3)))
+
+```
+
+```{r}
+#| label: fig-repro-age
+#| fig-cap: "Pup survival and recruitment are not significantly affected by maternal age. Points are mean values for maternal age. Error bars show SE."
+#| fig-width: 5.5
+
+#B Pup survival and recruitment doesn't change with increased maternal age.
+
+# Pup survival 
+surv_pred <- rbind(
+  # Pre-senescence
+  ggpredict(
+    pup_surv_model1,
+    terms = c("age10 [all]"),
+    type = "fixed",
+    interval = "confidence"
+  ) %>% 
+    as_tibble() %>% 
+    mutate(age = x * 10,
+           age_class = "young"),
+  # Post-senescence
+  ggpredict(
+    pup_surv_model2,
+    terms = c("age10 [all]"),
+    type = "fixed",
+    interval = "confidence"
+  ) %>% 
+    as_tibble() %>% 
+    mutate(age = x * 10,
+           age_class = "old")
+)
+
+repro_raw <- surv_recruit_data %>% 
+  mutate(pupsex = factor(pupsex, labels = c("Female", "Male"))) %>% 
+  group_by(age, pupsex) %>% 
+  summarize(n_born = n(), 
+            n_surv = sum(pup_survived_int),
+            perc_surv = n_surv / n_born, 
+            se_surv = (perc_surv * (1 - perc_surv) / n_born)^0.5,
+            n_recr = sum(puprecruited),
+            perc_recr = n_recr / n_born,
+            se_recr = (perc_recr * (1 - perc_recr) / n_born)^0.5,
+            .groups = "drop") 
+
+ggplot(surv_pred, aes(x = age)) +
+  # Survival by age (fixed effect only)
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
+                  group = age_class),
+              fill = "grey", alpha = 0.5) +
+  geom_line(aes(y = predicted, color = age_class), 
+            linewidth = 1.5) +
+  # Raw survival and recruitment data
+  geom_pointrange(aes(y = perc_surv,
+                      ymin = perc_surv - se_surv,
+                      ymax = perc_surv + se_surv),
+                  repro_raw) +
+  geom_pointrange(aes(y = perc_recr,
+                      ymin = perc_recr - se_recr,
+                      ymax = perc_recr + se_recr),
+                  shape = 21,
+                  filter(repro_raw, pupsex == "Female")) +
+  # Add visual indicator for senescence
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_x_continuous("Age", limits = c(3.5, 18.5)) +
+  scale_y_continuous("Pup survival/recruitment", 
+                     limits = c(0, 0.65), 
+                     labels = scales::percent) +
+  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
+  facet_wrap(~pupsex) +
+  theme_few() +
+  theme(legend.position = "none",
         axis.title = element_text(size = 13))
 
-#Why is recruitment higher than survival in some points? Add the quadratic model? Reverse order of legend in the figure
-#caption - error bars show SE. Points are mean values for maternal age. Make sure that language in the caption matches both the model and the data 
 ```
 
 Sample size n = `r nrow(surv_recruit_data)`.
