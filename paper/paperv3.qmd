@@ -557,242 +557,190 @@ Sample size n = `r nrow(surv_recruit_data)`.
 We found that as maternal age increases, pup sex skews slightly towards males (@fig-sex_ratio).
 
 ```{r}
-#| label: fig-sex_ratio
-#| fig-cap: !expr "str_glue('Offspring sex ratio skews towards males with increasing maternal age (p = {format_pval(summary(pup_sex_mod)$coefficients[\"age\", \"Pr(>|z|)\"] / 2, 3)}). Mothers aged 12, 13, and 17 gave birth to significantly more male than female offspring (red stars).')"
-#| fig-width: 4.5
+#| label: sex-ratio
 
 pup_sex_data <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
          age < 19) %>% 
   mutate(is_male = ifelse(pupsex == "M", 1, 0))
 
-pup_sex_summary <- pup_sex_data %>% 
-  group_by(age, pupsex) %>%
-  summarize(n = n(), .groups = "drop") %>% 
-  pivot_wider(values_from = n, names_from = pupsex) %>% 
-  mutate(num = M + F,
-         percm = M / num,
-         se = (percm * (1 - percm) / num)^0.5,
-         pval = map2_dbl(M, num, \(x, n) binom.test(x, n, alternative = "greater")$p.value))
-
-signif_male <- filter(pup_sex_summary, pval < 0.05)
-
-#linear
-pup_sex_mod <- glmer(is_male ~ age + (1 | animalID) + (1 | year),
-                     data = pup_sex_data, 
-                     family = "binomial")
-summary(pup_sex_mod)
-
-
-# We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted.
-
-pup_sex_quad <- glmer(
-  is_male ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year),
-  data = pup_sex_data, 
+sex_ratio_mod1 <- glmer(
+  is_male ~ age10 + (1 | animalID) + (1 | year),
+  filter(pup_sex_data, age < age_senesce),
   family = "binomial"
-  )
+)
+sex_ratio_mod2 <- glmer(
+  is_male ~ age10 + (1 | animalID) + (1 | year),
+  filter(pup_sex_data, age >= age_senesce),
+  family = "binomial"
+)
 
-pup_sex_pred <- ggpredict(pup_sex_mod, terms = c("age [all]")) %>% 
-  as_tibble() %>% 
-  transmute(age = x, 
-            percm = predicted, 
-            percm_lwr = conf.low, 
-            percm_upr = conf.high)
+sex_ratio_summ <- tibble(
+  model = c("Pre-senescence", "Post-senescence"),
+  age_coef = c(fixef(sex_ratio_mod1)["age10"],
+               fixef(sex_ratio_mod2)["age10"]),
+  age_coef_se = c(summary(sex_ratio_mod1)$coef["age10", "Std. Error"],
+                  summary(sex_ratio_mod2)$coef["age10", "Std. Error"]),
+  `p(coef!=0)` = c(summary(sex_ratio_mod1)$coef["age10", "Pr(>|z|)"],
+                   summary(sex_ratio_mod2)$coef["age10", "Pr(>|z|)"])
+) 
 
-ggplot(pup_sex_summary, aes(x = age, y = percm)) +
-  geom_hline(yintercept = 0.5, color = "gray75", linetype = "dashed") +
-  geom_ribbon(aes(ymin = percm_lwr, ymax = percm_upr), 
-              pup_sex_pred,
-              fill = "#829BD1",
-              alpha = 0.25) + 
-  geom_line(data = pup_sex_pred, 
-            color = "#829BD1", 
-            linewidth = 1) + 
-  geom_pointrange(aes(ymin = percm - se, ymax = percm + se), 
-                  size = 0.25) +
-  geom_point(aes(y = percm + se + 0.05),
-             signif_male,
-             shape = 8,
-             color = "firebrick") +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
-  labs(x = "Maternal Age (Years)", y = "% Male Pups (Mean ± SE)") +
-  theme_few() + 
-  theme(axis.title = element_text(size = 13))
+sex_ratio_summ %>% 
+  mutate(across(where(is.numeric), \(x) signif(x, 3))) %>%
+  set_names(c("Age class", 
+              "Age", 
+              "se(Age)",
+              "p(Age) != 0")) %>% 
+  knitr::kable()
 
+```
 
-#take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)
+```{r}
+#| label: fig-sex-ratio
+#| fig-cap: "The effect of age on offspring sex ratio was not significantly different for pre- and post-senescence adults. **A** Raw data (points with error bars, indicating mean and standard error of the proportion) and model predictions (lines with 95% confidence intervals). **B** Estimate and standard error of age coefficients in pre- and post-senescence models."
+#| fig-width: 5.5
+
+# Model predictions
+sex_ratio_pred <- rbind(
+  # Pre-senescence
+  ggpredict(
+    sex_ratio_mod1,
+    terms = c("age10 [all]"),
+    type = "fixed",
+    interval = "confidence"
+  ) %>% 
+    as_tibble() %>% 
+    mutate(age = x * 10,
+           # Add an age_class variable to facilitate plotting
+           age_class = "young"),
+  # Post-senescence
+  ggpredict(
+    sex_ratio_mod2,
+    terms = c("age10 [all]"),
+    type = "fixed",
+    interval = "confidence"
+  ) %>% 
+    as_tibble() %>% 
+    mutate(age = x * 10,
+           age_class = "old")
+)
+
+# Sex ratio raw data
+sex_ratio <- pup_sex_data %>% 
+  group_by(age) %>% 
+  summarize(n_observed = n(), 
+            perc_male = sum(is_male) / n_observed, 
+            se = (perc_male * (1 - perc_male) / n_observed)^0.5)
+
+# Figure with raw data and model predictions
+sex_ratio_fig <- ggplot(sex_ratio_pred, aes(x = age)) +
+  # Prediction across years (fixed effect only)
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
+                  group = age_class),
+              fill = "grey", alpha = 0.5) +
+  geom_line(aes(y = predicted, color = age_class), 
+            linewidth = 1.5) +
+  # Raw data
+  geom_pointrange(aes(y = perc_male, 
+                      ymin = perc_male - se, 
+                      ymax = perc_male + se),
+                  sex_ratio) + 
+  # Add visual indicator for senescence
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_y_continuous("Male offspring", 
+                     labels = scales::percent) +
+  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
+  labs(x = "Age") +
+  theme_few() +
+  theme(legend.position = "none",
+        axis.title = element_text(size = 13))
+
+# Coefficient panel
+sex_ratio_coef_fig <- sex_ratio_summ %>% 
+  mutate(model = str_extract(model, ".*-"),
+         model = fct_rev(model)) %>% 
+  ggplot(aes(color = model)) + 
+  geom_pointrange(aes(ymin = age_coef - age_coef_se,
+                      y = age_coef,
+                      ymax = age_coef + age_coef_se,
+                      x = model)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  labs(x = "Senescence",
+       y = "Age coefficient") +
+  theme_few() +
+  theme(legend.position = "none")
+
+(sex_ratio_fig | sex_ratio_coef_fig) + 
+  plot_layout(widths = c(3, 1)) +
+  plot_annotation(tag_levels = "A")
 ```
 
 Sample size n = `r nrow(pup_sex_data)`.
 
-### H4: Changes to annual cycle timing with increased maternal age
-
-We predicted that seals would shift the timing of their annual cycle.
-
-We found that as maternal age increases, there are slight adjustments to the timing of life history events. These events (breeding/molting arrival/departure) are typically shifted later for older animals (@fig-phenology).
+There appears to be a step change biasing offspring sex ratio towards males post-senescence. We simulated the sex ratio of 1,000,000 offspring born to mothers pre- and post-senesecence using the coefficient estimates and standard errors of the fitted sex ratio models. The mean offspring sex ratio increases from 51.3% male before maternal age 12 to 61.2% male after maternal age 12. However, the uncertainty in post-senescence sex ratio is considerable, and only 59.3% of the contrasts of simulated post- and pre-senescence sex ratios are biased towards male offspring. I.e., a simulated post-senescent adult female was more likely to have a male offspring than a simulated pre-senescent adult female in 59.3% of simulations.
 
 ```{r}
+#| label: fig-sim-sex-ratio
+#| fig-cap: "Simulated sex ratios of offspring born to pre- and post-senescence adults. **A** Comparison of simulated sex ratios by pre- (blue) and post- (red) senescence adults. The mean (vertical lines) sex ratio of post-senescence adults is greater than pre-senescence adults. However the distributions overlap extensively. **B** The contrast of post-senescence sex ratio relative to pre-senescence is greater than 0 in only 59.3% of simulations."
+#| fig-width: 5.5
 
-seal_phenology <- sealdat %>% 
-  filter(observed == "Breeder") %>% 
-  mutate(BA = ifelse(firstobsbreeddoy > 200, firstobsbreeddoy - 365, firstobsbreeddoy), 
-         BD = BA + breeddur, 
-         MA = lastobsmoltdoy - moltdur, 
-         MD = lastobsmoltdoy) %>% 
-  drop_na(age, BA, BD, MA, MD)
+# pre_sex_ratio <- tibble(age10 = seq(4, age_senesce - 1)) %>% 
+inv_logit <- \(x) exp(x) / (1 + exp(x))
+n_sim <- 1e6
+sim_sex_ratio <- rbind(
+  tibble(intercept_mean = summary(sex_ratio_mod1)$coef[1, 1],
+         intercept_sd = summary(sex_ratio_mod1)$coef[1, 2],
+         slope_mean = summary(sex_ratio_mod1)$coef[2, 1],
+         slope_sd = summary(sex_ratio_mod1)$coef[2, 2],
+         age10 = sample(seq(4, age_senesce - 1) / 10, n_sim, TRUE),
+         intercept = rnorm(n_sim, intercept_mean, intercept_sd),
+         slope = rnorm(n_sim, slope_mean, slope_sd),
+         logit_p = intercept + slope * age10,
+         p = inv_logit(logit_p),
+         age_class = "Pre-senescence"),
+  tibble(intercept_mean = summary(sex_ratio_mod2)$coef[1, 1],
+         intercept_sd = summary(sex_ratio_mod2)$coef[1, 2],
+         slope_mean = summary(sex_ratio_mod2)$coef[2, 1],
+         slope_sd = summary(sex_ratio_mod2)$coef[2, 2],
+         age10 = sample(seq(age_senesce, 18) / 10, n_sim, TRUE),
+         intercept = rnorm(n_sim, intercept_mean, intercept_sd),
+         slope = rnorm(n_sim, slope_mean, slope_sd),
+         logit_p = intercept + slope * age10,
+         p = inv_logit(logit_p),
+         age_class = "Post-senescence")
+) %>% 
+  mutate(age_class = fct_rev(age_class))
 
-mean_phenology <- seal_phenology %>% 
-  group_by(age) %>% 
-  summarize(across(BA:MD, mean)) %>% 
-  summarize(across(BA:MD, mean)) %>% 
-  pivot_longer(everything(),
-               names_to = "event", 
-               values_to = "doy") 
-
-phenology_n <- unique(seal_phenology$animalID)
-
-timing_summary <- seal_phenology %>% 
-  group_by(age) %>% 
-  summarize(across(BA:MD, mean), 
-            .groups = "drop") %>% 
-  pivot_longer(cols = -age,  
-               names_to = "event", 
-               values_to = "doy") %>% 
-  group_by(age) %>% 
-  group_modify(\(data, keys) {
-    tibble(event = c("Long trip", "Breeding", "Short trip", "Molting", "longtrip2"),
-           doy = c(data$doy, 365) - c(0, data$doy))
-  }) %>% 
-  ungroup() %>% 
-  mutate(event = factor(event, levels = c("Long trip", 
-                                          "Breeding", 
-                                          "Short trip", 
-                                          "Molting", 
-                                          "longtrip2")))
-
-
-```
-
-```{r}
-#| label: fig-phenology
-#| fig-height: 4.5
-#| fig-width: 7
-#| fig-cap: "Successful breeding and increased maternal age both impact elephant seal annual cycles. A: Visualization of life history timing across ages, faceted by breeding status. White dashed lines on each panel represent the raw data from the other panel to facilitate comparisons between breeders and non-breeders. B: LMM coefficients for phenological parameters. The units for maternal age coefficients are in days per year. The coefficients for breeding status are in days. Black points are significant, gray points are not significant."
-
-#Delete the non-breeders and add the dashed line as an average instead. 
-#put panels next to each other 
-#what do you do when breeding dates are in december? ifelse statement (if > 250), 200 - 365 (so use negative numbers if they are in december) **does not happen! no worries!!**
-#show xy plots of each phenological variable against age in the supplemental and summary stats for the model in the supplement too 
-#draw attention to the widths - 1) 2) 3) 
-#assess linearity from plots, but double check visually and see if quadratic might fit better (we werent sure if age patterns would be linear or not, so we tested quadratic analyses throughout)
-
-phen_plot1 <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
-  geom_area(position = position_stack(reverse = TRUE),
-            color = NA) +
-  geom_line(position = position_stack(reverse = TRUE),
-            color = "white") +
-  geom_hline(aes(yintercept = doy),
-             mean_phenology,
-             color = "white",
-             linetype = "dashed",
-             alpha = 0.5) +
-  scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
-                      breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
-  scale_x_continuous("Maternal Age (Years)", expand = expansion(mult = 0)) +
-  scale_y_continuous("Day of Year", expand = expansion(mult = 0)) +
-  theme_few() + 
-  theme(axis.title = element_text(size = 12),
-        panel.spacing = unit(1, "lines"))
-
-
-# Utility functions for model fitting and coefficient extraction
-fit_model <- function(dat) {
-  lmer(doy ~ age + (1 | animalID) + (1 | year), data = dat)
-}
-extract_estimate <- function(models, param) {
-  map_dbl(models, \(mod) summary(mod)$coefficients[param, "Estimate"])
-}
-extract_stderr <- function(models, param) {
-  map_dbl(models, \(mod) summary(mod)$coefficients[param, "Std. Error"])
-}
-extract_pval <- function(models, param) {
-  map_dbl(models, \(mod) summary(mod)$coefficients[param, "Pr(>|t|)"])
-}
-
-# This data frame contains a model for each phenological variable w.r.t. age
-phenology_models <- seal_phenology %>% 
-  pivot_longer(BA:MD, names_to = "phenology", values_to = "doy") %>% 
-  select(phenology, doy, age, animalID, year) %>% 
-  nest(model_data = c(doy, age, animalID, year)) %>% 
-  mutate(model = map(model_data, fit_model),
-         age_coef = extract_estimate(model, "age"),
-         age_stderr = extract_stderr(model, "age"),
-         age_pval = extract_pval(model, "age"),
-         age_signif = age_pval < 0.05)
-
-phen_wrapped <- tibble(
-  event_begin = c(-Inf, 1:4),
-  event_end = c(1:4, Inf),
-  event = timing_summary$event[0:5]
+pre_logit_p <- with(sim_sex_ratio, logit_p[age_class == "Pre-senescence"])
+post_logit_p <- with(sim_sex_ratio, logit_p[age_class == "Post-senescence"])
+sex_ratio_contrast <- tibble(
+  contrast_logit_p = post_logit_p - pre_logit_p
 )
 
-phen_plot2 <- phenology_models %>% 
-  select(-c(model_data, model)) %>% 
-  pivot_longer(c(ends_with("coef"), ends_with("stderr"), ends_with("signif")),
-               names_to = c("param", "metric"),
-               names_sep = "_",
-               values_to = "value") %>% 
-  pivot_wider(names_from = metric, values_from = value) %>% 
-  mutate(signif = as.logical(signif), 
-         # param = factor(param, 
-         #                labels = "'Delay with maternal age (days year'^-1 * ')'"), 
-         phenology = factor(phenology, 
-                            labels = c("Breeding\narrrival", 
-                                       "Breeding\ndeparture", 
-                                       "Molt\narrrival", 
-                                       "Molt\ndeparture"))) %>% 
-  ggplot(aes(x = coef, y = phenology)) +
-  # Prevent geom_rect() from establishing a continuous y-axis scale
-  geom_point(alpha = 0) +
-  geom_rect(aes(xmin = -Inf, xmax = Inf,
-                ymin = event_begin, ymax = event_end,
-                fill = event),
-            phen_wrapped,
-            inherit.aes = FALSE) +
-  geom_pointrange(aes(xmin = coef - stderr, 
-                      xmax = coef + stderr,
-                      color = signif)) +
-  scale_color_manual(values = c("FALSE" = "grey50", "TRUE" = "black"),
-                     guide = "none") +
-  scale_fill_discrete(type = c("#829BD1", "#E9B668", "#7EC6CC", "#E091B9", "#829BD1"),
-                      breaks = c("Long trip", "Breeding", "Short trip", "Molting")) + 
-  labs(x = expression('Delay with maternal age (days year'^-1 * ')')) +
-  expand_limits(x = 0) +
-  theme_few() + 
-  theme(axis.title.y = element_blank(),
-        legend.direction = "horizontal",
-        legend.title = element_blank())
+sim_sex_ratio_fig <- ggplot(sim_sex_ratio, aes(p)) +
+  geom_density(aes(fill = age_class), alpha = 0.5) +
+  geom_density(aes(color = age_class)) +
+  geom_vline(aes(xintercept = p, color = age_class),
+             sim_sex_ratio %>% 
+               group_by(age_class) %>% 
+               summarize(p = inv_logit(mean(logit_p))),
+             linewidth = 1.5) +
+  scale_x_continuous("Male offspring", 
+                     labels = scales::percent) +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  theme(legend.position = "none")
 
-plot_grid(
-  get_legend(phen_plot2),
-  plot_grid(
-    phen_plot1 + theme(legend.position = "none"),
-    phen_plot2 + theme(legend.position = "none"),
-    align = "h",
-    axis = "tb",
-    labels = c("A", "B"),
-    nrow = 1
-  ),
-  ncol = 1,
-  rel_heights = c(0.1, 1)
-)
+sim_sr_contrast_fig <- ggplot(sex_ratio_contrast, aes(contrast_logit_p)) +
+  geom_density(fill = "grey90") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(x = "Contrast of logit(p)")
 
-# table(seal_phenology$age,seal_phenology$observed)
-
-#white dashed lines average the averages - global average of age-specific averages 
+(sim_sex_ratio_fig | sim_sr_contrast_fig) +
+  plot_annotation(tag_levels = "A")
+  
 ```
-
-Sample size n = `r nrow(seal_phenology)`.
 
 ### Supplemental Material
 
