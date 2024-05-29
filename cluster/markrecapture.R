@@ -11,7 +11,7 @@ if (args[1] == "test") {
   stop(sprintf("command line argument must be 'test' or 'full', not %s", args[1]))
 }
 
-sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv")) %>% 
+sealdat <- read_csv("data/raw/128L pull 2023_12_05.csv") %>% 
   filter(age > 3,
          year < 2023)
 
@@ -57,12 +57,13 @@ image(years, seq_along(animalIDs), t(sealobs))
 n_indiv_test <- 100
 animalIDs_test <- sample(animalIDs, n_indiv_test)
 
-#Setting up directory to save plots
-output_dir <- paste0("output", format(Sys.time(), "%Y%m%d%H%M"))
-output_path <- here::here(file.path("cluster", output_dir))
+# Setting up directory to save plots
+output_path <- args[2]
 dir.create(output_path)
 
 # Basic model -------------------------------------------------------------
+
+print("BEGINNING BASIC MODEL")
 
 # Fit the dang model
 if (test) {
@@ -90,7 +91,11 @@ markrecapdraws <- as_draws_df(markrecapmod) %>%
   subset_draws(variable = names(markrecapmod)[1:10])
 summarize_draws(markrecapdraws)
 
+print("BASIC MODEL COMPLETE")
+
 # Time varying detection  -------------------------------------------------
+
+print("BEGINNING TIME-VARYING DETECTION MODEL")
 
 # Fit the dang model
 if (test) {
@@ -155,7 +160,11 @@ p2 <- markrecapdraws2 %>%
   theme_classic()
 ggsave(file.path(output_path, "SurvivalTimeVary.png"), p2)
 
+print("TIME-VARYING DETECTION MODEL COMPLETE")
+
 # Add fixed effect of year on survival and repro --------------------------
+
+print("BEGINNING AGE FIXED EFFECT MODEL")
 
 # Fit the dang model
 if (test) {
@@ -234,3 +243,5 @@ p4 <- markrecapdraws3 %>%
   theme(legend.position = "none")
 
 ggsave(file.path(output_path, "SurvivalFixedEffect.png"), p4)
+
+print("AGE FIXED EFFECT MODEL COMPLETE")
