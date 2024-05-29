@@ -35,27 +35,8 @@ model {
   array[3] real acc;
   array[n_occ] vector[3] gamma;
   // Transition and emission matrices
-  array[3] vector[3] theta;  // transition matrix
-  array[3, n_occ] vector[3] phi;    // emission matrix
-  
-  // Transitions between states are mediated by survival (ps) and transitions
-  // between states 1 (breeding) and 2 (non-breeding), theta12.
-  theta[1] = [ps[1] * pb[1],
-              ps[1] * (1 - pb[1]),
-              1 - ps[1]]';
-  theta[2] = [ps[2] * pb[2],       
-              ps[2] * (1 - pb[2]), 
-              1 - ps[2]]';           
-  theta[3] = [0, 0, 1]';
-  
-  // Only some emissions are possible
-  // e.g., emissions for state 1 (breeding) don't allow for "observed not breeding"
-  // This allows probability of detection to vary between breeding and non-breeding states
-  for (t in 1:n_occ) {
-    phi[1, t] = [pd[1, t], 0, 1 - pd[1, t]]';   
-    phi[2, t] = [0, pd[2, t], 1 - pd[2, t]]';
-    phi[3, t] = [0, 0, 1]';
-  }
+  array[3] vector[3] theta; // transition matrix
+  array[3, n_occ] vector[3] phi; // emission matrix
   
   // Priors
   // Probability of breeding at maturity (age 4) concentrated between 35% and 65%
@@ -72,6 +53,24 @@ model {
   rlpd_mu[1] ~ normal(logit(0.9), 1);
   rlpd_mu[2] ~ normal(logit(0.25), 1);
   rlpd_sigma ~ cauchy(0, 1);
+  
+  // Transitions between states are mediated by survival (ps) and breeding (pb).
+  theta[1] = [ps[1] * pb[1],
+              ps[1] * (1 - pb[1]),
+              1 - ps[1]]';
+  theta[2] = [ps[2] * pb[2],       
+              ps[2] * (1 - pb[2]), 
+              1 - ps[2]]';           
+  theta[3] = [0, 0, 1]';
+  
+  // Only some emissions are possible
+  // e.g., emissions for state 1 (breeding) don't allow for "observed not breeding"
+  // This allows probability of detection to vary between breeding and non-breeding states
+  for (t in 1:n_occ) {
+    phi[1, t] = [pd[1, t], 0, 1 - pd[1, t]]';   
+    phi[2, t] = [0, pd[2, t], 1 - pd[2, t]]';
+    phi[3, t] = [0, 0, 1]';
+  }
   
   // When did each animal reach maturity (i.e. age 4)?
   int maturity[n_ind];
@@ -98,7 +97,7 @@ model {
           // https://discourse.mc-stan.org/t/hidden-markov-model-with-constraints/1625/7
           if (theta[j, k] > 0 && phi[k, t, obs[i, t]] > 0) {
             // IF transition is possible (theta[j, k] > 0) AND emission is 
-            // possible (phi[k, obs[i, t]] > 0) THEN update accumulator
+            // possible (phi[k, t, obs[i, t]] > 0) THEN update accumulator
             acc[j] = gamma[t - 1, j];
             acc[j] += log(theta[j, k]);
             acc[j] += log(phi[k, t, obs[i, t]]);

@@ -27,7 +27,7 @@ library(patchwork)
 source(here::here("R/format.R"))
 theme_set(theme_few(base_size = 13))
 
-age_senesce <- 12
+age_senesce <- 11
 
 sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"), 
                     show_col_types = FALSE) %>% 
@@ -38,7 +38,9 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          year > 1987) %>% 
   mutate(animalID = factor(animalID),
          year_fct = factor(year),
-         age10 = age / 10) %>% 
+         age10 = age / 10,
+         age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old"))) %>% 
   group_by(animalID) %>% 
   mutate(longevity = ifelse(max(year) < 2020,
                             max(age),
@@ -151,41 +153,14 @@ age_dist <- sealdat %>%
 ```{r}
 #| label: breeding-mod
 
-# Fit separate GLMMs to the data subsetted before and after onset of senescence
-# We a priori chose age 12 for that (age_senesce)
-# Pre-senescence model
-breed_age_mod1 <- glmer(
-    observed_int ~ age10 + (1 | animalID) + (1 | year_fct),
-    # Here's the age filter
-    data = filter(sealdat, age < age_senesce),
-    family = "binomial",
-    control = glmerControl(optimizer="bobyqa")
-)
-# Post-senescence model
-breed_age_mod2 <- glmer(
-    observed_int ~ age10 + (1 | animalID) + (1 | year_fct),
-    data = filter(sealdat, age >= age_senesce),
-    family = "binomial",
-    control = glmerControl(optimizer="bobyqa")
+breed_age_mod <- glmer(
+  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  sealdat,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
 )
 
-breed_summ <- tibble(
-  model = c("Pre-senescence", "Post-senescence"),
-  age_coef = c(fixef(breed_age_mod1)["age10"],
-               fixef(breed_age_mod2)["age10"]),
-  age_coef_se = c(summary(breed_age_mod1)$coef["age10", "Std. Error"],
-                  summary(breed_age_mod2)$coef["age10", "Std. Error"]),
-  `p(coef<0)` = c(pnorm(summary(breed_age_mod1)$coef["age10", "z value"]),
-                  pnorm(summary(breed_age_mod2)$coef["age10", "z value"]))
-) 
-
-breed_summ %>% 
-  mutate(across(where(is.numeric), \(x) signif(x, 3))) %>%
-  set_names(c("Age class", 
-              "Age", 
-              "se(Age)",
-              "p(Age) < 0")) %>% 
-  knitr::kable()
+summary(breed_age_mod)
 
 ```
 
@@ -193,88 +168,7 @@ breed_summ %>%
 #| label: fig-breeding-mod 
 #| fig-width: 7.5
 
-# Create POPULATION-LEVEL (i.e. without rand effects) predictions for both
-# models and row bind them together
-breed_pred <- rbind(
-  # Pre-senescence
-  ggpredict(
-    breed_age_mod1,
-    terms = c("age10 [all]"),
-    type = "fixed",
-    interval = "confidence"
-  ) %>% 
-    as_tibble() %>% 
-    mutate(age = x * 10,
-           # Add an age_class variable to facilitate plotting
-           age_class = "young"),
-  # Post-senescence
-  ggpredict(
-    breed_age_mod2,
-    terms = c("age10 [all]"),
-    type = "fixed",
-    interval = "confidence"
-  ) %>% 
-    as_tibble() %>% 
-    mutate(age = x * 10,
-           age_class = "old")
-) %>% 
-  filter(age <= 20)
-
-# Now create rand effect predictions
-# This utility function pulls rand effect *coefs* from a model
-get_ranefs <- function(model, r, reduce = TRUE) {
-  result <- ranef(model)[[r]] %>% 
-    as_tibble(rownames = r) %>% 
-    rename(ranef = 2) %>% 
-    arrange(ranef)
-  
-  if (reduce)
-    slice(result, round(seq(1, nrow(result), length.out = 5)))
-  else 
-    result
-}
-
-# Get year and individual random effeccts from pre- and post-senescence models
-year_ranef1 <- get_ranefs(breed_age_mod1, "year_fct")
-year_ranef2 <- get_ranefs(breed_age_mod2, "year_fct")
-indiv_ranef1 <- get_ranefs(breed_age_mod1, "animalID")
-indiv_ranef2 <- get_ranefs(breed_age_mod2, "animalID")
-
-# This util fun pulls rand effect *predictions* from a model
-get_ranef_pred <- function(model, r, keep) {
-  ggpredict(model,
-            terms = c("age10 [all]", r), 
-                             type = "random",
-                             interval = "confidence") %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         "{r}" := group) %>% 
-  semi_join(keep, by = r) %>% 
-  filter(age <= 20)
-}
-
-# Predictions based on 5 different *years* (min, q1, median, q3, max ranef
-# coef)
-breed_pred_year <- rbind(
-  # Pre-senescence
-  get_ranef_pred(breed_age_mod1, "year_fct", year_ranef1) %>% 
-    mutate(age_class = "young"),
-  # Post-senescence
-  get_ranef_pred(breed_age_mod2, "year_fct", year_ranef2) %>% 
-    mutate(age_class = "old")
-) %>% 
-  filter(age <= 20)
-
-# As above, but 5 different *individuals*
-breed_pred_indiv <- rbind(
-  get_ranef_pred(breed_age_mod1, "animalID", indiv_ranef1) %>% 
-    mutate(age_class = "young"),
-  get_ranef_pred(breed_age_mod2, "animalID", indiv_ranef2) %>% 
-    mutate(age_class = "old")
-) %>% 
-  filter(age <= 20)
-
-# The actual raw data
+# Summarize the raw data
 breed_nonbreed <- sealdat %>% 
   group_by(age) %>% 
   summarize(n_observed = n(), 
@@ -282,65 +176,48 @@ breed_nonbreed <- sealdat %>%
             se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
   filter(age <= 20)
 
-# Figure with raw data and model predictions
-breed_fig <- ggplot(breed_pred, aes(x = age)) +
-  # Prediction across years (fixed effect only)
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
-                  group = age_class),
-              fill = "grey", alpha = 0.5) +
-  geom_line(aes(y = predicted, color = age_class), 
-            linewidth = 1.5) +
-  # Predictions for specific years (random effect)
-  geom_line(aes(y = predicted, group = interaction(year_fct, age_class)),
-            breed_pred_year,
-            linewidth = 0.75, alpha = 0.5) +
-  # Raw data
+# Create POPULATION-LEVEL (i.e. without rand effects) predictions
+breed_pred_pop <- ggpredict(
+  breed_age_mod, 
+  terms = "age10 [all]",
+  type = "fixed",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10) %>% 
+  filter(age <= 20)
+
+# Create WEIGHTED-AVERAGE predictions using random effects
+seal_years <- count(sealdat, year_fct)
+breed_pred_wgt <- ggpredict(
+  breed_age_mod,
+  terms = c("age10 [all]", "year_fct [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10,
+         year_fct = group) %>% 
+  filter(age <= 20) %>% 
+  left_join(seal_years, by = "year_fct") %>% 
+  group_by(age) %>% 
+  summarize(predicted = weighted.mean(predicted, n))
+  
+ggplot(breed_pred_pop, aes(age, predicted)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.2) +
+  geom_line(linewidth = 1.2, color = "grey50") +
+  geom_line(data = breed_pred_wgt, 
+            color = "cornflowerblue", 
+            linewidth = 1.2) +
   geom_pointrange(aes(y = perc_breed, 
                       ymin = perc_breed - se, 
                       ymax = perc_breed + se),
-                  breed_nonbreed) + 
-  # Year labels
-  geom_text(aes(y = predicted, label = year_fct),
-            filter(breed_pred_year, age == 20),
-            x = 20.2,
-            hjust = 0,
-            size = 2.5) +
-  geom_text(aes(y = predicted, label = year_fct),
-            filter(breed_pred_year, age == 4),
-            x = 3.8,
-            hjust = 1,
-            size = 2.5) +
-  # Add visual indicator for senescence
-  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_x_continuous("Age", limits = c(3.5, 20.5)) +
-  scale_y_continuous("Adult female breeding", 
-                     limits = c(NA, 1), 
-                     labels = scales::percent) +
-  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
-  theme_few() +
-  theme(legend.position = "none",
-        axis.title = element_text(size = 13))
-
-# Coefficient panel
-breed_coef_fig <- breed_summ %>% 
-  mutate(model = str_extract(model, ".*-"),
-         model = fct_rev(model)) %>% 
-  ggplot(aes(color = model)) + 
-  geom_pointrange(aes(ymin = age_coef - age_coef_se,
-                      y = age_coef,
-                      ymax = age_coef + age_coef_se,
-                      x = model)) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  labs(x = "Senescence",
-       y = "Age coefficient") +
-  theme_few() +
+                  breed_nonbreed) +
+  scale_y_continuous("Breeding", labels = scales::percent) +
+  labs(x = "Age (years)") +
   theme(legend.position = "none")
 
-(breed_fig | breed_coef_fig) + 
-  plot_layout(widths = c(3, 1)) +
-  plot_annotation(tag_levels = "A")
-  
 ```
 
 Sample size n = `r nrow(sealdat)`.
@@ -743,6 +620,44 @@ sim_sr_contrast_fig <- ggplot(sex_ratio_contrast, aes(contrast_logit_p)) +
 ```
 
 ### Supplemental Material
+
+```{r}
+#| label: seg-breeding-mod
+
+# Fit GLMMs to the data with binary variable indicating before and after onset # of senescence. We a priori chose age 11 for senescence (age_senesce).
+breed_age_seg <- glmer(
+  observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+  sealdat,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+summary(breed_age_seg)
+```
+
+```{r}
+#| label: fig-seg-breeding-mod
+
+breed_pred_seg <- ggpredict(breed_age_seg, 
+                            terms = c("age10 [all]", "age_cat")) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10,
+         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce))
+
+ggplot(breed_pred_seg, aes(age, predicted)) +
+  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+              alpha = 0.2) +
+  geom_line(aes(color = age_cat)) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_y_continuous("Breeding", labels = scales::percent) +
+  labs(x = "Age (years)") +
+  theme(legend.position = "none")
+
+```
 
 Supplemental Table 1: Statistics for breeding success model.
 

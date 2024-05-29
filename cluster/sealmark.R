@@ -1,75 +1,51 @@
-library(RMark)
+library(marked)
 library(tidyverse)
 
 sealdat <- read_csv("data/raw/128L pull 2023_12_05.csv", 
                     show_col_types = FALSE) %>% 
-  mutate(observed = if_else(observed == "B", "Breeder", "Non-breeder"), 
-         observed_int = if_else(observed == "Breeder", 1, 0), 
-         pup_survived = pupseeneveragain > 0) %>% 
-  filter(age > 3, 
+  filter(between(age, 3, 18), 
          year > 1987) %>% 
-  mutate(animalID = factor(animalID),
-         year_fct = factor(year),
-         age10 = age / 10) %>% 
-  group_by(animalID) %>% 
-  mutate(longevity = ifelse(max(year) < 2020,
-                            max(age),
-                            NA),
-         longevity10 = longevity / 10) %>% 
-  ungroup()
+  mutate(observed = 1)
 
 sealhist <- sealdat %>% 
-  select(animalID, year, observed) %>% 
-  mutate(observed = substr(observed, 1, 1)) %>% 
   group_by(animalID, year) %>% 
-  summarize(observed = ifelse(any(observed == "B"), "B", "N"),
+  summarize(observed = 1,
             .groups = "drop") %>% 
   pivot_wider(names_from = year, 
               values_from = observed,
-              values_fill = "0") %>% 
-  pivot_longer(-animalID, names_to = "year", values_to = "observation") %>%
+              values_fill = 0) %>% 
+  pivot_longer(-animalID, 
+               names_to = "year", 
+               values_to = "observation") %>%
+  arrange(animalID, year) %>% 
   group_by(animalID) %>% 
-  summarize(ch = paste(observation, collapse = "")) %>% 
-  count(ch, name = "freq")
+  summarize(ch = paste(observation, collapse = "")) 
 
-seal_proc <- process.data(sealhist, model = "Multistrata")
+seal_proc <- process.data(sealhist)
 seal_ddl <- make.design.data(seal_proc)
 
-S.stratum <- list(formula =~ stratum)
-S.stratumxtime <- list(formula =~ stratum * time)
+fit.models <- function() {
+  Phi.age <- list(formula = ~age)
+  p.age <- list(formula = ~age)
+  cml <- create.model.list(c("Phi","p"))
+  crm.wrapper(cml, 
+              data = seal_proc, 
+              ddl = seal_ddl,
+              external = FALSE,
+              accumulate = FALSE)
+}
 
-p.stratum <- list(formula =~ stratum)
-p.stratumxtime <- list(formula =~ stratum * time)
-p.stratumxtime.fixed <- list(formula =~ stratum * time,
-                             fixed = list(time = 4, value = 1))
+seal_models <- fit.models()
 
-Psi.s <- list(formula =~ -1 + stratum:tostratum)
+model_summary <- tibble(
+  age = seal_models[["Phi.age.p.age"]][["results"]][["reals"]][["Phi"]][["age"]],
+  Phi = seal_models[["Phi.age.p.age"]][["results"]][["reals"]][["Phi"]][["estimate"]],
+  p = seal_models[["Phi.age.p.age"]][["results"]][["reals"]][["p"]][["estimate"]]
+)
 
-model.list <- create.model.list("Multistrata")
-
-model.list <- rbind(model.list,
-                    c(S = "S.stratumxtime", 
-                      p = "p.stratumxtime",
-                      Psi = "Psi.s"))
-
-ms_mod <- mark.wrapper(model.list,
-                       data = seal_proc,
-                       ddl = seal_ddl,
-                       delete = TRUE)
-
-saveRDS(ms_mod, "cluster/ms_mod.rds")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+model_summary %>% 
+  pivot_longer(-age, names_to = "param", values_to = "value") %>% 
+  ggplot(aes(age, value, color = param)) +
+  geom_line(aes(group = param)) +
+  geom_point() +
+  theme_classic()
