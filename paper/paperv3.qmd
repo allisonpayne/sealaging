@@ -298,7 +298,7 @@ surv_pred_pop <- ggpredict(
   filter(age <= 20)
 
 # Create pup survival WEIGHTED-AVERAGE predictions using random effects
-seal_years <- count(sealdat, year_fct)
+seal_years <- count(surv_recr_data, year_fct)
 surv_pred_wgt <- ggpredict(
   pup_surv_mod,
   terms = c("age10 [all]", "year_fct [all]"),
@@ -342,7 +342,7 @@ recr_pred_pop <- ggpredict(
   filter(age <= 20)
 
 # Create pup recruit WEIGHTED-AVERAGE predictions using random effects
-seal_years <- count(sealdat, year_fct)
+seal_years <- count(filter(surv_recr_data, pupsex == "F"), year_fct)
 recr_pred_wgt <- ggpredict(
   pup_recr_mod,
   terms = c("age10 [all]", "year_fct [all]"),
@@ -390,185 +390,71 @@ We found that as maternal age increases, pup sex skews slightly towards males (@
 pup_sex_data <- sealdat %>% 
   filter(pupsex %in% c("M", "F"), 
          age < 19) %>% 
-  mutate(is_male = ifelse(pupsex == "M", 1, 0))
+  mutate(is_male = as.integer(pupsex == "M"))
 
-sex_ratio_mod1 <- glmer(
-  is_male ~ age10 + (1 | animalID) + (1 | year),
-  filter(pup_sex_data, age < age_senesce),
-  family = "binomial"
-)
-sex_ratio_mod2 <- glmer(
-  is_male ~ age10 + (1 | animalID) + (1 | year),
-  filter(pup_sex_data, age >= age_senesce),
+sex_ratio_mod <- glmer(
+  is_male ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  pup_sex_data,
   family = "binomial"
 )
 
-sex_ratio_summ <- tibble(
-  model = c("Pre-senescence", "Post-senescence"),
-  age_coef = c(fixef(sex_ratio_mod1)["age10"],
-               fixef(sex_ratio_mod2)["age10"]),
-  age_coef_se = c(summary(sex_ratio_mod1)$coef["age10", "Std. Error"],
-                  summary(sex_ratio_mod2)$coef["age10", "Std. Error"]),
-  `p(coef!=0)` = c(summary(sex_ratio_mod1)$coef["age10", "Pr(>|z|)"],
-                   summary(sex_ratio_mod2)$coef["age10", "Pr(>|z|)"])
-) 
-
-sex_ratio_summ %>% 
-  mutate(across(where(is.numeric), \(x) signif(x, 3))) %>%
-  set_names(c("Age class", 
-              "Age", 
-              "se(Age)",
-              "p(Age) != 0")) %>% 
-  knitr::kable()
+summary(sex_ratio_mod)$coefficients
 
 ```
 
 ```{r}
 #| label: fig-sex-ratio
-#| fig-cap: "The effect of age on offspring sex ratio was not significantly different for pre- and post-senescence adults. **A** Raw data (points with error bars, indicating mean and standard error of the proportion) and model predictions (lines with 95% confidence intervals). **B** Estimate and standard error of age coefficients in pre- and post-senescence models."
-#| fig-width: 5.5
 
-# Model predictions
-sex_ratio_pred <- rbind(
-  # Pre-senescence
-  ggpredict(
-    sex_ratio_mod1,
-    terms = c("age10 [all]"),
-    type = "fixed",
-    interval = "confidence"
-  ) %>% 
-    as_tibble() %>% 
-    mutate(age = x * 10,
-           # Add an age_class variable to facilitate plotting
-           age_class = "young"),
-  # Post-senescence
-  ggpredict(
-    sex_ratio_mod2,
-    terms = c("age10 [all]"),
-    type = "fixed",
-    interval = "confidence"
-  ) %>% 
-    as_tibble() %>% 
-    mutate(age = x * 10,
-           age_class = "old")
-)
-
-# Sex ratio raw data
-sex_ratio <- pup_sex_data %>% 
+# Summarize the raw data
+sexrat_summ <- pup_sex_data %>% 
   group_by(age) %>% 
   summarize(n_observed = n(), 
-            perc_male = sum(is_male) / n_observed, 
-            se = (perc_male * (1 - perc_male) / n_observed)^0.5)
+            perc_male = mean(is_male), 
+            se = (perc_male * (1 - perc_male) / n_observed)^0.5) %>% 
+  filter(age <= 20)
 
-# Figure with raw data and model predictions
-sex_ratio_fig <- ggplot(sex_ratio_pred, aes(x = age)) +
-  # Prediction across years (fixed effect only)
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
-                  group = age_class),
-              fill = "grey", alpha = 0.5) +
-  geom_line(aes(y = predicted, color = age_class), 
-            linewidth = 1.5) +
-  # Raw data
+# Create POPULATION-LEVEL (i.e. without rand effects) predictions
+sexrat_pred_pop <- ggpredict(
+  sex_ratio_mod, 
+  terms = "age10 [all]",
+  type = "fixed",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10) %>% 
+  filter(age <= 20)
+
+# Create WEIGHTED-AVERAGE predictions using random effects
+seal_years <- count(pup_sex_data, year_fct)
+sexrat_pred_wgt <- ggpredict(
+  sex_ratio_mod,
+  terms = c("age10 [all]", "year_fct [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10,
+         year_fct = group) %>% 
+  filter(age <= 20) %>% 
+  left_join(seal_years, by = "year_fct") %>% 
+  group_by(age) %>% 
+  summarize(pred_sd = sd(predicted),
+            predicted = weighted.mean(predicted, n))
+  
+ggplot(sexrat_pred_pop, aes(age, predicted)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.2) +
+  geom_line(linewidth = 1.2, color = "grey50") +
   geom_pointrange(aes(y = perc_male, 
                       ymin = perc_male - se, 
                       ymax = perc_male + se),
-                  sex_ratio) + 
-  # Add visual indicator for senescence
-  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_y_continuous("Male offspring", 
-                     labels = scales::percent) +
-  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
-  labs(x = "Age") +
-  theme_few() +
-  theme(legend.position = "none",
-        axis.title = element_text(size = 13))
-
-# Coefficient panel
-sex_ratio_coef_fig <- sex_ratio_summ %>% 
-  mutate(model = str_extract(model, ".*-"),
-         model = fct_rev(model)) %>% 
-  ggplot(aes(color = model)) + 
-  geom_pointrange(aes(ymin = age_coef - age_coef_se,
-                      y = age_coef,
-                      ymax = age_coef + age_coef_se,
-                      x = model)) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  labs(x = "Senescence",
-       y = "Age coefficient") +
-  theme_few() +
+                  sexrat_summ) +
+  scale_y_continuous("Male offspring", labels = scales::percent) +
+  labs(x = "Age (years)") +
   theme(legend.position = "none")
-
-(sex_ratio_fig | sex_ratio_coef_fig) + 
-  plot_layout(widths = c(3, 1)) +
-  plot_annotation(tag_levels = "A")
 ```
 
-Sample size n = `r nrow(pup_sex_data)`.
-
-There appears to be a step change biasing offspring sex ratio towards males post-senescence. We simulated the sex ratio of 1,000,000 offspring born to mothers pre- and post-senesecence using the coefficient estimates and standard errors of the fitted sex ratio models. The mean offspring sex ratio increases from 51.3% male before maternal age 12 to 61.2% male after maternal age 12. However, the uncertainty in post-senescence sex ratio is considerable, and only 59.3% of the contrasts of simulated post- and pre-senescence sex ratios are biased towards male offspring. I.e., a simulated post-senescent adult female was more likely to have a male offspring than a simulated pre-senescent adult female in 59.3% of simulations.
-
-```{r}
-#| label: fig-sim-sex-ratio
-#| fig-cap: "Simulated sex ratios of offspring born to pre- and post-senescence adults. **A** Comparison of simulated sex ratios by pre- (blue) and post- (red) senescence adults. The mean (vertical lines) sex ratio of post-senescence adults is greater than pre-senescence adults. However the distributions overlap extensively. **B** The contrast of post-senescence sex ratio relative to pre-senescence is greater than 0 in only 59.3% of simulations."
-#| fig-width: 5.5
-
-# pre_sex_ratio <- tibble(age10 = seq(4, age_senesce - 1)) %>% 
-inv_logit <- \(x) exp(x) / (1 + exp(x))
-n_sim <- 1e6
-sim_sex_ratio <- rbind(
-  tibble(intercept_mean = summary(sex_ratio_mod1)$coef[1, 1],
-         intercept_sd = summary(sex_ratio_mod1)$coef[1, 2],
-         slope_mean = summary(sex_ratio_mod1)$coef[2, 1],
-         slope_sd = summary(sex_ratio_mod1)$coef[2, 2],
-         age10 = sample(seq(4, age_senesce - 1) / 10, n_sim, TRUE),
-         intercept = rnorm(n_sim, intercept_mean, intercept_sd),
-         slope = rnorm(n_sim, slope_mean, slope_sd),
-         logit_p = intercept + slope * age10,
-         p = inv_logit(logit_p),
-         age_class = "Pre-senescence"),
-  tibble(intercept_mean = summary(sex_ratio_mod2)$coef[1, 1],
-         intercept_sd = summary(sex_ratio_mod2)$coef[1, 2],
-         slope_mean = summary(sex_ratio_mod2)$coef[2, 1],
-         slope_sd = summary(sex_ratio_mod2)$coef[2, 2],
-         age10 = sample(seq(age_senesce, 18) / 10, n_sim, TRUE),
-         intercept = rnorm(n_sim, intercept_mean, intercept_sd),
-         slope = rnorm(n_sim, slope_mean, slope_sd),
-         logit_p = intercept + slope * age10,
-         p = inv_logit(logit_p),
-         age_class = "Post-senescence")
-) %>% 
-  mutate(age_class = fct_rev(age_class))
-
-pre_logit_p <- with(sim_sex_ratio, logit_p[age_class == "Pre-senescence"])
-post_logit_p <- with(sim_sex_ratio, logit_p[age_class == "Post-senescence"])
-sex_ratio_contrast <- tibble(
-  contrast_logit_p = post_logit_p - pre_logit_p
-)
-
-sim_sex_ratio_fig <- ggplot(sim_sex_ratio, aes(p)) +
-  geom_density(aes(fill = age_class), alpha = 0.5) +
-  geom_density(aes(color = age_class)) +
-  geom_vline(aes(xintercept = p, color = age_class),
-             sim_sex_ratio %>% 
-               group_by(age_class) %>% 
-               summarize(p = inv_logit(mean(logit_p))),
-             linewidth = 1.5) +
-  scale_x_continuous("Male offspring", 
-                     labels = scales::percent) +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
-  theme(legend.position = "none")
-
-sim_sr_contrast_fig <- ggplot(sex_ratio_contrast, aes(contrast_logit_p)) +
-  geom_density(fill = "grey90") +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  labs(x = "Contrast of logit(p)")
-
-(sim_sex_ratio_fig | sim_sr_contrast_fig) +
-  plot_annotation(tag_levels = "A")
-  
-```
+Sample size n = `r nrow(pup_sex_data)`. In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
 ### Supplemental Material
 
@@ -641,7 +527,7 @@ summary(pup_recr_seg)$coefficients
 ```
 
 ```{r}
-#| label: fig-seg-repro-mod
+#| label: fig-seg-repro
 #| fig-width: 9
 
 surv_pred_seg <- ggpredict(pup_surv_seg, 
@@ -691,6 +577,49 @@ fig_recr <- ggplot(recr_pred_seg, aes(age, predicted)) +
   theme(legend.position = "none")
 
 (fig_surv | fig_recr) + plot_annotation(tag_levels = "A")
+
+```
+
+```{r}
+#| label: seg-sexrat-mod
+
+# Fit GLMMs to the data with binary variable indicating before and after onset 
+# of senescence. We a priori chose age 11 for senescence (age_senesce).
+sexrat_age_seg <- glmer(
+  is_male ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+  pup_sex_data,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+summary(sexrat_age_seg)$coefficients
+```
+
+```{r}
+#| label: fig-seg-sexrat
+
+sexrat_pred_seg <- ggpredict(sexrat_age_seg, 
+                             terms = c("age10 [all]", "age_cat")) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10,
+         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce))
+
+ggplot(sexrat_pred_seg, aes(age, predicted)) +
+  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+              alpha = 0.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_pointrange(aes(y = perc_male, 
+                      ymin = perc_male - se, 
+                      ymax = perc_male + se),
+                  sexrat_summ) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_y_continuous("Breeding", labels = scales::percent) +
+  labs(x = "Age (years)") +
+  theme(legend.position = "none")
 
 ```
 
