@@ -419,6 +419,139 @@ ggplot(sexrat_pred, aes(age, predicted)) +
 
 Sample size n = `r nrow(pup_sex_data)`. In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
+### Phenology
+
+Does the timing of breeding and molting suggest a mechanistic explanation for observed patterns in reproductive and maternal-effect senescence?
+
+We fit a generalized linear mixed-effects model with the duration of a phase (molting or breeding) as the response variable and age, interacting with phase, as the predictor, using year as a random effect. We attempted to fit a model with random effects for both year and individual, but that failed to converge. We assumed the effect of year on phase duration (molting or breeding) was greater than the effect of individual, so we retained year as the random effect.
+
+$$
+\begin{align}
+d &\sim NB(\mu, k) \\
+\mu &= exp(\eta) \\
+\eta &= \beta_0 + \beta_p * a + Zy
+\end{align}
+$$
+
+Where: $d$ is the duration of the phase in days, $NB$ is the negative binomial distribution with location $\mu$ and dispersion $k$, $\eta$ is the linear predictor, $\beta_0$ is the intercept, $\beta_p$ is the coefficient for age ($a$) by phase (i.e., for $p$ in "molting" or "breeding"), $y$ is the year, and $Z$ is the design matrix relating $y$ to $\eta$.
+
+```{r}
+#| label: pheno-model
+
+seal_phenology <- sealdat %>% 
+  mutate(BA = firstobsbreeddoy, 
+         BD = firstobsbreeddoy + breeddur, 
+         MA = lastobsmoltdoy - moltdur, 
+         MD = lastobsmoltdoy) %>% 
+  drop_na(age, BA, BD, MA, MD)
+
+pheno_model <- seal_phenology %>% 
+  transmute(animalID, year, age10 = age / 10, moltdur, breeddur) %>% 
+  pivot_longer(moltdur:breeddur, 
+               names_to = "phase", 
+               values_to = "dur_days") %>% 
+  glmer.nb(dur_days ~ age10:phase + (1 | year), 
+           data = .)
+
+summary(pheno_model)
+
+```
+
+```{r}
+#| label: fig-pheno
+#| fig-cap: "Molting gets shorter but breeding doesn't. A: Observed annual time allocation averaged over individuals. B: Raw data for breeding and molting durations (mean ± se) and predictions (mean and 95% CI) from negative binomial weighted by number of seals obersved per year."
+#| fig-width: 9 
+
+phenology_n <- unique(seal_phenology$animalID)
+
+timing_summary <- seal_phenology %>% 
+  group_by(age) %>% 
+  summarize(across(BA:MD, mean)) %>% 
+  pivot_longer(cols = -age,  
+               names_to = "event", 
+               values_to = "doy") %>% 
+  group_by(age) %>% 
+  group_modify(\(data, keys) {
+    tibble(event = c("Foraging", "Breeding", "Post-breeding", "Molting", "foraging2"),
+           doy = c(data$doy, 365) - c(0, data$doy))
+  }) %>% 
+  ungroup() %>% 
+  mutate(event = factor(event, levels = c("Foraging", 
+                                          "Breeding", 
+                                          "Post-breeding", 
+                                          "Molting", 
+                                          "foraging2")))
+
+annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
+  geom_area(position = position_stack(reverse = TRUE),
+            color = NA) +
+  geom_line(position = position_stack(reverse = TRUE),
+            color = "white") +
+  scale_fill_discrete(
+    type = c("#829BD1", "#D05794", "#829BD1", "#E09A2D", "#829BD1"),
+    breaks = c("Foraging", "Breeding", "Molting")
+  ) + 
+  scale_x_continuous("Maternal age (years)", expand = expansion(mult = 0)) +
+  scale_y_continuous("Day of year", expand = expansion(mult = 0)) +
+  theme(panel.spacing = unit(1, "lines"),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.key.size = unit(3, "mm"))
+
+n_phenology <- seal_phenology %>% 
+  count(year)
+
+pheno_raw <- seal_phenology %>% 
+  select(breeddur, moltdur, age) %>% 
+  pivot_longer(c(breeddur, moltdur), 
+               names_to = "phase", 
+               values_to = "dur_days") %>% 
+  group_by(age, phase) %>% 
+  summarize(n = n(),
+            dur_days_se = sd(dur_days) / sqrt(n),
+            dur_days = mean(dur_days),
+            dur_days_lwr = dur_days - dur_days_se,
+            dur_days_upr = dur_days + dur_days_se,
+            .groups = "drop")
+
+duration_plot <- ggpredict(
+  pheno_model, 
+  terms = c("age10 [all]", "phase", "year [all]")
+) %>% 
+  as_tibble() %>% 
+  transmute(age = x * 10,
+            dur_days = predicted,
+            dur_days_lwr = conf.low,
+            dur_days_upr = conf.high,
+            phase = group,
+            year = as.numeric(as.character(facet))) %>% 
+  left_join(n_phenology, by = "year") %>% 
+  group_by(age, phase) %>% 
+  summarize(across(starts_with("dur_days"), \(x) weighted.mean(x, n)),
+            .groups = "drop") %>% 
+  ggplot(aes(age)) +
+  geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr, fill = phase),
+              alpha = 0.25) +
+  geom_pointrange(aes(y = dur_days, 
+                      ymin = dur_days_lwr, 
+                      ymax = dur_days_upr,
+                      color = phase),
+                  pheno_raw,
+                  position = position_dodge(width = 0.5)) +
+  geom_line(aes(y = dur_days, color = phase)) +
+  annotate("text", 12, 14, label = "Molting", color = "#E09A2D", hjust = 0) +
+  annotate("text", 12, 32, label = "Breeding", color = "#D05794", hjust = 0) +
+  scale_fill_manual(values = c("#D05794", "#E09A2D")) +
+  scale_color_manual(values = c("#D05794", "#E09A2D")) +
+  labs(x = "Maternal age (years)",
+       y = "Phase duration (days)") +
+  theme(legend.position = "none")
+
+(annual_plot | duration_plot) + plot_annotation(tag_levels = "A")
+  
+```
+
 ## Supplemental Material
 
 ### Models' sensitivity to age of senescence
