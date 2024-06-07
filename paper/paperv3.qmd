@@ -147,15 +147,16 @@ age_dist <- sealdat %>%
 
 ```
 
-### H1: Age distribution and breeding status
+### H1: Reproductive senescence
 
 ~~We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).~~
 
 ```{r}
 #| label: breeding-mod
 
+# Fit GLMMs to the data with binary variable indicating before and after onset # of senescence. We a priori chose age 11 for senescence (age_senesce).
 breed_age_mod <- glmer(
-  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
   sealdat,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -166,7 +167,8 @@ summary(breed_age_mod)$coefficients
 ```
 
 ```{r}
-#| label: fig-breeding-mod 
+#| label: fig-breeding-mod
+#| fig-cap: "Breeding rates increased until age 10, then decreased from age 11 on. Black points represent mean and standard error of the observed breeding rates. The solid lines and shaded areas represent the mean and 95% confidence interval of the population-level model predictions. The observed data are unequally distributed across years, so the dashed lines indicate the predicted breeding rates averaged over years (i.e., including the random effect of year), weighted by the number of seals observed in each year."
 
 # Summarize the raw data
 breed_nonbreed <- sealdat %>% 
@@ -177,44 +179,51 @@ breed_nonbreed <- sealdat %>%
   filter(age <= 20)
 
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions
-breed_pred_pop <- ggpredict(
-  breed_age_mod, 
-  terms = "age10 [all]",
-  type = "fixed",
-  interval = "confidence"
-) %>% 
+breed_pred_pop <- ggpredict(breed_age_mod, 
+                            terms = c("age10 [all]", "age_cat")) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10) %>% 
-  filter(age <= 20)
+  mutate(age = x * 10,
+         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
 
-# Create WEIGHTED-AVERAGE predictions using random effects
+# Create WEIGHTED-AVERAGE predictions using years' random effects
 seal_years <- count(sealdat, year_fct)
 breed_pred_wgt <- ggpredict(
   breed_age_mod,
-  terms = c("age10 [all]", "year_fct [all]"),
+  terms = c("age10 [all]", "age_cat", "year_fct [all]"),
   type = "random",
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10,
-         year_fct = group) %>% 
-  filter(age <= 20) %>% 
+         age_cat = group,
+         year_fct = facet) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20) %>% 
   left_join(seal_years, by = "year_fct") %>% 
-  group_by(age) %>% 
-  summarize(predicted = weighted.mean(predicted, n))
+  group_by(age, age_cat) %>% 
+  summarize(predicted = weighted.mean(predicted, n),
+            .groups = "drop")
   
 ggplot(breed_pred_pop, aes(age, predicted)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(linewidth = 1.2, color = "grey50") +
-  geom_line(data = breed_pred_wgt, 
-            color = "cornflowerblue", 
-            linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_line(aes(color = age_cat),
+            breed_pred_wgt, 
+            linewidth = 1.2,
+            linetype = "dashed") +
   geom_pointrange(aes(y = perc_breed, 
                       ymin = perc_breed - se, 
                       ymax = perc_breed + se),
                   breed_nonbreed) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Breeding", labels = scales::percent) +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
@@ -233,24 +242,17 @@ We reject our hypothesis: reproductive declines do not persist to the next gener
 ```{r}
 #| label: repro-age
 
-##NOTE: Need to take out the instances where recruitment > survival
-
 # Isolate pup survival/recruitment 
 surv_recr_data <- sealdat %>% 
   drop_na(pupID) %>% 
   # Only pups born 2016 or earlier (otherwise survival biased)
   filter(pupyearborn <= 2016) %>% 
   mutate(pup_surv_int = as.integer(pup_survived),
-         pup_recr_int = as.integer(puprecruited)) %>% 
-  # Only keep maternal age classes with 5+ births, which drops moms 19+
-  group_by(age) %>% 
-  mutate(n_pups = n()) %>% 
-  ungroup() %>%
-  filter(n_pups >= 5)
+         pup_recr_int = as.integer(puprecruited)) 
 
 # Fit pup *survival* model
 pup_surv_mod <- glmer(
-  pup_surv_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  pup_surv_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
   surv_recr_data,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -258,7 +260,10 @@ pup_surv_mod <- glmer(
 
 # Fit pup *recruitment* model (female offspring only)
 pup_recr_mod <- glmer(
-  pup_recr_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  # NOTE: no random effect for individual bc singular fit
+  # In survival model, 93 individuals (15%) had >3 pups (male+female pups)
+  # In recruit model, only 17 individuals (4%) had >3 pups (female pups only)
+  pup_recr_int ~ age10 * age_cat + (1 | year_fct),
   filter(surv_recr_data, pupsex == "F"),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -289,88 +294,62 @@ surv_recr_summ <- surv_recr_data %>%
 # Create pup survival POPULATION-LEVEL (i.e. without rand effects) predictions
 surv_pred_pop <- ggpredict(
   pup_surv_mod, 
-  terms = "age10 [all]",
+  terms = c("age10 [all]", "age_cat"),
   type = "fixed",
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10) %>% 
-  filter(age <= 20)
-
-# Create pup survival WEIGHTED-AVERAGE predictions using random effects
-seal_years <- count(surv_recr_data, year_fct)
-surv_pred_wgt <- ggpredict(
-  pup_surv_mod,
-  terms = c("age10 [all]", "year_fct [all]"),
-  type = "random",
-  interval = "confidence"
-) %>% 
-  as_tibble() %>% 
   mutate(age = x * 10,
-         year_fct = group) %>% 
-  filter(age <= 20) %>% 
-  left_join(seal_years, by = "year_fct") %>% 
-  group_by(age) %>% 
-  summarize(predicted = weighted.mean(predicted, n))
+         age_cat = group) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
   
 fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(linewidth = 1.2, color = "grey50") +
-  geom_line(data = surv_pred_wgt, 
-            color = "cornflowerblue", 
-            linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2) +
   geom_pointrange(aes(y = perc_surv, 
                       ymin = perc_surv - se_surv, 
                       ymax = perc_surv + se_surv),
                   surv_recr_summ) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring survival", 
                      labels = scales::percent,
                      limits = c(0, 0.62)) +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
 # Create pup recruit POPULATION-LEVEL (i.e. without rand effects) predictions
 recr_pred_pop <- ggpredict(
   pup_recr_mod, 
-  terms = "age10 [all]",
+  terms = c("age10 [all]", "age_cat"),
   type = "fixed",
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10) %>% 
-  filter(age <= 20)
-
-# Create pup recruit WEIGHTED-AVERAGE predictions using random effects
-seal_years <- count(filter(surv_recr_data, pupsex == "F"), year_fct)
-recr_pred_wgt <- ggpredict(
-  pup_recr_mod,
-  terms = c("age10 [all]", "year_fct [all]"),
-  type = "random",
-  interval = "confidence"
-) %>% 
-  as_tibble() %>% 
   mutate(age = x * 10,
-         year_fct = group) %>% 
-  filter(age <= 20) %>% 
-  left_join(seal_years, by = "year_fct") %>% 
-  group_by(age) %>% 
-  summarize(predicted = weighted.mean(predicted, n))
+         age_cat = group) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
   
 fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(linewidth = 1.2, color = "grey50") +
-  geom_line(data = recr_pred_wgt, 
-            color = "cornflowerblue", 
-            linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2) +
   geom_pointrange(aes(y = perc_recr, 
                       ymin = perc_recr - se_recr, 
                       ymax = perc_recr + se_recr),
                   surv_recr_summ) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring recruitment", 
                      labels = scales::percent,
                      limits = c(0, 0.62)) +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
@@ -392,13 +371,13 @@ pup_sex_data <- sealdat %>%
          age < 19) %>% 
   mutate(is_male = as.integer(pupsex == "M"))
 
-sex_ratio_mod <- glmer(
-  is_male ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+sexrat_age_mod <- glmer(
+  is_male ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
   pup_sex_data,
   family = "binomial"
 )
 
-summary(sex_ratio_mod)$coefficients
+summary(sexrat_age_mod)$coefficients
 
 ```
 
@@ -414,41 +393,25 @@ sexrat_summ <- pup_sex_data %>%
   filter(age <= 20)
 
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions
-sexrat_pred_pop <- ggpredict(
-  sex_ratio_mod, 
-  terms = "age10 [all]",
-  type = "fixed",
-  interval = "confidence"
-) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10) %>% 
-  filter(age <= 20)
-
-# Create WEIGHTED-AVERAGE predictions using random effects
-seal_years <- count(pup_sex_data, year_fct)
-sexrat_pred_wgt <- ggpredict(
-  sex_ratio_mod,
-  terms = c("age10 [all]", "year_fct [all]"),
-  type = "random",
-  interval = "confidence"
-) %>% 
+sexrat_pred <- ggpredict(sexrat_age_mod, 
+                         terms = c("age10 [all]", "age_cat")) %>% 
   as_tibble() %>% 
   mutate(age = x * 10,
-         year_fct = group) %>% 
-  filter(age <= 20) %>% 
-  left_join(seal_years, by = "year_fct") %>% 
-  group_by(age) %>% 
-  summarize(pred_sd = sd(predicted),
-            predicted = weighted.mean(predicted, n))
-  
-ggplot(sexrat_pred_pop, aes(age, predicted)) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce))
+
+ggplot(sexrat_pred, aes(age, predicted)) +
+  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(linewidth = 1.2, color = "grey50") +
+  geom_line(aes(color = age_cat), linewidth = 1.2) +
   geom_pointrange(aes(y = perc_male, 
                       ymin = perc_male - se, 
                       ymax = perc_male + se),
                   sexrat_summ) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
   scale_y_continuous("Male offspring", labels = scales::percent) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
@@ -456,370 +419,122 @@ ggplot(sexrat_pred_pop, aes(age, predicted)) +
 
 Sample size n = `r nrow(pup_sex_data)`. In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
-### Supplemental Material
+## Supplemental Material
+
+### Models' sensitivity to age of senescence
 
 ```{r}
-#| label: seg-breeding-mod
+#| label: mod-sens
 
-# Fit GLMMs to the data with binary variable indicating before and after onset # of senescence. We a priori chose age 11 for senescence (age_senesce).
-breed_age_seg <- glmer(
-  observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
-  sealdat,
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa")
-)
-
-summary(breed_age_seg)
-```
-
-```{r}
-#| label: fig-seg-breeding-mod
-
-breed_pred_seg <- ggpredict(breed_age_seg, 
-                            terms = c("age10 [all]", "age_cat")) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce))
-
-ggplot(breed_pred_seg, aes(age, predicted)) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
-              alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
-  geom_pointrange(aes(y = perc_breed, 
-                      ymin = perc_breed - se, 
-                      ymax = perc_breed + se),
-                  breed_nonbreed) +
-  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_y_continuous("Breeding", labels = scales::percent) +
-  labs(x = "Age (years)") +
-  theme(legend.position = "none")
-
-```
-
-```{r}
-#| label: seg-repro-mod
-
-# Fit pup *survival* model
-pup_surv_seg <- glmer(
-  pup_surv_int ~ age10 * age_cat + (1 | animalID) + (1 | year),
-  surv_recr_data,
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa")
-)
-
-# Fit pup *recruitment* model
-pup_recr_seg <- glmer(
-  pup_recr_int ~ age10 * age_cat + (1 | animalID) + (1 | year),
-  filter(surv_recr_data, pupsex == "F"),
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa")
-)
-
-"Survival"
-summary(pup_surv_seg)$coefficients
-"Recruitment"
-summary(pup_recr_seg)$coefficients
-
-```
-
-```{r}
-#| label: fig-seg-repro
-#| fig-width: 9
-
-surv_pred_seg <- ggpredict(pup_surv_seg, 
-                           terms = c("age10 [all]", "age_cat")) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce))
-
-fig_surv <- ggplot(surv_pred_seg, aes(age, predicted)) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
-              alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
-  geom_pointrange(aes(y = perc_surv, 
-                      ymin = perc_surv - se_surv, 
-                      ymax = perc_surv + se_surv),
-                  surv_recr_summ) +
-  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_y_continuous("Offspring survival", labels = scales::percent) +
-  labs(x = "Age (years)") +
-  theme(legend.position = "none")
-
-recr_pred_seg <- ggpredict(pup_recr_seg, 
-                           terms = c("age10 [all]", "age_cat")) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce))
-
-fig_recr <- ggplot(recr_pred_seg, aes(age, predicted)) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
-              alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
-  geom_pointrange(aes(y = perc_recr, 
-                      ymin = perc_recr - se_recr, 
-                      ymax = perc_recr + se_recr),
-                  surv_recr_summ) +
-  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_y_continuous("Offspring recruitment", labels = scales::percent) +
-  labs(x = "Age (years)") +
-  theme(legend.position = "none")
-
-(fig_surv | fig_recr) + plot_annotation(tag_levels = "A")
-
-```
-
-```{r}
-#| label: seg-sexrat-mod
-
-# Fit GLMMs to the data with binary variable indicating before and after onset 
-# of senescence. We a priori chose age 11 for senescence (age_senesce).
-sexrat_age_seg <- glmer(
-  is_male ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
-  pup_sex_data,
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa")
-)
-
-summary(sexrat_age_seg)$coefficients
-```
-
-```{r}
-#| label: fig-seg-sexrat
-
-sexrat_pred_seg <- ggpredict(sexrat_age_seg, 
-                             terms = c("age10 [all]", "age_cat")) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce))
-
-ggplot(sexrat_pred_seg, aes(age, predicted)) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
-              alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
-  geom_pointrange(aes(y = perc_male, 
-                      ymin = perc_male - se, 
-                      ymax = perc_male + se),
-                  sexrat_summ) +
-  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_y_continuous("Breeding", labels = scales::percent) +
-  labs(x = "Age (years)") +
-  theme(legend.position = "none")
-
-```
-
-Supplemental Table 1: Statistics for breeding success model.
-
-```{r, code = FALSE}
-#| label: tbl-breed-cap
-
-tbl_breed_cap <- str_glue("The results from breeding probability analysis. The random effect variance of animal id is {format_signif(VarCorr(breeding_mod)$animalID, 3)} and of year was {format_signif(VarCorr(breeding_mod)$year, 3)}.")
-
-```
-
-```{r, code = FALSE}
-#| label: tbl-breed-success
-tbl-cap: !expr "tbl_breed_cap"
-
-breed_mod_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|z|)`, digits = 2)) %>%
-  select(-`Pr(>|z|)`) %>% 
-  relocate(Parameter) %>% 
-  knitr::kable()
-```
-
-```{r, code = FALSE}
-#| label: tbl-survrecruit-cap
-
-surv_recruit_cap <- str_glue("The results from offspring survival and recruitment analyses. In the offspring survival model, the random effect variance of animal id is {format_signif(VarCorr(pup_surv_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_surv_model)$year, 3)}. In the offspring recruitment model, the random effect variance of animal id is {format_signif(VarCorr(pup_recruit_model)$animalID, 3)} and of year was {format_signif(VarCorr(pup_recruit_model)$year, 3)}")
-
-```
-
-Supplemental table for offspring survival
-
-```{r, code = FALSE}
-#| label: tbl-surv_recruit
-tbl-cap: !expr "surv_recruit_cap"
-
-surv_mod_summary <- summary(pup_surv_model)
-surv_mod_kable <- surv_mod_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
-         Response = "Survival") %>%
-  select(-`Pr(>|z|)`) %>% 
-  relocate(Response, Parameter)
-
-recruit_mod_summary <- summary(pup_recruit_model)
-recruit_mod_kable <- recruit_mod_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)", "Age (quadratic)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|z|)`, digits = 2),
-         Response = "Recruitment") %>%
-  select(-`Pr(>|z|)`) %>% 
-  relocate(Response, Parameter)
-
-rbind(surv_mod_kable, recruit_mod_kable) %>% 
-  knitr::kable() %>% 
-  kableExtra::kable_styling() %>% 
-  kableExtra::collapse_rows(columns = 1)
-
-
-```
-
-Supplemental table for pup sex ratio model.
-
-```{r, code = FALSE}
-#| label: tbl-pupsex-cap
-
-pupsex_cap <- str_glue("The results from offspring sex ratio analyses. In the model, the random effect variance of animal id is {format_signif(VarCorr(pup_sex_mod)$animalID, 3)} and of year was {format_signif(VarCorr(pup_sex_mod)$year, 3)}.") 
-```
-
-```{r, code = FALSE}
-#| label: tbl-pupsex
-tbl-cap: !expr "pupsex_cap"
-
-pupsex_mod_summary <- summary(pup_sex_mod)
-pupsex_quad_summary <- summary(pup_sex_quad)
-pupsex_mod_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)"),
-         across(c(Estimate, `Std. Error`, `z value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|z|)`/2, digits = 3)) %>%
-  select(-`Pr(>|z|)`) %>% 
-  relocate(Parameter) %>% 
-  knitr::kable()
-
-
-# We fit a quadratic equation, but only the linear term was significant, so the linear model is the one that is plotted. take the p = 0.517 and divide by 2 because a priori. report in supplemental table that its reporting on 1 tailed (no absolute value of z, just z)
-```
-
-Supplemental table for male biased sex ratios at older ages.
-
-```{r, code = FALSE}
-#| label: tbl-pup-sex
-#| tbl-cap: "Offspring sex ratio skewed towards males with increasing maternal age. Mothers age 12, 13, and 17 gave birth to significantly more male than female pups (bold)."
-
-pup_sex_tbl <- pup_sex_summary %>% 
-  transmute(
-    Age = age,
-    `Male pups` = M,
-    `Total pups` = num,
-    `% male` = scales::label_percent(accuracy = 0.1)(percm),
-    `p value` = format_pval(pval, 3)
+fit_models <- function(a) {
+  age_senesce <- a
+  sealdat <- sealdat %>% 
+    mutate(age_cat = factor(age >= age_senesce, 
+                            labels = c("Young", "Old")))
+  
+  # H1
+  breed_age_mod <- glmer(
+    observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+    sealdat,
+    family = "binomial",
+    control = glmerControl(optimizer = "bobyqa")
+  )
+  
+  # H2
+  surv_recr_data <- sealdat %>% 
+    drop_na(pupID) %>% 
+    filter(pupyearborn <= 2016) %>% 
+    mutate(pup_surv_int = as.integer(pup_survived),
+           pup_recr_int = as.integer(puprecruited)) 
+  
+  pup_surv_mod <- glmer(
+    pup_surv_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+    surv_recr_data,
+    family = "binomial",
+    control = glmerControl(optimizer = "bobyqa")
+  )
+  
+  pup_recr_mod <- glmer(
+    pup_recr_int ~ age10 * age_cat + (1 | year_fct),
+    filter(surv_recr_data, pupsex == "F"),
+    family = "binomial",
+    control = glmerControl(optimizer = "bobyqa")
+  )
+  
+  # H3
+  pup_sex_data <- sealdat %>% 
+    filter(pupsex %in% c("M", "F"), 
+           age < 19) %>% 
+    mutate(is_male = as.integer(pupsex == "M"))
+  
+  sexrat_age_mod <- glmer(
+    is_male ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+    pup_sex_data,
+    family = "binomial"
   )
 
-is_signif <- which(pup_sex_tbl$`p value` < "0.05")
+  list(
+    h1 = summary(breed_age_mod)$coefficients,
+    h2_surv = summary(pup_surv_mod)$coefficients,
+    h2_recr = summary(pup_recr_mod)$coefficients,
+    h3 = summary(sexrat_age_mod)$coefficients
+  )
+}
 
-knitr::kable(pup_sex_tbl) %>% 
-  kableExtra::kable_styling() %>% 
-  kableExtra::row_spec(is_signif, bold = TRUE)
+# Fit models with cut-off at ages 8-13
+cutoff <- 8:13
+mod_sens <- map(cutoff, fit_models)
+
+# Are hypotheses supported by the model?
+extract_p <- \(h) map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Pr(>|z|)"])
+p_tbl <- tibble(age_cutoff = cutoff, 
+                "H1 (breeding)" = extract_p("h1"),
+                "H2a (survival)" = extract_p("h2_surv"),
+                "H2b (recruitment)" = extract_p("h2_recr"),
+                "H3 (sex ratio)" = extract_p("h3"))
+
+knitr::kable(p_tbl)
+
 ```
 
-Supplemental figure for phenology models
+```{r}
+#| label: fig-mod-sens
+#| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.051."
 
-```{r, code = FALSE}
-#| fig-width: 8
+p_tbl %>% 
+  pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>% 
+  ggplot(aes(age_cutoff, p)) +
+  geom_point() +
+  geom_hline(yintercept = 0.05, linetype = "dashed") +
+  scale_y_log10(labels = scales::number) +
+  labs(x = "Senescence onset (years)") +
+  facet_wrap(~hypothesis)
 
-#NOTE: Both BA and BD have some points that are really late (above 300 doy) that need fixing. Maybe make boxplots also..?
-seal_phenology %>% 
-  rename(`Breeding\narrival` = BA,
-         `Breeding\ndeparture` = BD,
-         `Molt\narrival` = MA,
-         `Molt\ndeparture` = MD) %>% 
-  pivot_longer(`Breeding\narrival`:`Molt\ndeparture`, 
-               names_to = "event", 
-               values_to = "DOY") %>% 
-ggplot(aes(y = DOY)) +
-  geom_boxplot(aes(factor(age))) +
-  geom_smooth(aes(as.integer(factor(age))), method = "lm", formula = y ~ x, se = TRUE) +
-  facet_wrap(~ event, nrow = 2, scales = "free_y") +
-  labs(x = "Age (years)", y = "Day of year") +
-  theme_classic()
 ```
 
-Supplemental table for the phenology models.
+### Haul-out duration by reproductive state
 
-```{r, code = FALSE}
-ba_data <- phenology_models$model_data[[1]]
-ba_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ba_data)
-ba_summary <- summary(ba_mod)
-ba_ktable <- ba_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)"),
-         across(c(Estimate, `Std. Error`, `df`, `t value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
-         Response = "Breeding arrival") %>%
-  select(-`Pr(>|t|)`) %>% 
-  relocate(Response, Parameter)
+```{r}
+#| label: fig-haul-dur
 
-bd_data <- phenology_models$model_data[[2]]
-bd_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ba_data)
-bd_summary <- summary(ba_mod)
-bd_ktable <- bd_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)"),
-         across(c(Estimate, `Std. Error`, `df`, `t value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
-         Response = "Breeding departure") %>%
-  select(-`Pr(>|t|)`) %>% 
-  relocate(Response, Parameter)
+haul_dur <- drop_na(sealdat, breeddur)
+haul_summ <- haul_dur %>% 
+  group_by(observed) %>% 
+  summarize(breeddur_10 = quantile(breeddur, 0.1),
+            breeddur_lbl = str_glue("10% < {breeddur_10} days"))
+ggplot(haul_dur, aes(breeddur)) +
+  geom_density(aes(fill = observed), alpha = 0.5) +
+  geom_density(aes(color = observed)) +
+  geom_vline(aes(color = observed, xintercept = breeddur_10), 
+             haul_summ) +
+  geom_text(aes(x = breeddur_10 + 0.5, label = breeddur_lbl), 
+            haul_summ, 
+            y = 0.09,
+            hjust = 0) +
+  scale_x_continuous("Haul-out duration (days)", 
+                     limits = c(0, 50)) +
+  scale_color_manual(values = c("darkgreen", "darkorchid")) +
+  scale_fill_manual(values = c("darkgreen", "darkorchid")) +
+  theme(legend.position = "none")
 
-ma_data <- phenology_models$model_data[[3]]
-ma_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = ma_data)
-ma_summary <- summary(ma_mod)
-ma_ktable <- ma_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)"),
-         across(c(Estimate, `Std. Error`, `df`, `t value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
-         Response = "Molt arrival") %>%
-  select(-`Pr(>|t|)`) %>% 
-  relocate(Response, Parameter)
-
-md_data <- phenology_models$model_data[[4]]
-md_mod <- lmer(doy ~ age + (1 | animalID) + (1 | year), data = md_data)
-md_summary <- summary(md_mod)
-md_ktable <- md_summary$coefficients %>% 
-  as_tibble() %>% 
-  mutate(Parameter = c("Intercept", "Age (linear)"),
-         across(c(Estimate, `Std. Error`, `df`, `t value`), 
-                \(x) format_signif(x, digits = 3)),
-         `p value` = format_pval(`Pr(>|t|)`, digits = 2),
-         Response = "Molt departure") %>%
-  select(-`Pr(>|t|)`) %>% 
-  relocate(Response, Parameter)
-
-
-rbind(ba_ktable, bd_ktable, ma_ktable, md_ktable) %>% 
-  knitr::kable() %>% 
-  kableExtra::kable_styling() %>% 
-  kableExtra::collapse_rows(columns = 1)
 ```
