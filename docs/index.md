@@ -1,1 +1,1 @@
-Seal aging figures can be found [here](paperv3.html). 
+Click [here](paperv3.html) to view figures!
