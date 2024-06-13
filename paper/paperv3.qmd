@@ -143,7 +143,7 @@ age_dist <- sealdat %>%
   labs(x = "Age (Years)", y = "Number of individuals") + 
   theme()
 
-(sighting_img | age_dist) + plot_layout(widths = c(2, 1))
+(sighting_img | age_dist) + plot_layout(widths = c(2, 1)) + plot_annotation(tag_levels = "A")
 
 ```
 
@@ -222,8 +222,8 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
                   breed_nonbreed) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Breeding", labels = scales::percent) +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
@@ -317,8 +317,8 @@ fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
   scale_y_continuous("Offspring survival", 
                      labels = scales::percent,
                      limits = c(0, 0.62)) +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
@@ -348,8 +348,8 @@ fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   scale_y_continuous("Offspring recruitment", 
                      labels = scales::percent,
                      limits = c(0, 0.62)) +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
@@ -410,8 +410,8 @@ ggplot(sexrat_pred, aes(age, predicted)) +
                       ymax = perc_male + se),
                   sexrat_summ) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_color_manual(values = c("cornflowerblue", "firebrick")) +
-  scale_fill_manual(values = c("cornflowerblue", "firebrick")) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_y_continuous("Male offspring", labels = scales::percent) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
@@ -489,7 +489,7 @@ annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
             color = "white") +
   scale_fill_discrete(
     type = c("#829BD1", "#D05794", "#829BD1", "#E09A2D", "#829BD1"),
-    breaks = c("Foraging", "Breeding", "Molting")
+    breaks = c("Foraging", "Breeding Haulout", "Molt Haulout")
   ) + 
   scale_x_continuous("Maternal age (years)", expand = expansion(mult = 0)) +
   scale_y_continuous("Day of year", expand = expansion(mult = 0)) +
@@ -548,7 +548,7 @@ duration_plot <- ggpredict(
        y = "Phase duration (days)") +
   theme(legend.position = "none")
 
-(annual_plot | duration_plot) + plot_annotation(tag_levels = "A")
+(annual_plot | duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(widths = c(1, 2))
   
 ```
 
