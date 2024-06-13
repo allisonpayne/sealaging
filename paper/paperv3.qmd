@@ -548,6 +548,8 @@ duration_plot <- ggpredict(
   
 ```
 
+Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_n)` individuals.
+
 ## Supplemental Material
 
 ### Models' sensitivity to age of senescence

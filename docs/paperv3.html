@@ -313,6 +313,7 @@ Figure&nbsp;5: Molting gets shorter but breeding doesn’t. A: Observed annual t
 </div>
 </div>
 </div>
+<p>Sample size n = 2121 observations of 775 individuals.</p>
 </section>
 <section id="supplemental-material" class="level2">
 <h2 class="anchored" data-anchor-id="supplemental-material">Supplemental Material</h2>
@@ -1433,125 +1434,127 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb8-568"><a href="#cb8-568" aria-hidden="true" tabindex="-1"></a>  </span>
 <span id="cb8-569"><a href="#cb8-569" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb8-570"><a href="#cb8-570" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-571"><a href="#cb8-571" aria-hidden="true" tabindex="-1"></a><span class="fu">## Supplemental Material</span></span>
+<span id="cb8-571"><a href="#cb8-571" aria-hidden="true" tabindex="-1"></a>Sample size n = <span class="in">`r nrow(seal_phenology)`</span> observations of <span class="in">`r n_distinct(phenology_n)`</span> individuals.</span>
 <span id="cb8-572"><a href="#cb8-572" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-573"><a href="#cb8-573" aria-hidden="true" tabindex="-1"></a><span class="fu">### Models' sensitivity to age of senescence</span></span>
+<span id="cb8-573"><a href="#cb8-573" aria-hidden="true" tabindex="-1"></a><span class="fu">## Supplemental Material</span></span>
 <span id="cb8-574"><a href="#cb8-574" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-577"><a href="#cb8-577" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb8-578"><a href="#cb8-578" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: mod-sens</span></span>
-<span id="cb8-579"><a href="#cb8-579" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-580"><a href="#cb8-580" aria-hidden="true" tabindex="-1"></a>fit_models <span class="ot">&lt;-</span> <span class="cf">function</span>(a) {</span>
-<span id="cb8-581"><a href="#cb8-581" aria-hidden="true" tabindex="-1"></a>  age_senesce <span class="ot">&lt;-</span> a</span>
-<span id="cb8-582"><a href="#cb8-582" aria-hidden="true" tabindex="-1"></a>  sealdat <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
-<span id="cb8-583"><a href="#cb8-583" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">age_cat =</span> <span class="fu">factor</span>(age <span class="sc">&gt;=</span> age_senesce, </span>
-<span id="cb8-584"><a href="#cb8-584" aria-hidden="true" tabindex="-1"></a>                            <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Young"</span>, <span class="st">"Old"</span>)))</span>
-<span id="cb8-585"><a href="#cb8-585" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-586"><a href="#cb8-586" aria-hidden="true" tabindex="-1"></a>  <span class="co"># H1</span></span>
-<span id="cb8-587"><a href="#cb8-587" aria-hidden="true" tabindex="-1"></a>  breed_age_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb8-588"><a href="#cb8-588" aria-hidden="true" tabindex="-1"></a>    observed_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
-<span id="cb8-589"><a href="#cb8-589" aria-hidden="true" tabindex="-1"></a>    sealdat,</span>
-<span id="cb8-590"><a href="#cb8-590" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
-<span id="cb8-591"><a href="#cb8-591" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
-<span id="cb8-592"><a href="#cb8-592" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-593"><a href="#cb8-593" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-594"><a href="#cb8-594" aria-hidden="true" tabindex="-1"></a>  <span class="co"># H2</span></span>
-<span id="cb8-595"><a href="#cb8-595" aria-hidden="true" tabindex="-1"></a>  surv_recr_data <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
-<span id="cb8-596"><a href="#cb8-596" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>(pupID) <span class="sc">%&gt;%</span> </span>
-<span id="cb8-597"><a href="#cb8-597" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(pupyearborn <span class="sc">&lt;=</span> <span class="dv">2016</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb8-598"><a href="#cb8-598" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">pup_surv_int =</span> <span class="fu">as.integer</span>(pup_survived),</span>
-<span id="cb8-599"><a href="#cb8-599" aria-hidden="true" tabindex="-1"></a>           <span class="at">pup_recr_int =</span> <span class="fu">as.integer</span>(puprecruited)) </span>
-<span id="cb8-600"><a href="#cb8-600" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-601"><a href="#cb8-601" aria-hidden="true" tabindex="-1"></a>  pup_surv_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb8-602"><a href="#cb8-602" aria-hidden="true" tabindex="-1"></a>    pup_surv_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
-<span id="cb8-603"><a href="#cb8-603" aria-hidden="true" tabindex="-1"></a>    surv_recr_data,</span>
-<span id="cb8-604"><a href="#cb8-604" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
-<span id="cb8-605"><a href="#cb8-605" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
-<span id="cb8-606"><a href="#cb8-606" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-607"><a href="#cb8-607" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-608"><a href="#cb8-608" aria-hidden="true" tabindex="-1"></a>  pup_recr_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb8-609"><a href="#cb8-609" aria-hidden="true" tabindex="-1"></a>    pup_recr_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
-<span id="cb8-610"><a href="#cb8-610" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(surv_recr_data, pupsex <span class="sc">==</span> <span class="st">"F"</span>),</span>
-<span id="cb8-611"><a href="#cb8-611" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
-<span id="cb8-612"><a href="#cb8-612" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
-<span id="cb8-613"><a href="#cb8-613" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-614"><a href="#cb8-614" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-615"><a href="#cb8-615" aria-hidden="true" tabindex="-1"></a>  <span class="co"># H3</span></span>
-<span id="cb8-616"><a href="#cb8-616" aria-hidden="true" tabindex="-1"></a>  pup_sex_data <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
-<span id="cb8-617"><a href="#cb8-617" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(pupsex <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"M"</span>, <span class="st">"F"</span>), </span>
-<span id="cb8-618"><a href="#cb8-618" aria-hidden="true" tabindex="-1"></a>           age <span class="sc">&lt;</span> <span class="dv">19</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb8-619"><a href="#cb8-619" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">is_male =</span> <span class="fu">as.integer</span>(pupsex <span class="sc">==</span> <span class="st">"M"</span>))</span>
-<span id="cb8-620"><a href="#cb8-620" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb8-621"><a href="#cb8-621" aria-hidden="true" tabindex="-1"></a>  sexrat_age_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb8-622"><a href="#cb8-622" aria-hidden="true" tabindex="-1"></a>    is_male <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
-<span id="cb8-623"><a href="#cb8-623" aria-hidden="true" tabindex="-1"></a>    pup_sex_data,</span>
-<span id="cb8-624"><a href="#cb8-624" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span></span>
-<span id="cb8-625"><a href="#cb8-625" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-626"><a href="#cb8-626" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-627"><a href="#cb8-627" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb8-628"><a href="#cb8-628" aria-hidden="true" tabindex="-1"></a>    <span class="at">h1 =</span> <span class="fu">summary</span>(breed_age_mod)<span class="sc">$</span>coefficients,</span>
-<span id="cb8-629"><a href="#cb8-629" aria-hidden="true" tabindex="-1"></a>    <span class="at">h2_surv =</span> <span class="fu">summary</span>(pup_surv_mod)<span class="sc">$</span>coefficients,</span>
-<span id="cb8-630"><a href="#cb8-630" aria-hidden="true" tabindex="-1"></a>    <span class="at">h2_recr =</span> <span class="fu">summary</span>(pup_recr_mod)<span class="sc">$</span>coefficients,</span>
-<span id="cb8-631"><a href="#cb8-631" aria-hidden="true" tabindex="-1"></a>    <span class="at">h3 =</span> <span class="fu">summary</span>(sexrat_age_mod)<span class="sc">$</span>coefficients</span>
-<span id="cb8-632"><a href="#cb8-632" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb8-633"><a href="#cb8-633" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb8-634"><a href="#cb8-634" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-635"><a href="#cb8-635" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit models with cut-off at ages 8-13</span></span>
-<span id="cb8-636"><a href="#cb8-636" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">&lt;-</span> <span class="dv">8</span><span class="sc">:</span><span class="dv">13</span></span>
-<span id="cb8-637"><a href="#cb8-637" aria-hidden="true" tabindex="-1"></a>mod_sens <span class="ot">&lt;-</span> <span class="fu">map</span>(cutoff, fit_models)</span>
-<span id="cb8-638"><a href="#cb8-638" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-639"><a href="#cb8-639" aria-hidden="true" tabindex="-1"></a><span class="co"># Are hypotheses supported by the model?</span></span>
-<span id="cb8-640"><a href="#cb8-640" aria-hidden="true" tabindex="-1"></a>extract_p <span class="ot">&lt;-</span> \(h) <span class="fu">map_dbl</span>(mod_sens, \(m) m[[h]][<span class="st">"age10:age_catOld"</span>, <span class="st">"Pr(&gt;|z|)"</span>])</span>
-<span id="cb8-641"><a href="#cb8-641" aria-hidden="true" tabindex="-1"></a>p_tbl <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">age_cutoff =</span> cutoff, </span>
-<span id="cb8-642"><a href="#cb8-642" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H1 (breeding)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h1"</span>),</span>
-<span id="cb8-643"><a href="#cb8-643" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H2a (survival)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h2_surv"</span>),</span>
-<span id="cb8-644"><a href="#cb8-644" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H2b (recruitment)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h2_recr"</span>),</span>
-<span id="cb8-645"><a href="#cb8-645" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H3 (sex ratio)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h3"</span>))</span>
-<span id="cb8-646"><a href="#cb8-646" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-647"><a href="#cb8-647" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(p_tbl)</span>
+<span id="cb8-575"><a href="#cb8-575" aria-hidden="true" tabindex="-1"></a><span class="fu">### Models' sensitivity to age of senescence</span></span>
+<span id="cb8-576"><a href="#cb8-576" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-579"><a href="#cb8-579" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb8-580"><a href="#cb8-580" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: mod-sens</span></span>
+<span id="cb8-581"><a href="#cb8-581" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-582"><a href="#cb8-582" aria-hidden="true" tabindex="-1"></a>fit_models <span class="ot">&lt;-</span> <span class="cf">function</span>(a) {</span>
+<span id="cb8-583"><a href="#cb8-583" aria-hidden="true" tabindex="-1"></a>  age_senesce <span class="ot">&lt;-</span> a</span>
+<span id="cb8-584"><a href="#cb8-584" aria-hidden="true" tabindex="-1"></a>  sealdat <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
+<span id="cb8-585"><a href="#cb8-585" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">age_cat =</span> <span class="fu">factor</span>(age <span class="sc">&gt;=</span> age_senesce, </span>
+<span id="cb8-586"><a href="#cb8-586" aria-hidden="true" tabindex="-1"></a>                            <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Young"</span>, <span class="st">"Old"</span>)))</span>
+<span id="cb8-587"><a href="#cb8-587" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-588"><a href="#cb8-588" aria-hidden="true" tabindex="-1"></a>  <span class="co"># H1</span></span>
+<span id="cb8-589"><a href="#cb8-589" aria-hidden="true" tabindex="-1"></a>  breed_age_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb8-590"><a href="#cb8-590" aria-hidden="true" tabindex="-1"></a>    observed_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb8-591"><a href="#cb8-591" aria-hidden="true" tabindex="-1"></a>    sealdat,</span>
+<span id="cb8-592"><a href="#cb8-592" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb8-593"><a href="#cb8-593" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb8-594"><a href="#cb8-594" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-595"><a href="#cb8-595" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-596"><a href="#cb8-596" aria-hidden="true" tabindex="-1"></a>  <span class="co"># H2</span></span>
+<span id="cb8-597"><a href="#cb8-597" aria-hidden="true" tabindex="-1"></a>  surv_recr_data <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
+<span id="cb8-598"><a href="#cb8-598" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>(pupID) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-599"><a href="#cb8-599" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(pupyearborn <span class="sc">&lt;=</span> <span class="dv">2016</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-600"><a href="#cb8-600" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">pup_surv_int =</span> <span class="fu">as.integer</span>(pup_survived),</span>
+<span id="cb8-601"><a href="#cb8-601" aria-hidden="true" tabindex="-1"></a>           <span class="at">pup_recr_int =</span> <span class="fu">as.integer</span>(puprecruited)) </span>
+<span id="cb8-602"><a href="#cb8-602" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-603"><a href="#cb8-603" aria-hidden="true" tabindex="-1"></a>  pup_surv_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb8-604"><a href="#cb8-604" aria-hidden="true" tabindex="-1"></a>    pup_surv_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb8-605"><a href="#cb8-605" aria-hidden="true" tabindex="-1"></a>    surv_recr_data,</span>
+<span id="cb8-606"><a href="#cb8-606" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb8-607"><a href="#cb8-607" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb8-608"><a href="#cb8-608" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-609"><a href="#cb8-609" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-610"><a href="#cb8-610" aria-hidden="true" tabindex="-1"></a>  pup_recr_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb8-611"><a href="#cb8-611" aria-hidden="true" tabindex="-1"></a>    pup_recr_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb8-612"><a href="#cb8-612" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(surv_recr_data, pupsex <span class="sc">==</span> <span class="st">"F"</span>),</span>
+<span id="cb8-613"><a href="#cb8-613" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb8-614"><a href="#cb8-614" aria-hidden="true" tabindex="-1"></a>    <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb8-615"><a href="#cb8-615" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-616"><a href="#cb8-616" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-617"><a href="#cb8-617" aria-hidden="true" tabindex="-1"></a>  <span class="co"># H3</span></span>
+<span id="cb8-618"><a href="#cb8-618" aria-hidden="true" tabindex="-1"></a>  pup_sex_data <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
+<span id="cb8-619"><a href="#cb8-619" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(pupsex <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"M"</span>, <span class="st">"F"</span>), </span>
+<span id="cb8-620"><a href="#cb8-620" aria-hidden="true" tabindex="-1"></a>           age <span class="sc">&lt;</span> <span class="dv">19</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-621"><a href="#cb8-621" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">is_male =</span> <span class="fu">as.integer</span>(pupsex <span class="sc">==</span> <span class="st">"M"</span>))</span>
+<span id="cb8-622"><a href="#cb8-622" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb8-623"><a href="#cb8-623" aria-hidden="true" tabindex="-1"></a>  sexrat_age_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb8-624"><a href="#cb8-624" aria-hidden="true" tabindex="-1"></a>    is_male <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb8-625"><a href="#cb8-625" aria-hidden="true" tabindex="-1"></a>    pup_sex_data,</span>
+<span id="cb8-626"><a href="#cb8-626" aria-hidden="true" tabindex="-1"></a>    <span class="at">family =</span> <span class="st">"binomial"</span></span>
+<span id="cb8-627"><a href="#cb8-627" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-628"><a href="#cb8-628" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-629"><a href="#cb8-629" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb8-630"><a href="#cb8-630" aria-hidden="true" tabindex="-1"></a>    <span class="at">h1 =</span> <span class="fu">summary</span>(breed_age_mod)<span class="sc">$</span>coefficients,</span>
+<span id="cb8-631"><a href="#cb8-631" aria-hidden="true" tabindex="-1"></a>    <span class="at">h2_surv =</span> <span class="fu">summary</span>(pup_surv_mod)<span class="sc">$</span>coefficients,</span>
+<span id="cb8-632"><a href="#cb8-632" aria-hidden="true" tabindex="-1"></a>    <span class="at">h2_recr =</span> <span class="fu">summary</span>(pup_recr_mod)<span class="sc">$</span>coefficients,</span>
+<span id="cb8-633"><a href="#cb8-633" aria-hidden="true" tabindex="-1"></a>    <span class="at">h3 =</span> <span class="fu">summary</span>(sexrat_age_mod)<span class="sc">$</span>coefficients</span>
+<span id="cb8-634"><a href="#cb8-634" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-635"><a href="#cb8-635" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-636"><a href="#cb8-636" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-637"><a href="#cb8-637" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit models with cut-off at ages 8-13</span></span>
+<span id="cb8-638"><a href="#cb8-638" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">&lt;-</span> <span class="dv">8</span><span class="sc">:</span><span class="dv">13</span></span>
+<span id="cb8-639"><a href="#cb8-639" aria-hidden="true" tabindex="-1"></a>mod_sens <span class="ot">&lt;-</span> <span class="fu">map</span>(cutoff, fit_models)</span>
+<span id="cb8-640"><a href="#cb8-640" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-641"><a href="#cb8-641" aria-hidden="true" tabindex="-1"></a><span class="co"># Are hypotheses supported by the model?</span></span>
+<span id="cb8-642"><a href="#cb8-642" aria-hidden="true" tabindex="-1"></a>extract_p <span class="ot">&lt;-</span> \(h) <span class="fu">map_dbl</span>(mod_sens, \(m) m[[h]][<span class="st">"age10:age_catOld"</span>, <span class="st">"Pr(&gt;|z|)"</span>])</span>
+<span id="cb8-643"><a href="#cb8-643" aria-hidden="true" tabindex="-1"></a>p_tbl <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">age_cutoff =</span> cutoff, </span>
+<span id="cb8-644"><a href="#cb8-644" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H1 (breeding)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h1"</span>),</span>
+<span id="cb8-645"><a href="#cb8-645" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H2a (survival)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h2_surv"</span>),</span>
+<span id="cb8-646"><a href="#cb8-646" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H2b (recruitment)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h2_recr"</span>),</span>
+<span id="cb8-647"><a href="#cb8-647" aria-hidden="true" tabindex="-1"></a>                <span class="st">"H3 (sex ratio)"</span> <span class="ot">=</span> <span class="fu">extract_p</span>(<span class="st">"h3"</span>))</span>
 <span id="cb8-648"><a href="#cb8-648" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-649"><a href="#cb8-649" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-649"><a href="#cb8-649" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(p_tbl)</span>
 <span id="cb8-650"><a href="#cb8-650" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-653"><a href="#cb8-653" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb8-654"><a href="#cb8-654" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-mod-sens</span></span>
-<span id="cb8-655"><a href="#cb8-655" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.051."</span></span>
-<span id="cb8-656"><a href="#cb8-656" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-657"><a href="#cb8-657" aria-hidden="true" tabindex="-1"></a>p_tbl <span class="sc">%&gt;%</span> </span>
-<span id="cb8-658"><a href="#cb8-658" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span>age_cutoff, <span class="at">names_to =</span> <span class="st">"hypothesis"</span>, <span class="at">values_to =</span> <span class="st">"p"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb8-659"><a href="#cb8-659" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(age_cutoff, p)) <span class="sc">+</span></span>
-<span id="cb8-660"><a href="#cb8-660" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
-<span id="cb8-661"><a href="#cb8-661" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.05</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
-<span id="cb8-662"><a href="#cb8-662" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_log10</span>(<span class="at">labels =</span> scales<span class="sc">::</span>number) <span class="sc">+</span></span>
-<span id="cb8-663"><a href="#cb8-663" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Senescence onset (years)"</span>) <span class="sc">+</span></span>
-<span id="cb8-664"><a href="#cb8-664" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>hypothesis)</span>
-<span id="cb8-665"><a href="#cb8-665" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-666"><a href="#cb8-666" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-651"><a href="#cb8-651" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-652"><a href="#cb8-652" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-655"><a href="#cb8-655" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb8-656"><a href="#cb8-656" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-mod-sens</span></span>
+<span id="cb8-657"><a href="#cb8-657" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.051."</span></span>
+<span id="cb8-658"><a href="#cb8-658" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-659"><a href="#cb8-659" aria-hidden="true" tabindex="-1"></a>p_tbl <span class="sc">%&gt;%</span> </span>
+<span id="cb8-660"><a href="#cb8-660" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span>age_cutoff, <span class="at">names_to =</span> <span class="st">"hypothesis"</span>, <span class="at">values_to =</span> <span class="st">"p"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-661"><a href="#cb8-661" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(age_cutoff, p)) <span class="sc">+</span></span>
+<span id="cb8-662"><a href="#cb8-662" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb8-663"><a href="#cb8-663" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.05</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb8-664"><a href="#cb8-664" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_log10</span>(<span class="at">labels =</span> scales<span class="sc">::</span>number) <span class="sc">+</span></span>
+<span id="cb8-665"><a href="#cb8-665" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Senescence onset (years)"</span>) <span class="sc">+</span></span>
+<span id="cb8-666"><a href="#cb8-666" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>hypothesis)</span>
 <span id="cb8-667"><a href="#cb8-667" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-668"><a href="#cb8-668" aria-hidden="true" tabindex="-1"></a><span class="fu">### Haul-out duration by reproductive state</span></span>
+<span id="cb8-668"><a href="#cb8-668" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb8-669"><a href="#cb8-669" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-672"><a href="#cb8-672" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb8-673"><a href="#cb8-673" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-haul-dur</span></span>
-<span id="cb8-674"><a href="#cb8-674" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-675"><a href="#cb8-675" aria-hidden="true" tabindex="-1"></a>haul_dur <span class="ot">&lt;-</span> <span class="fu">drop_na</span>(sealdat, breeddur)</span>
-<span id="cb8-676"><a href="#cb8-676" aria-hidden="true" tabindex="-1"></a>haul_summ <span class="ot">&lt;-</span> haul_dur <span class="sc">%&gt;%</span> </span>
-<span id="cb8-677"><a href="#cb8-677" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(observed) <span class="sc">%&gt;%</span> </span>
-<span id="cb8-678"><a href="#cb8-678" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">breeddur_10 =</span> <span class="fu">quantile</span>(breeddur, <span class="fl">0.1</span>),</span>
-<span id="cb8-679"><a href="#cb8-679" aria-hidden="true" tabindex="-1"></a>            <span class="at">breeddur_lbl =</span> <span class="fu">str_glue</span>(<span class="st">"10% &lt; {breeddur_10} days"</span>))</span>
-<span id="cb8-680"><a href="#cb8-680" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(haul_dur, <span class="fu">aes</span>(breeddur)) <span class="sc">+</span></span>
-<span id="cb8-681"><a href="#cb8-681" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">fill =</span> observed), <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb8-682"><a href="#cb8-682" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">color =</span> observed)) <span class="sc">+</span></span>
-<span id="cb8-683"><a href="#cb8-683" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">color =</span> observed, <span class="at">xintercept =</span> breeddur_10), </span>
-<span id="cb8-684"><a href="#cb8-684" aria-hidden="true" tabindex="-1"></a>             haul_summ) <span class="sc">+</span></span>
-<span id="cb8-685"><a href="#cb8-685" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">x =</span> breeddur_10 <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">label =</span> breeddur_lbl), </span>
-<span id="cb8-686"><a href="#cb8-686" aria-hidden="true" tabindex="-1"></a>            haul_summ, </span>
-<span id="cb8-687"><a href="#cb8-687" aria-hidden="true" tabindex="-1"></a>            <span class="at">y =</span> <span class="fl">0.09</span>,</span>
-<span id="cb8-688"><a href="#cb8-688" aria-hidden="true" tabindex="-1"></a>            <span class="at">hjust =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
-<span id="cb8-689"><a href="#cb8-689" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="st">"Haul-out duration (days)"</span>, </span>
-<span id="cb8-690"><a href="#cb8-690" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">50</span>)) <span class="sc">+</span></span>
-<span id="cb8-691"><a href="#cb8-691" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"darkgreen"</span>, <span class="st">"darkorchid"</span>)) <span class="sc">+</span></span>
-<span id="cb8-692"><a href="#cb8-692" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"darkgreen"</span>, <span class="st">"darkorchid"</span>)) <span class="sc">+</span></span>
-<span id="cb8-693"><a href="#cb8-693" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
-<span id="cb8-694"><a href="#cb8-694" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-695"><a href="#cb8-695" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-670"><a href="#cb8-670" aria-hidden="true" tabindex="-1"></a><span class="fu">### Haul-out duration by reproductive state</span></span>
+<span id="cb8-671"><a href="#cb8-671" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-674"><a href="#cb8-674" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb8-675"><a href="#cb8-675" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-haul-dur</span></span>
+<span id="cb8-676"><a href="#cb8-676" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-677"><a href="#cb8-677" aria-hidden="true" tabindex="-1"></a>haul_dur <span class="ot">&lt;-</span> <span class="fu">drop_na</span>(sealdat, breeddur)</span>
+<span id="cb8-678"><a href="#cb8-678" aria-hidden="true" tabindex="-1"></a>haul_summ <span class="ot">&lt;-</span> haul_dur <span class="sc">%&gt;%</span> </span>
+<span id="cb8-679"><a href="#cb8-679" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(observed) <span class="sc">%&gt;%</span> </span>
+<span id="cb8-680"><a href="#cb8-680" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">breeddur_10 =</span> <span class="fu">quantile</span>(breeddur, <span class="fl">0.1</span>),</span>
+<span id="cb8-681"><a href="#cb8-681" aria-hidden="true" tabindex="-1"></a>            <span class="at">breeddur_lbl =</span> <span class="fu">str_glue</span>(<span class="st">"10% &lt; {breeddur_10} days"</span>))</span>
+<span id="cb8-682"><a href="#cb8-682" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(haul_dur, <span class="fu">aes</span>(breeddur)) <span class="sc">+</span></span>
+<span id="cb8-683"><a href="#cb8-683" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">fill =</span> observed), <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb8-684"><a href="#cb8-684" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">color =</span> observed)) <span class="sc">+</span></span>
+<span id="cb8-685"><a href="#cb8-685" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">color =</span> observed, <span class="at">xintercept =</span> breeddur_10), </span>
+<span id="cb8-686"><a href="#cb8-686" aria-hidden="true" tabindex="-1"></a>             haul_summ) <span class="sc">+</span></span>
+<span id="cb8-687"><a href="#cb8-687" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">x =</span> breeddur_10 <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">label =</span> breeddur_lbl), </span>
+<span id="cb8-688"><a href="#cb8-688" aria-hidden="true" tabindex="-1"></a>            haul_summ, </span>
+<span id="cb8-689"><a href="#cb8-689" aria-hidden="true" tabindex="-1"></a>            <span class="at">y =</span> <span class="fl">0.09</span>,</span>
+<span id="cb8-690"><a href="#cb8-690" aria-hidden="true" tabindex="-1"></a>            <span class="at">hjust =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb8-691"><a href="#cb8-691" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="st">"Haul-out duration (days)"</span>, </span>
+<span id="cb8-692"><a href="#cb8-692" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">50</span>)) <span class="sc">+</span></span>
+<span id="cb8-693"><a href="#cb8-693" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"darkgreen"</span>, <span class="st">"darkorchid"</span>)) <span class="sc">+</span></span>
+<span id="cb8-694"><a href="#cb8-694" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"darkgreen"</span>, <span class="st">"darkorchid"</span>)) <span class="sc">+</span></span>
+<span id="cb8-695"><a href="#cb8-695" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb8-696"><a href="#cb8-696" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-697"><a href="#cb8-697" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
