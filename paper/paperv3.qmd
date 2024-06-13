@@ -1,5 +1,5 @@
 ---
-title: "Elephant Seal Age JAE Intraspecific Variation"
+title: "Reproduction frequency and offspring survival decline in elephant seals past prime age"
 format: 
   html: 
     echo: false
@@ -60,25 +60,22 @@ Our hypotheses:
 
 1.  Elephant seal reproductive success declines with age.
 
-2.  Reproductive declines persist to the next generation (maternal effect senescence). That is, offspring survival and recruitment are decreased.
+2.  Reproductive declines persist to the next generation (maternal effect senescence). That is, offspring survival and reproduction decrease with maternal age.
 
 3.  Offspring sex ratios shift towards males with old age.
 
-4.  Phenology is shifted later for older animals and breeders.
+4.  Phenology (breeding haulout and molt haulout) is shifted later for older animals and breeders.
 
 # Results
-
-First, address detection probability. DO THIS IN MARK.
 
 n = `r n_distinct(sealdat$animalID)` distinct animals, with `r n_distinct(sealdat)` total observations.
 
 ### Raw data
 
-Resighting plot (image) and age structure bar plot
-
 ```{r}
 #| label: fig-raw-data
 #| fig-width: 9
+#| fig-cap: "A: Raw longitudinal data for 1,202 known-age female elephant seals and their observations from birth, to recruitment, to death. B: Histogram of the number of seals in each age class in the dataset."
 
 sighting_img <- sealdat %>% 
   group_by(animalID) %>% 
@@ -149,7 +146,7 @@ age_dist <- sealdat %>%
 
 ### H1: Reproductive senescence
 
-~~We predicted that breeding success would decline with age. We found that breeding success increases to prime age, then decreases at older ages (@fig-age_dist).~~
+We predicted that breeding success would decline with age. Based on the literature, we chose age `r age_senesce` to be the end of prime age and indicate the onset of senescence. If breeding success declined with age, we would expect to see a negative difference between the slopes of the two models (pre and post senescence) (@fig-breeding-mod).
 
 ```{r}
 #| label: breeding-mod
@@ -229,15 +226,11 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
 
 ```
 
-Sample size n = `r nrow(sealdat)`.
+Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
 
 ### H2: Maternal effect senescence
 
-We predicted that reproductive declines would carry over to the next generation - that is, pups born to older mothers would have decreased survival and recruitment success.
-
-We found that neither pup survival nor recruitment is significantly affected by maternal age (@fig-repro-age).
-
-We reject our hypothesis: reproductive declines do not persist to the next generation, and there is no evidence of maternal effect senescence.
+We predicted that reproductive declines would carry over to the next generation - that is, pups born to older mothers would have decreased survival (for female and male pups) and reproductive success (for female pups). Pup survival significantly decreased with maternal age, but pup reproduction did not (@fig-repro-age).
 
 ```{r}
 #| label: repro-age
@@ -357,11 +350,11 @@ fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   
 ```
 
-Sample size n = `r nrow(surv_recr_data)`.
+Sample size n = `r nrow(surv_recr_data)` observations of `r n_distinct(surv_recr_data$animalID)` individuals.
 
 ### H3: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males (@fig-sex_ratio).
+We found that as maternal age increases, pup sex skews slightly towards males, but it is not significant (@fig-sex_ratio).
 
 ```{r}
 #| label: sex-ratio
@@ -383,6 +376,7 @@ summary(sexrat_age_mod)$coefficients
 
 ```{r}
 #| label: fig-sex-ratio
+#| fig-cap: "Offspring sex ratio skews towards males with increasing maternal age, but the result is not significant (p = 0.6). Black points show the mean and solid black lines show the standard error of the observed sex ratio."
 
 # Summarize the raw data
 sexrat_summ <- pup_sex_data %>% 
@@ -417,7 +411,9 @@ ggplot(sexrat_pred, aes(age, predicted)) +
   theme(legend.position = "none")
 ```
 
-Sample size n = `r nrow(pup_sex_data)`. In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
+Sample size n = `r nrow(pup_sex_data)` observations of `r n_distinct(pup_sex_data$animalID)` individuals.
+
+**Note**: In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
 ### Phenology
 
@@ -472,14 +468,14 @@ timing_summary <- seal_phenology %>%
                values_to = "doy") %>% 
   group_by(age) %>% 
   group_modify(\(data, keys) {
-    tibble(event = c("Foraging", "Breeding", "Post-breeding", "Molting", "foraging2"),
+    tibble(event = c("Foraging", "Breeding haulout", "Post-breeding", "Molt haulout", "foraging2"),
            doy = c(data$doy, 365) - c(0, data$doy))
   }) %>% 
   ungroup() %>% 
   mutate(event = factor(event, levels = c("Foraging", 
-                                          "Breeding", 
+                                          "Breeding haulout", 
                                           "Post-breeding", 
-                                          "Molting", 
+                                          "Molt haulout", 
                                           "foraging2")))
 
 annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
@@ -489,7 +485,7 @@ annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
             color = "white") +
   scale_fill_discrete(
     type = c("#829BD1", "#D05794", "#829BD1", "#E09A2D", "#829BD1"),
-    breaks = c("Foraging", "Breeding Haulout", "Molt Haulout")
+    breaks = c("Foraging", "Breeding haulout", "Molt haulout")
   ) + 
   scale_x_continuous("Maternal age (years)", expand = expansion(mult = 0)) +
   scale_y_continuous("Day of year", expand = expansion(mult = 0)) +
@@ -548,7 +544,7 @@ duration_plot <- ggpredict(
        y = "Phase duration (days)") +
   theme(legend.position = "none")
 
-(annual_plot | duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(widths = c(1, 2))
+(annual_plot | duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(widths = c(1.25, 2))
   
 ```
 
