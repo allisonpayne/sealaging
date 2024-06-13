@@ -70,7 +70,7 @@ Our hypotheses:
 
 First, address detection probability. DO THIS IN MARK.
 
-n = `r n_distinct(sealdat$animalID)` distinct animals.
+n = `r n_distinct(sealdat$animalID)` distinct animals, with `r n_distinct(sealdat)` total observations.
 
 ### Raw data
 
