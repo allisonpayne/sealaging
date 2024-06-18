@@ -224,6 +224,7 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
+ggsave("outputs/breeding_success.svg", height = 6, width = 10, units = "in")
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
