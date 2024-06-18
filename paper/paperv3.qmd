@@ -553,9 +553,9 @@ duration_plot <- ggpredict(
 
 Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_n)` individuals.
 
-## Supplemental Material
+# Supplemental Material
 
-### Models' sensitivity to age of senescence
+## Models' sensitivity to age of senescence
 
 ```{r}
 #| label: mod-sens
@@ -646,7 +646,7 @@ p_tbl %>%
 
 ```
 
-### Haul-out duration by reproductive state
+## Haul-out duration by reproductive state
 
 ```{r}
 #| label: fig-haul-dur
@@ -682,7 +682,7 @@ recruit_by_6 <- mean(sealdat$recruit_age <= 6, na.rm = TRUE)
 
 ```
 
-Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will have lower reproductive traits not because of senescence but rather because only infrequent breeders survive to older ages (i.e. selective disappearance). We tested whether our results were influenced by selective disappearance, following the methods @vandepol2006, by adding a term for longevity to our models. We did not test for selective appearance because delayed sexual maturity was very rare in this population. `r scales::label_percent(accuracy = 0.1)(recruit_by_6)` of seals recruited at ages 4, 5, or 6.
+Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will have lower reproductive traits not because of senescence but rather because only infrequent breeders survive to older ages (i.e. selective disappearance). We tested whether our significant results (reproductive senescence, maternal effect senescence in pup survival) were influenced by selective disappearance, following the methods @vandepol2006, by adding a term for longevity to our models. We did not test for selective appearance because delayed sexual maturity was very rare in this population. `r scales::label_percent(accuracy = 0.1)(recruit_by_6)` of seals recruited at ages 4, 5, or 6.
 
 ### H1: Reproductive senescence
 
@@ -696,25 +696,25 @@ breed_sel_dis <- glmer(
   control = glmerControl(optimizer = "bobyqa")
 )
 
-summary(breed_sel_dis)$coefficients
-
-longevity_est <- summary(breed_sel_dis)$coefficients["longevity", "Estimate"]
-longevity_se <- summary(breed_sel_dis)$coefficients["longevity", "Std. Error"]
-longevity_coef <- sprintf(
+breed_long_est <- summary(breed_sel_dis)$coefficients["longevity", "Estimate"]
+breed_long_se <- summary(breed_sel_dis)$coefficients["longevity", "Std. Error"]
+breed_long_coef <- sprintf(
   "%0.5f (95%% CI: %0.5f - %0.5f)", 
-  longevity_est,
-  longevity_est - 1.96 * longevity_se,
-  longevity_est + 1.96 * longevity_se
+  breed_long_est,
+  breed_long_est - 1.96 * breed_long_se,
+  breed_long_est + 1.96 * breed_long_se
 )
 
-longevity_p <- sprintf(
+breed_long_p <- sprintf(
   "%0.3f", 
   summary(breed_sel_dis)$coefficients["longevity", "Pr(>|z|)"]
 )
 
+summary(breed_sel_dis)$coefficients
+
 ```
 
-Selective disappearance did not explain the observed pattern of declining breeding probabilities with age. The coefficient for longevity was estimated at `r longevity_coef`, which was not significantly different than 0 ($p$ = `r longevity_p`). The predicted breeding probabilities for seals with longevity of 5, 10, and 17 years are shown in @fig-sel-dis-h1.
+Selective disappearance did not explain the observed pattern of declining breeding probabilities with age. The coefficient for longevity was estimated at `r breed_long_coef`, which was not significantly different than 0 ($p$ = `r breed_long_p`). The predicted breeding probabilities for seals with longevity of 5, 10, and 17 years are shown in @fig-sel-dis-h1.
 
 ```{r}
 #| label: fig-sel-dis-h1
@@ -739,12 +739,82 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
                   group = interaction(age_cat, longevity_fct),
                   ymin = conf.low,
                   ymax = conf.high),
-              alpha = 0.25) +
+              alpha = 0.2) +
   geom_line(aes(color = age_cat, 
                 linetype = longevity_fct)) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Breeding", 
                      labels = scales::percent) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  labs(x = "Age (years)") +
+  theme(legend.position = "none")
+
+```
+
+### H2: Maternal effect senescence
+
+```{r}
+#| label: sel-dis-h2
+
+# Fit pup *survival* model
+surv_sel_dis <- glmer(
+  pup_surv_int ~ age10 * age_cat + longevity + (1 | animalID) + (1 | year_fct),
+  surv_recr_data,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+surv_long_est <- summary(surv_sel_dis)$coefficients["longevity", "Estimate"]
+surv_long_se <- summary(surv_sel_dis)$coefficients["longevity", "Std. Error"]
+surv_long_coef <- sprintf(
+  "%0.5f (95%% CI: %0.5f - %0.5f)", 
+  surv_long_est,
+  surv_long_est - 1.96 * surv_long_se,
+  surv_long_est + 1.96 * surv_long_se
+)
+
+surv_long_p <- sprintf(
+  "%0.3f", 
+  summary(surv_sel_dis)$coefficients["longevity", "Pr(>|z|)"]
+)
+
+summary(surv_sel_dis)$coefficients
+
+```
+
+Selective disappearance did not explain the observed pattern of declining offspring survival with maternal age. The coefficient for longevity was estimated at `r surv_long_coef`, which was not significantly different than 0 ($p$ = `r surv_long_p`). The predicted breeding probabilities for seals with longevity of 5, 10, and 17 years are shown in @fig-sel-dis-h2.
+
+```{r}
+#| label: fig-sel-dis-h2
+#| fig-cap: Longevity did not explain changes in offspring survival or recruitment with maternal age. Predicted offspring survival and recruitment probabilities for seals with longevity of 5, 10, and 17 years shown with solid, dotted, and dashed lines, respectively. 95% confidence intervals shown in shaded regions.
+
+surv_pred_long <- ggpredict(
+  surv_sel_dis, 
+  terms = c("age10 [all]", "age_cat", "longevity [5,10,17]"),
+  type = "fixed",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10,
+         age_cat = group,
+         longevity = facet,
+         longevity_fct = factor(longevity)) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
+  
+ggplot(surv_pred_long, aes(age, predicted)) +
+  geom_ribbon(aes(fill = age_cat, 
+                  group = interaction(age_cat, longevity_fct),
+                  ymin = conf.low, 
+                  ymax = conf.high), 
+              alpha = 0.2) +
+  geom_line(aes(color = age_cat, linetype = longevity_fct)) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_y_continuous("Offspring survival", 
+                     labels = scales::percent,
+                     limits = c(0, 0.62)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
