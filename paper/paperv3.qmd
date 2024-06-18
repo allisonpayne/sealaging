@@ -276,6 +276,9 @@ summary(pup_recr_mod)$coefficients
 #| label: fig-repro-age
 #| fig-width: 9
 
+n_recruit <- surv_recr_data %>% 
+  filter(pupsex == "F")
+
 # Summarize the raw data
 surv_recr_summ <- surv_recr_data %>% 
   group_by(age) %>% 
@@ -353,7 +356,7 @@ fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   
 ```
 
-Sample size n = `r nrow(surv_recr_data)` observations of `r n_distinct(surv_recr_data$animalID)` individuals.
+Sample size for offspring survival was n = `r nrow(surv_recr_data)` observations of `r n_distinct(surv_recr_data$animalID)` individuals. Sample size for offspring recruitment was n = `r nrow(n_recruit)` observations of `r n_distinct(n_recruit$animalID)` female individuals.
 
 ### H3: Changes in pup sex ratio with increased maternal age
 
