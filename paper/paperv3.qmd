@@ -156,7 +156,7 @@ We predicted that breeding success would decline with age. Based on the literatu
 
 # Fit GLMMs to the data with binary variable indicating before and after onset # of senescence. We a priori chose age 11 for senescence (age_senesce).
 breed_age_mod <- glmer(
-  observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+  observed_int ~ age_cat + age10 : age_cat + (1 | animalID) + (1 | year_fct),
   sealdat,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
