@@ -542,11 +542,12 @@ duration_plot <- ggpredict(
                       color = phase),
                   pheno_raw,
                   position = position_dodge(width = 0.5)) +
-  geom_line(aes(y = dur_days, color = phase)) +
+  geom_line(aes(y = dur_days, color = phase, linetype = phase)) +
   annotate("text", 12, 14, label = "Molting", color = "#E09A2D", hjust = 0) +
   annotate("text", 12, 32, label = "Breeding", color = "#D05794", hjust = 0) +
   scale_fill_manual(values = c("#D05794", "#E09A2D")) +
   scale_color_manual(values = c("#D05794", "#E09A2D")) +
+  scale_linetype_manual(values = c("dashed", "solid")) +
   labs(x = "Maternal age (years)",
        y = "Phase duration (days)") +
   theme(legend.position = "none")
