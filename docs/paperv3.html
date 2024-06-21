@@ -180,11 +180,11 @@ Figure&nbsp;1: A: Raw longitudinal data for 1,202 known-age female elephant seal
 <p>We predicted that breeding success would decline with age. Based on the literature, we chose age 11 to be the end of prime age and indicate the onset of senescence. If breeding success declined with age, we would expect to see a negative difference between the slopes of the two models (pre and post senescence) (<a href="#fig-breeding-mod" class="quarto-xref">Figure&nbsp;2</a>).</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
-<pre><code>                  Estimate Std. Error   z value     Pr(&gt;|z|)
-(Intercept)       2.117267  0.2536720  8.346476 7.033008e-17
-age10             1.080435  0.3282430  3.291569 9.963018e-04
-age_catOld        2.583746  0.7599871  3.399723 6.745403e-04
-age10:age_catOld -2.407839  0.6129178 -3.928485 8.548257e-05</code></pre>
+<pre><code>                    Estimate Std. Error   z value     Pr(&gt;|z|)
+(Intercept)         2.117266  0.2537199  8.344895 7.127692e-17
+age_catOld          2.583748  0.7605579  3.397175 6.808546e-04
+age_catYoung:age10  1.080435  0.3283353  3.290646 9.995748e-04
+age_catOld:age10   -1.327405  0.5210180 -2.547715 1.084310e-02</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -1127,7 +1127,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb10-162"><a href="#cb10-162" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-163"><a href="#cb10-163" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit GLMMs to the data with binary variable indicating before and after onset # of senescence. We a priori chose age 11 for senescence (age_senesce).</span></span>
 <span id="cb10-164"><a href="#cb10-164" aria-hidden="true" tabindex="-1"></a>breed_age_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb10-165"><a href="#cb10-165" aria-hidden="true" tabindex="-1"></a>  observed_int <span class="sc">~</span> age10 <span class="sc">*</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb10-165"><a href="#cb10-165" aria-hidden="true" tabindex="-1"></a>  observed_int <span class="sc">~</span> age_cat <span class="sc">+</span> age10 <span class="sc">:</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
 <span id="cb10-166"><a href="#cb10-166" aria-hidden="true" tabindex="-1"></a>  sealdat,</span>
 <span id="cb10-167"><a href="#cb10-167" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
 <span id="cb10-168"><a href="#cb10-168" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
@@ -1310,7 +1310,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb10-351"><a href="#cb10-351" aria-hidden="true" tabindex="-1"></a>fig_recr <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(recr_pred_pop, <span class="fu">aes</span>(age, predicted)) <span class="sc">+</span></span>
 <span id="cb10-352"><a href="#cb10-352" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">fill =</span> age_cat, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high), </span>
 <span id="cb10-353"><a href="#cb10-353" aria-hidden="true" tabindex="-1"></a>              <span class="at">alpha =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
-<span id="cb10-354"><a href="#cb10-354" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">color =</span> age_cat), <span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb10-354"><a href="#cb10-354" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">color =</span> age_cat), <span class="at">linewidth =</span> <span class="fl">1.2</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
 <span id="cb10-355"><a href="#cb10-355" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="fu">aes</span>(<span class="at">y =</span> perc_recr, </span>
 <span id="cb10-356"><a href="#cb10-356" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ymin =</span> perc_recr <span class="sc">-</span> se_recr, </span>
 <span id="cb10-357"><a href="#cb10-357" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ymax =</span> perc_recr <span class="sc">+</span> se_recr),</span>
@@ -1376,7 +1376,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb10-421"><a href="#cb10-421" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(sexrat_pred, <span class="fu">aes</span>(age, predicted)) <span class="sc">+</span></span>
 <span id="cb10-422"><a href="#cb10-422" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">fill =</span> age_cat, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high), </span>
 <span id="cb10-423"><a href="#cb10-423" aria-hidden="true" tabindex="-1"></a>              <span class="at">alpha =</span> <span class="fl">0.2</span>) <span class="sc">+</span></span>
-<span id="cb10-424"><a href="#cb10-424" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">color =</span> age_cat), <span class="at">linewidth =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb10-424"><a href="#cb10-424" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">color =</span> age_cat), <span class="at">linewidth =</span> <span class="fl">1.2</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
 <span id="cb10-425"><a href="#cb10-425" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="fu">aes</span>(<span class="at">y =</span> perc_male, </span>
 <span id="cb10-426"><a href="#cb10-426" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ymin =</span> perc_male <span class="sc">-</span> se, </span>
 <span id="cb10-427"><a href="#cb10-427" aria-hidden="true" tabindex="-1"></a>                      <span class="at">ymax =</span> perc_male <span class="sc">+</span> se),</span>

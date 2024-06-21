@@ -339,7 +339,7 @@ recr_pred_pop <- ggpredict(
 fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
   geom_pointrange(aes(y = perc_recr, 
                       ymin = perc_recr - se_recr, 
                       ymax = perc_recr + se_recr),
@@ -405,7 +405,7 @@ sexrat_pred <- ggpredict(sexrat_age_mod,
 ggplot(sexrat_pred, aes(age, predicted)) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
   geom_pointrange(aes(y = perc_male, 
                       ymin = perc_male - se, 
                       ymax = perc_male + se),
