@@ -38,7 +38,7 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          year > 1987) %>% 
   mutate(animalID = factor(animalID),
          year_fct = factor(year),
-         age10 = age / 10,
+         age10 = (age - age_senesce) / 10,
          age_cat = factor(age >= age_senesce, 
                           labels = c("Young", "Old"))) %>% 
   group_by(animalID) %>% 
@@ -156,7 +156,7 @@ We predicted that breeding success would decline with age. Based on the literatu
 
 # Fit GLMMs to the data with binary variable indicating before and after onset # of senescence. We a priori chose age 11 for senescence (age_senesce).
 breed_age_mod <- glmer(
-  observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+  observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
   sealdat,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -182,7 +182,7 @@ breed_nonbreed <- sealdat %>%
 breed_pred_pop <- ggpredict(breed_age_mod, 
                             terms = c("age10 [all]", "age_cat")) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = factor(group, levels = c("Young", "Old"))) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
@@ -197,7 +197,7 @@ breed_pred_wgt <- ggpredict(
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = group,
          year_fct = facet) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
@@ -248,7 +248,7 @@ surv_recr_data <- sealdat %>%
 
 # Fit pup *survival* model
 pup_surv_mod <- glmer(
-  pup_surv_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+  pup_surv_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
   surv_recr_data,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -259,7 +259,7 @@ pup_recr_mod <- glmer(
   # NOTE: no random effect for individual bc singular fit
   # In survival model, 93 individuals (15%) had >3 pups (male+female pups)
   # In recruit model, only 17 individuals (4%) had >3 pups (female pups only)
-  pup_recr_int ~ age10 * age_cat + (1 | year_fct),
+  pup_recr_int ~ age10 : age_cat + (1 | year_fct),
   filter(surv_recr_data, pupsex == "F"),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -298,7 +298,7 @@ surv_pred_pop <- ggpredict(
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = group) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
@@ -329,7 +329,7 @@ recr_pred_pop <- ggpredict(
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = group) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
@@ -371,7 +371,7 @@ pup_sex_data <- sealdat %>%
   mutate(is_male = as.integer(pupsex == "M"))
 
 sexrat_age_mod <- glmer(
-  is_male ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+  is_male ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
   pup_sex_data,
   family = "binomial"
 )
@@ -396,7 +396,7 @@ sexrat_summ <- pup_sex_data %>%
 sexrat_pred <- ggpredict(sexrat_age_mod, 
                          terms = c("age10 [all]", "age_cat")) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = factor(group, levels = c("Young", "Old"))) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce))
