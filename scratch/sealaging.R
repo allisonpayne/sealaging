@@ -23,8 +23,9 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
   ungroup()
 
 sealdat2 <- sealdat %>% 
-  select(animalID, year, age, observed_int) %>% 
-  mutate(age = (age - mean(age)) / sd(age),
+  select(animalID, year, age, observed_int, longevity) %>% 
+  drop_na(longevity) %>% 
+  mutate(across(c(age, longevity), \(x) (x - mean(x)) / sd(x)),
          across(c(animalID, year), \(x) as.integer(factor(x))))
 fit <- stan("scratch/sealaging.stan", "sealaging",
             data = list(N = nrow(sealdat2),
@@ -33,12 +34,13 @@ fit <- stan("scratch/sealaging.stan", "sealaging",
                         b = sealdat2$observed_int,
                         k = sealdat2$age,
                         a = sealdat2$animalID,
-                        y = sealdat2$year),
-            iter = 4000, chains = 4, cores = 4)
+                        y = sealdat2$year,
+                        l = sealdat2$longevity),
+            iter = 8000, chains = 4, cores = 4)
 
 fit_draws <- subset_draws(
   as_draws_df(fit), 
-  variable = c("tau", "beta_k", "alpha", "sigma_u", "sigma_v")
+  variable = c("alpha", "beta_k", "beta_l", "tau", "sigma_u", "sigma_v")
 )
 
 inv_logit <- \(x) exp(x) / (1 + exp(x))

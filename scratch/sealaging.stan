@@ -7,7 +7,7 @@ data {
   vector[N] k;    // ages
   array[N] int a; // animal IDs
   array[N] int y; // year IDs
-  // vector[N] l;    // longevities
+  vector[N] l;    // longevities
 }
 parameters {
   vector[A] u;           // Ranef of animal
@@ -16,8 +16,8 @@ parameters {
   real<lower=0> sigma_v; // SD of year ranef
   real alpha;            // Intercept (i.e. p(breeding) at breakpoint)
   vector[2] beta_k;      // Age coef pre- and post-senescence
+  real beta_l;           // Coefficient for longevity
   real tau;              // Breakpoint (age at senescence)
-  // real beta_l;                   // Coefficient for longevity
 }
 model {
   // Prior on alpha is the average breeding probability
@@ -29,9 +29,9 @@ model {
   sigma_u ~ exponential(2);
   sigma_v ~ exponential(2);
   alpha ~ normal(alpha_mu, 2);
-  beta_k ~ normal(0, 1);
+  beta_k ~ normal(0, 2);
+  beta_l ~ normal(0, 2);
   tau ~ normal(0, 2);
-  // beta_l ~ normal(0, 3);
   
   vector[N] abk; // Effect of age and breakpoint on breeding linear predictor
   vector[N] eta; // Linear predictor
@@ -44,8 +44,7 @@ model {
     }
     
     // Linear predictor
-    // eta[i] = abk[i] + beta_l * l[i] + u[a[i]] + v[y[i]];
-    eta[i] = abk[i] + u[a[i]] + v[y[i]];
+    eta[i] = abk[i] + beta_l * l[i] + u[a[i]] + v[y[i]];
     
     b[i] ~ bernoulli(inv_logit(eta[i]));
   }
