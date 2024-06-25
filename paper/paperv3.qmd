@@ -8,6 +8,7 @@ format:
     code-fold: true
     code-tools: true
     warning: false
+    toc: true
 editor: visual
 bibliography: references.bib
 ---
@@ -360,7 +361,7 @@ Sample size for offspring survival was n = `r nrow(surv_recr_data)` observations
 
 ### H3: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males, but it is not significant (@fig-sex_ratio).
+We found that as maternal age increases, pup sex skews slightly towards males, but it is not significant (@fig-sex-ratio).
 
 ```{r}
 #| label: sex-ratio
@@ -636,7 +637,7 @@ knitr::kable(p_tbl)
 
 ```{r}
 #| label: fig-mod-sens
-#| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.051."
+#| fig-cap: Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.051.
 
 p_tbl %>% 
   pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>% 
@@ -649,33 +650,6 @@ p_tbl %>%
 
 ```
 
-## Haul-out duration by reproductive state
-
-```{r}
-#| label: fig-haul-dur
-
-haul_dur <- drop_na(sealdat, breeddur)
-haul_summ <- haul_dur %>% 
-  group_by(observed) %>% 
-  summarize(breeddur_10 = quantile(breeddur, 0.1),
-            breeddur_lbl = str_glue("10% < {breeddur_10} days"))
-ggplot(haul_dur, aes(breeddur)) +
-  geom_density(aes(fill = observed), alpha = 0.5) +
-  geom_density(aes(color = observed)) +
-  geom_vline(aes(color = observed, xintercept = breeddur_10), 
-             haul_summ) +
-  geom_text(aes(x = breeddur_10 + 0.5, label = breeddur_lbl), 
-            haul_summ, 
-            y = 0.09,
-            hjust = 0) +
-  scale_x_continuous("Haul-out duration (days)", 
-                     limits = c(0, 50)) +
-  scale_color_manual(values = c("darkgreen", "darkorchid")) +
-  scale_fill_manual(values = c("darkgreen", "darkorchid")) +
-  theme(legend.position = "none")
-
-```
-
 ## Selective appearance and disappearance
 
 ```{r}
@@ -685,7 +659,7 @@ recruit_by_6 <- mean(sealdat$recruit_age <= 6, na.rm = TRUE)
 
 ```
 
-Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will have lower reproductive traits not because of senescence but rather because only infrequent breeders survive to older ages (i.e. selective disappearance). We tested whether our significant results (reproductive senescence, maternal effect senescence in pup survival) were influenced by selective disappearance, following the methods @vandepol2006, by adding a term for longevity to our models. We did not test for selective appearance because delayed sexual maturity was very rare in this population. `r scales::label_percent(accuracy = 0.1)(recruit_by_6)` of seals recruited at ages 4, 5, or 6.
+Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will reproduce less frequently not because of senescence but rather because infrequent breeders disproportionately survive to older ages (i.e. selective disappearance). We tested whether our significant results (reproductive senescence, maternal effect senescence in pup survival) were influenced by selective disappearance, following the methods of @vandepol2006, by adding a term for longevity to our models. We did not test for selective *appearance*, which results from variability in age of recruitment, because delayed sexual maturity was very rare in this population. `r scales::label_percent(accuracy = 0.1)(recruit_by_6)` of seals recruited at ages 4, 5, or 6.
 
 ### H1: Reproductive senescence
 
@@ -693,7 +667,7 @@ Age-dependent life history shifts can result from within- or between-animal chan
 #| label: sel-dis-h1
 
 breed_sel_dis <- glmer(
-  observed_int ~ age10 * age_cat + longevity + (1 | animalID) + (1 | year_fct),
+  observed_int ~ age10 : age_cat + longevity + (1 | animalID) + (1 | year_fct),
   sealdat,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -729,7 +703,7 @@ breed_pred_pop <- ggpredict(
   terms = c("age10 [all]", "age_cat", "longevity [5,10,17]")
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = factor(group, levels = c("Young", "Old")),
          longevity = facet,
          longevity_fct = factor(longevity)) %>% 
@@ -762,7 +736,7 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
 
 # Fit pup *survival* model
 surv_sel_dis <- glmer(
-  pup_surv_int ~ age10 * age_cat + longevity + (1 | animalID) + (1 | year_fct),
+  pup_surv_int ~ age10 : age_cat + longevity + (1 | animalID) + (1 | year_fct),
   surv_recr_data,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -799,7 +773,7 @@ surv_pred_long <- ggpredict(
   interval = "confidence"
 ) %>% 
   as_tibble() %>% 
-  mutate(age = x * 10,
+  mutate(age = x * 10 + age_senesce,
          age_cat = group,
          longevity = facet,
          longevity_fct = factor(longevity)) %>% 
@@ -824,3 +798,112 @@ ggplot(surv_pred_long, aes(age, predicted)) +
   theme(legend.position = "none")
 
 ```
+
+## Breeding state and detection probability
+
+Not all seals were detected in all years. A non-detection year during the seal's lifespan (i.e. an unobserved year between the first and last observed years) could represent an unobserved animal at Año Nuevo or temporary emigration. In either case, the animal may or may not have reproduced that year. By excluding these unobserved animals, our inferences for H1 (reproductive senescence) may be biased if detectability varies with age and/or by breeding state. Here, we assess those potential biases.
+
+```{r}
+#| label: missing-seals
+
+## Are we missing animals more or less with age?
+missing_seals <- sealdat %>% 
+  # Need to see a seal 3+ years for calculation to make sense
+  group_by(animalID) %>% 
+  mutate(n_years = n_distinct(year)) %>% 
+  ungroup() %>% 
+  filter(n_years >= 3,
+         age <= 20) %>% 
+  # Fill in non-resighted years
+  group_by(animalID) %>% 
+  arrange(year) %>% 
+  reframe(tibble(year2 = (min(year) + 1):(max(year) - 1),
+                 unobserved = as.integer(!year2 %in% year),
+                 age = year2 - yearborn[1],
+                 age10 = (age - age_senesce) / 10)) %>% 
+  ungroup() %>% 
+  rename(year = year2) %>% 
+  mutate(age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old")),
+         year_fct = factor(year)) %>% 
+  left_join(select(sealdat, animalID, year, observed_int),
+            by = c("animalID", "year"))
+
+missing_mod <- glmer(unobserved ~ age10 + (1 | year) + (1 | animalID), 
+                     missing_seals, 
+                     family = binomial)
+missing_pred <- ggpredict(missing_mod,
+                          terms = "age10 [all]") %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         unobserved = predicted)
+
+missing_age_coef <- sprintf(
+  "%0.3f \u00B1 %0.3f",
+  summary(missing_mod)$coef["age10", "Estimate"],
+  summary(missing_mod)$coef["age10", "Std. Error"] * 1.96
+)
+
+```
+
+First, we tested whether probability of detection was related to age. We found the proportion of unobserved animals increased with age. For this analysis, we excluded the first and last year of observation for each animal, because animals were necessarily observed in those years. For all years between, we determined whether animals were observed. Then we estimated the effect of age on probability of an animal being unobserved using a GLMM (binomial response, logit link) with random effects for year and animal ([@fig-unobserved]). The coefficient for age was `r missing_age_coef` (*p*\<0.0001).
+
+```{r}
+#| label: fig-unobserved
+#| fig-cap: The probability of an animal being unobserved increased with age. Points and error bars represent the proportion of unobserved animals within age classes plus/minus one standard error. The blue line and shaded area are the mean and 95% CI probability of an animal being unobserved estimated with a generalized linear mixed effect model. See text for model details.
+
+missing_seals %>% 
+  group_by(age) %>% 
+  summarize(unobserved_mean = mean(unobserved),
+            unobserved_se = sqrt(unobserved_mean * (1 - unobserved_mean) / n()),
+            unobserved_lwr = unobserved_mean - unobserved_se,
+            unobserved_upr = unobserved_mean + unobserved_se) %>% 
+  ggplot(aes(age)) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              missing_pred,
+              alpha = 0.2) +
+  geom_line(aes(y = unobserved), 
+            missing_pred, 
+            color = "cornflowerblue",
+            linewidth = 2) +
+  geom_pointrange(aes(y = unobserved_mean, 
+                      ymin = unobserved_lwr, ymax = unobserved_upr)) +
+  scale_x_continuous("Age", breaks = seq(5, 19, by = 4)) +
+  scale_y_continuous("Unobserved proportion", 
+                     labels = scales::label_percent(accuracy = 1))
+```
+
+```{r}
+#| label: haulout
+
+breed_haulout <- sprintf(
+  "%i - %i", 
+  quantile(sealdat$breeddur[sealdat$observed_int == 1], 0.25, na.rm = TRUE), 
+  quantile(sealdat$breeddur[sealdat$observed_int == 1], 0.75, na.rm = TRUE)
+)
+
+non_breed_haulout <- sprintf(
+  "%i - %i", 
+  quantile(sealdat$breeddur[sealdat$observed_int == 0], 0.25, na.rm = TRUE), 
+  quantile(sealdat$breeddur[sealdat$observed_int == 0], 0.75, na.rm = TRUE)
+)
+
+resight_by_observed <- resight %>% 
+  mutate(animalID = as.character(animalID)) %>% 
+  right_join(select(sealdat, animalID, year, observed_int), 
+             by = c("animalID", season = "year"),
+             relationship = "many-to-many") %>% 
+  count(animalID, season, observed_int) %>% 
+  group_by(observed_int) %>% 
+  summarize(n_q1 = quantile(n, 0.25), 
+            n_mean = mean(n), 
+            n_q3 = quantile(n, 0.75))
+
+breed_resight <- with(resight_by_observed[2, ],
+                      sprintf("%0.1f (%i - %i)", n_mean, n_q1, n_q3))
+nonbreed_resight <- with(resight_by_observed[1, ],
+                         sprintf("%0.1f (%i - %i)", n_mean, n_q1, n_q3))
+
+```
+
+The pattern of unobserved animals increasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection. If there was no reproductive senescence in the population, then the apparent senescence we observed would have to result from older breeders being less detectable. However, the biology of northern elephant seals makes breeding a more detectable behavior than non-breeding. Animals must come to land for an extended period to give birth and wean their pups. Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare (cite me). The only plausible explanation for unobserved animals being disproportionately breeders would be crowding at the breeding colonies, which could obscure identifying marks. However, breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders. Therefore, it is biologically implausible that the unobserved seals were disproportionately breeders and our estimates for reproductive senescence are, if anything, conservative.
