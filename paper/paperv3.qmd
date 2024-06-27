@@ -228,6 +228,7 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
+ggsave("outputs/breeding_success.svg", height = 6, width = 10, units = "in")
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
@@ -339,7 +340,7 @@ recr_pred_pop <- ggpredict(
 fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
   geom_pointrange(aes(y = perc_recr, 
                       ymin = perc_recr - se_recr, 
                       ymax = perc_recr + se_recr),
@@ -405,7 +406,7 @@ sexrat_pred <- ggpredict(sexrat_age_mod,
 ggplot(sexrat_pred, aes(age, predicted)) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
   geom_pointrange(aes(y = perc_male, 
                       ymin = perc_male - se, 
                       ymax = perc_male + se),
@@ -542,11 +543,12 @@ duration_plot <- ggpredict(
                       color = phase),
                   pheno_raw,
                   position = position_dodge(width = 0.5)) +
-  geom_line(aes(y = dur_days, color = phase)) +
+  geom_line(aes(y = dur_days, color = phase, linetype = phase)) +
   annotate("text", 12, 14, label = "Molting", color = "#E09A2D", hjust = 0) +
   annotate("text", 12, 32, label = "Breeding", color = "#D05794", hjust = 0) +
   scale_fill_manual(values = c("#D05794", "#E09A2D")) +
   scale_color_manual(values = c("#D05794", "#E09A2D")) +
+  scale_linetype_manual(values = c("dashed", "solid")) +
   labs(x = "Maternal age (years)",
        y = "Phase duration (days)") +
   theme(legend.position = "none")
