@@ -144,6 +144,7 @@ age_dist <- sealdat %>%
   labs(x = "Age (Years)", y = "Number of individuals") + 
   theme()
 
+
 (sighting_img | age_dist) + plot_layout(widths = c(2, 1)) + plot_annotation(tag_levels = "A")
 
 ```
@@ -169,7 +170,7 @@ summary(breed_age_mod)$coefficients
 
 ```{r}
 #| label: fig-breeding-mod
-#| fig-cap: "Breeding rates increased until age 10, then decreased from age 11 on. Black points represent mean and standard error of the observed breeding rates. The solid lines and shaded areas represent the mean and 95% confidence interval of the population-level model predictions. The observed data are unequally distributed across years, so the dashed lines indicate the predicted breeding rates averaged over years (i.e., including the random effect of year), weighted by the number of seals observed in each year."
+#| fig-cap: "Breeding rates increased until age 10, then decreased from age 11 on. Black points represent mean and standard error of the observed breeding rates. The solid lines and shaded areas represent the mean and 95% confidence interval of the population-level model predictions. The observed data are unequally distributed across years, so the dotted lines indicate the predicted breeding rates averaged over years (i.e., including the random effect of year), weighted by the number of seals observed in each year."
 
 # Summarize the raw data
 breed_nonbreed <- sealdat %>% 
@@ -216,7 +217,7 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
   geom_line(aes(color = age_cat),
             breed_pred_wgt, 
             linewidth = 1.2,
-            linetype = "dashed") +
+            linetype = "dotted") +
   geom_pointrange(aes(y = perc_breed, 
                       ymin = perc_breed - se, 
                       ymax = perc_breed + se),
@@ -863,10 +864,11 @@ missing_seals %>%
   ggplot(aes(age)) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
               missing_pred,
-              alpha = 0.2) +
+              alpha = 0.2, 
+              fill = "#de77ae") +
   geom_line(aes(y = unobserved), 
             missing_pred, 
-            color = "cornflowerblue",
+            color = "#de77ae",
             linewidth = 2) +
   geom_pointrange(aes(y = unobserved_mean, 
                       ymin = unobserved_lwr, ymax = unobserved_upr)) +
