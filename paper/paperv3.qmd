@@ -799,6 +799,139 @@ ggplot(surv_pred_long, aes(age, predicted)) +
 
 ```
 
+## Chronological versus biological age
+
+```{r}
+#| label: bioage
+
+bioage_senesce <- -7
+sealdat2 <- sealdat %>% 
+  drop_na(longevity) %>% 
+  mutate(bioage = age - longevity,
+         bioage10 = (bioage - bioage_senesce) / 10,
+         bioage_cat = factor(bioage < bioage_senesce,
+                             labels = c("Old", "Young")))
+
+```
+
+The chronological age of an individual may not reflect their biological age because aging rates vary within populations [@martin2011]. Years-to-death, a proxy for biological age, may therefore be a better predictor for senescence patterns than chronological age. We repeated our analysis for the reproductive senescence hypothesis using biological age, setting the breakpoint for senescence at biological age -7 years (i.e. 7 years prior to final observation), based on visual inspection of the raw data. This required us to limit our sample to animals with known longevity (i.e., last observation in 2020 or earlier), which reduced our sample size to `r nrow(sealdat2)` observations of `r n_distinct(sealdat2$animalID)` distinct animals. Subsequently, we fit the model for breakpoints at all biological ages -10 to -3 years, to assess whether our results were sensitive to the choice of breakpoint. Finally, we re-fit the chronological reproductive senescence model using the known-longevity dataset and compared chronological versus biological age models using AIC.
+
+```{r}
+#| label: bioage-mod
+
+breed_bioage_mod <- glmer(
+  observed_int ~ bioage10 : bioage_cat + (1 | animalID) + (1 | year_fct),
+  sealdat2,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+summary(breed_bioage_mod)$coefficients
+
+bioage_est <- summary(breed_bioage_mod)$coef["bioage10:bioage_catOld", "Estimate"]
+bioage_se <- summary(breed_bioage_mod)$coef["bioage10:bioage_catOld", "Std. Error"]
+bioage_coef <- sprintf("%0.3f (%0.3f - %0.3f)", 
+                       bioage_est,
+                       bioage_est - 1.96 * bioage_se,
+                       bioage_est + 1.96 * bioage_se)
+
+bioage_pval <- sprintf("%0.3f", summary(breed_bioage_mod)$coef["bioage10:bioage_catOld", "Pr(>|z|)"])
+
+breed_age_mod2 <- glmer(
+  observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
+  drop_na(sealdat, longevity),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+p_by_tau <- map_dbl(-10:-3, \(tau) {
+  mod <- sealdat %>%
+    drop_na(longevity) %>%
+    mutate(bioage = age - longevity,
+           bioage10 = (bioage - tau) / 10,
+           bioage_cat = factor(bioage < tau,
+                               labels = c("Old", "Young"))) %>% 
+    glmer(
+      observed_int ~ bioage10 : bioage_cat + (1 | animalID) + (1 | year_fct),
+      .,
+      family = "binomial",
+      control = glmerControl(optimizer = "bobyqa")
+    )
+  summary(mod)$coef["bioage10:bioage_catOld", "Pr(>|z|)"]
+})
+
+chrono_bio_aic <- AIC(breed_bioage_mod, breed_age_mod2)
+daic <- chrono_bio_aic$AIC - min(chrono_bio_aic$AIC)
+chrono_bio_rellik <- exp(-0.5 * daic)
+chrono_bio_aicw <- chrono_bio_rellik / sum(chrono_bio_rellik)
+
+```
+
+```{r}
+#| label: fig-bio-age
+#| fig-cap: Breeding probability over biological age. Points and error bars are the mean ± SE of observed breeding proportions within age classes. The vertical dashed line indicates the threshold for senescence. Solid lines and ribbons are the mean and 95% CI of the population-level breeding probability, estimated by a GLMM with random effects for individual and year. The dashed lines represent the mean of yearly breeding probabilities, weighted by the number of seals observed each year, which should match the observed data more closely than the population-level probabilities.
+
+# Summarize the raw data
+bioage_summ <- sealdat2 %>% 
+  group_by(bioage) %>% 
+  summarize(n_obs = n(), 
+            perc_breed = mean(observed_int), 
+            se = sqrt(perc_breed * (1 - perc_breed) / n_obs))
+
+# Create POPULATION-LEVEL (i.e. without rand effects) predictions
+bioage_pred_pop <- ggpredict(breed_bioage_mod, 
+                             terms = c("bioage10 [all]", "bioage_cat")) %>% 
+  as_tibble() %>% 
+  mutate(bioage = x * 10 + bioage_senesce,
+         bioage_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((bioage_cat == "Young" & bioage < bioage_senesce) |
+           (bioage_cat == "Old" & bioage >= bioage_senesce))
+
+# Create WEIGHTED-AVERAGE predictions using years' random effects
+bioage_pred_wgt <- ggpredict(
+  breed_bioage_mod,
+  terms = c("bioage10 [all]", "bioage_cat", "year_fct [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(bioage = x * 10 + bioage_senesce,
+         bioage_cat = factor(group, levels = c("Young", "Old")),
+         year_fct = facet) %>% 
+  filter((bioage_cat == "Young" & bioage < bioage_senesce) |
+           (bioage_cat == "Old" & bioage >= bioage_senesce)) %>% 
+  left_join(seal_years, by = "year_fct") %>% 
+  group_by(bioage, bioage_cat) %>% 
+  summarize(predicted = weighted.mean(predicted, n),
+            .groups = "drop")
+  
+ggplot(bioage_pred_pop, aes(bioage, predicted)) +
+  geom_ribbon(aes(fill = bioage_cat, ymin = conf.low, ymax = conf.high), 
+              alpha = 0.2) +
+  geom_line(aes(color = bioage_cat), linewidth = 1.2) +
+  geom_line(aes(color = bioage_cat),
+            bioage_pred_wgt, 
+            linewidth = 1.2,
+            linetype = "dashed") +
+  geom_pointrange(aes(y = perc_breed, 
+                      ymin = perc_breed - se, 
+                      ymax = perc_breed + se),
+                  bioage_summ) +
+  geom_vline(xintercept = bioage_senesce - 0.5, linetype = "dashed") +
+  scale_y_continuous("Breeding", labels = scales::percent) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  labs(x = "Biological age (years-to-death)") +
+  theme(legend.position = "none")
+
+```
+
+The biological age model did not support the reproductive senescence hypothesis. The coefficient for biological age among older animals (biological age \> -7 years) was `r bioage_coef` (95% CI) which was not significantly different than 0 (*p* = `r bioage_pval`). Choice of breakpoint for senescence did not affect the significance of this coefficient. For breakpoints -10 to -3 years, *p* reached a minimum at biological age -7 years.
+
+The chronological age model outperformed the biological age model according to AIC. The difference in AIC between the two models was `r sprintf("%0.1f", -diff(chrono_bio_aic$AIC))` and the chronological age model had an AIC weight of `r sprintf("%0.3f", chrono_bio_aicw[2])`.
+
+Based on these results, we find there is evidence to support the reproductive senescence hypothesis based on chronological age. The biological age proxy, years-to-death, should be a better predictor of senescence than chronological age if most mortality is age-related. However, adult elephant seal mortality is largely influenced by extrinsic factors, primarily food availability [@colegrove2005; @holser2021]. Poor foraging conditions during El Niño years, for example, may increase mortality rates among animals whose biological age is not yet advanced. As result, the years-to-death proxy for biological age likely conflates many biologically young and old animals that died due to extrinsic factors. More accurate measures of biological age, such as telomere length [@jylhävä2017], may be necessary to investigate senescence in elephant seals and other species with high extrinsic sources of mortality from a non-chronological perspective.
+
 ## Breeding state and detection probability
 
 Not all seals were detected in all years. A non-detection year during the seal's lifespan (i.e. an unobserved year between the first and last observed years) could represent an unobserved animal at Año Nuevo or temporary emigration. In either case, the animal may or may not have reproduced that year. By excluding these unobserved animals, our inferences for H1 (reproductive senescence) may be biased if detectability varies with age and/or by breeding state. Here, we assess those potential biases.
