@@ -915,7 +915,7 @@ ggplot(bioage_pred_pop, aes(bioage, predicted)) +
   geom_line(aes(color = bioage_cat),
             bioage_pred_wgt, 
             linewidth = 1.2,
-            linetype = "dashed") +
+            linetype = "dotted") +
   geom_pointrange(aes(y = perc_breed, 
                       ymin = perc_breed - se, 
                       ymax = perc_breed + se),
