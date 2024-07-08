@@ -43,10 +43,11 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          age_cat = factor(age >= age_senesce, 
                           labels = c("Young", "Old"))) %>% 
   group_by(animalID) %>% 
-  mutate(longevity = ifelse(max(year) < 2020,
+  mutate(firstrepro = min(age),
+         lastrepro = ifelse(max(year) < 2020,
                             max(age),
                             NA),
-         longevity10 = longevity / 10,
+         lastrepro10 = lastrepro / 10,
          recruit_age = ifelse(max(year) < 2020 && any(observed_int == 1),
                               min(age[observed_int == 1]),
                               NA)) %>% 
@@ -112,10 +113,10 @@ sighting_img <- sealdat %>%
                                            "Unobserved"))
   ) %>% 
   group_by(animalID) %>% 
-  mutate(longevity = max(age),
+  mutate(lastrepro = max(age),
          yearborn = na.omit(yearborn)[1]) %>% 
   ungroup() %>% 
-  arrange(yearborn, longevity, animalID) %>% 
+  arrange(yearborn, lastrepro, animalID) %>% 
   mutate(animalID = factor(animalID, levels = unique(animalID))) %>% 
   ggplot(aes(year, animalID)) +
   geom_raster(aes(fill = observed)) +
@@ -661,145 +662,248 @@ recruit_by_6 <- mean(sealdat$recruit_age <= 6, na.rm = TRUE)
 
 ```
 
-Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will reproduce less frequently not because of senescence but rather because infrequent breeders disproportionately survive to older ages (i.e. selective disappearance). We tested whether our significant results (reproductive senescence, maternal effect senescence in pup survival) were influenced by selective disappearance, following the methods of @vandepol2006, by adding a term for longevity to our models. We did not test for selective *appearance*, which results from variability in age of recruitment, because delayed sexual maturity was very rare in this population. `r scales::label_percent(accuracy = 0.1)(recruit_by_6)` of seals recruited at ages 4, 5, or 6.
+Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will reproduce less frequently not because of senescence but rather because infrequent breeders disproportionately survive to older ages (i.e. selective disappearance). We tested whether our significant results (reproductive senescence, maternal effect senescence in pup survival) were influenced by selective appearance and disappearance, following the methods of @vandepol2006, by adding terms for age at first and last reproduction, respectively. We used AIC to compare the base model to models with selective appearance and disappearance.
 
 ### H1: Reproductive senescence
 
 ```{r}
-#| label: sel-dis-h1
+#| label: selective-h1
 
-breed_sel_dis <- glmer(
-  observed_int ~ age10 : age_cat + longevity + (1 | animalID) + (1 | year_fct),
-  sealdat,
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa")
+h1_selective_models <- map(
+  list(
+    # Base model
+    observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
+    # Selective appearance
+    observed_int ~ age10 : age_cat + firstrepro + 
+      (1 | animalID) + (1 | year_fct),
+    # Selective disappearance
+    observed_int ~ age10 : age_cat + lastrepro + 
+      (1 | animalID) + (1 | year_fct),
+    # Selective appearance and disappearance
+    observed_int ~ age10 : age_cat + firstrepro + lastrepro +
+      (1 | animalID) + (1 | year_fct)
+  ),
+  \(form) {
+    glmer(form, 
+          drop_na(sealdat, lastrepro), 
+          family = "binomial", 
+          control = glmerControl(optimizer = "bobyqa"))
+  }
 )
 
-breed_long_est <- summary(breed_sel_dis)$coefficients["longevity", "Estimate"]
-breed_long_se <- summary(breed_sel_dis)$coefficients["longevity", "Std. Error"]
-breed_long_coef <- sprintf(
-  "%0.5f (95%% CI: %0.5f - %0.5f)", 
-  breed_long_est,
-  breed_long_est - 1.96 * breed_long_se,
-  breed_long_est + 1.96 * breed_long_se
-)
-
-breed_long_p <- sprintf(
-  "%0.3f", 
-  summary(breed_sel_dis)$coefficients["longevity", "Pr(>|z|)"]
-)
-
-summary(breed_sel_dis)$coefficients
-
+do.call(AIC, h1_selective_models) %>% 
+  as_tibble() %>% 
+  mutate(model = c("Base", 
+                   "Selective appearance", 
+                   "Selective disappearance", 
+                   "Selective appearance and disappearance"),
+         dAIC = AIC - min(AIC),
+         rellik = exp(-0.5 * dAIC),
+         weight = rellik / sum(rellik)) %>% 
+  relocate(model)
 ```
 
-Selective disappearance did not explain the observed pattern of declining breeding probabilities with age. The coefficient for longevity was estimated at `r breed_long_coef`, which was not significantly different than 0 ($p$ = `r breed_long_p`). The predicted breeding probabilities for seals with longevity of 5, 10, and 17 years are shown in @fig-sel-dis-h1.
-
 ```{r}
-#| label: fig-sel-dis-h1
-#| fig-cap: Longevity did not explain changes in breeding probabilities with age. Predicted breeding probabilities for seals with longevity of 5, 10, and 17 years shown with solid, dotted, and dashed lines, respectively. 95% confidence intervals shown in shaded regions.
+#| label: fig-selective-h1
+#| fig-cap: Predicted breeding probabilities of (**A**) selective appearance and (**B**) selective disappearance models. The semi-transparent solid lines are predictions of the base model. The dashed and dotted lines represent predictions for the 10th and 90th percentiles of observed age at first (**A**) and last (**B**) reproduction. In **A**, these correspond to first reproduction at 4 and 6 years old, respectively. In **B**, these correspond to last reproduction at 5 and 17 years old, respectively. Confidence intervals not shown for clarity.
 
-# Create POPULATION-LEVEL (i.e. without rand effects) predictions
-breed_pred_pop <- ggpredict(
-  breed_sel_dis, 
-  terms = c("age10 [all]", "age_cat", "longevity [5,10,17]")
+# Compare model predictions
+base_pred <- ggpredict(
+  h1_selective_models[[1]],
+  terms = c("age10 [all]", "age_cat")
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
+
+# selective appearance for firstrepro=4,6 (10% and 90% of observed)
+selapp_pred <- ggpredict(
+  h1_selective_models[[2]],
+  terms = c("age10 [all]", "age_cat", "firstrepro [4,6]")
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10 + age_senesce,
          age_cat = factor(group, levels = c("Young", "Old")),
-         longevity = facet,
-         longevity_fct = factor(longevity)) %>% 
+         firstrepro = facet) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
+
+# selective disappearance for lastrepro=5,17 (10% and 90% of observed) 
+seldis_pred <- ggpredict(
+  h1_selective_models[[4]],
+  terms = c("age10 [all]", "age_cat", "lastrepro [5,17]")
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = factor(group, levels = c("Young", "Old")),
+         lastrepro = facet) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
   
-ggplot(breed_pred_pop, aes(age, predicted)) +
-  geom_ribbon(aes(fill = age_cat, 
-                  group = interaction(age_cat, longevity_fct),
-                  ymin = conf.low,
-                  ymax = conf.high),
-              alpha = 0.2) +
+# Selective appearance predictions
+fig_selapp <- ggplot(base_pred, aes(age, predicted)) +
+  # Base predictions
+  geom_line(aes(color = age_cat), alpha = 0.5) +
+  # Selective appearance ages 4 and 6
   geom_line(aes(color = age_cat, 
-                linetype = longevity_fct)) +
+                linetype = firstrepro),
+            selapp_pred) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Breeding", 
                      labels = scales::percent) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_linetype_manual(values = c("dashed", "dotted")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
+fig_seldis <- ggplot(base_pred, aes(age, predicted)) +
+  # Base predictions
+  geom_line(aes(color = age_cat), alpha = 0.5) +
+  # Selective disappearance ages 5 and 17
+  geom_line(aes(color = age_cat, 
+                linetype = lastrepro),
+            seldis_pred) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_y_continuous("Breeding", 
+                     labels = scales::percent) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_linetype_manual(values = c("dashed", "dotted")) +
+  labs(x = "Age (years)") +
+  theme(legend.position = "none")
+
+(fig_selapp | fig_seldis) +
+  plot_annotation(tag_levels = "A")
 ```
+
+Selective appearance and disappearance did not explain the observed pattern of declining breeding probabilities with age. The AIC weights for the base, selective appearance, selective disappearance, and combined models were 0.526, 0.197, 0.201, and 0.076, respectively. These weights indicate the most likely explanation for the observed pattern is within-individual change, rather than selective appearance or disappearance. In the selective appearance and disappearance models, the coefficients for age at first reproduction (95% CI: -0.091 - 0.112) and last reproduction (95% CI: -0.037 - 0.051) were not significantly different than 0, respectively. Furthermore, predictions of the selective appearance and disappearance models did not meaningfully differ from the base model @fig-selective-h1.
 
 ### H2: Maternal effect senescence
 
 ```{r}
-#| label: sel-dis-h2
+#| label: selective-h2
 
-# Fit pup *survival* model
-surv_sel_dis <- glmer(
-  pup_surv_int ~ age10 : age_cat + longevity + (1 | animalID) + (1 | year_fct),
-  surv_recr_data,
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa")
+h2_selective_models <- map(
+  list(
+    # Base model
+    pup_surv_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
+    # Selective appearance
+    pup_surv_int ~ age10 : age_cat + firstrepro + 
+      (1 | animalID) + (1 | year_fct),
+    # Selective disappearance
+    pup_surv_int ~ age10 : age_cat + lastrepro + 
+      (1 | animalID) + (1 | year_fct),
+    # Selective appearance and disappearance
+    pup_surv_int ~ age10 : age_cat + firstrepro + lastrepro +
+      (1 | animalID) + (1 | year_fct)
+  ),
+  \(form) {
+    glmer(form, 
+          drop_na(surv_recr_data, lastrepro), 
+          family = "binomial", 
+          control = glmerControl(optimizer = "bobyqa"))
+  }
 )
 
-surv_long_est <- summary(surv_sel_dis)$coefficients["longevity", "Estimate"]
-surv_long_se <- summary(surv_sel_dis)$coefficients["longevity", "Std. Error"]
-surv_long_coef <- sprintf(
-  "%0.5f (95%% CI: %0.5f - %0.5f)", 
-  surv_long_est,
-  surv_long_est - 1.96 * surv_long_se,
-  surv_long_est + 1.96 * surv_long_se
-)
-
-surv_long_p <- sprintf(
-  "%0.3f", 
-  summary(surv_sel_dis)$coefficients["longevity", "Pr(>|z|)"]
-)
-
-summary(surv_sel_dis)$coefficients
+do.call(AIC, h2_selective_models) %>% 
+  as_tibble() %>% 
+  mutate(model = c("Base", 
+                   "Selective appearance", 
+                   "Selective disappearance", 
+                   "Selective appearance and disappearance"),
+         dAIC = AIC - min(AIC),
+         rellik = exp(-0.5 * dAIC),
+         weight = rellik / sum(rellik)) %>% 
+  relocate(model)
 
 ```
 
-Selective disappearance did not explain the observed pattern of declining offspring survival with maternal age. The coefficient for longevity was estimated at `r surv_long_coef`, which was not significantly different than 0 ($p$ = `r surv_long_p`). The predicted breeding probabilities for seals with longevity of 5, 10, and 17 years are shown in @fig-sel-dis-h2.
-
 ```{r}
-#| label: fig-sel-dis-h2
-#| fig-cap: Longevity did not explain changes in offspring survival or recruitment with maternal age. Predicted offspring survival and recruitment probabilities for seals with longevity of 5, 10, and 17 years shown with solid, dotted, and dashed lines, respectively. 95% confidence intervals shown in shaded regions.
+#| label: fig-selective-h2
+#| fig-cap: Predicted breeding probabilities of (**A**) selective appearance and (**B**) selective disappearance models. The semi-transparent solid lines are predictions of the base model. The dashed and dotted lines represent predictions for the 10th and 90th percentiles of observed age at first (**A**) and last (**B**) reproduction. In **A**, these correspond to first reproduction at 4 and 6 years old, respectively. In **B**, these correspond to last reproduction at 5 and 17 years old, respectively. Confidence intervals not shown for clarity.
 
-surv_pred_long <- ggpredict(
-  surv_sel_dis, 
-  terms = c("age10 [all]", "age_cat", "longevity [5,10,17]"),
-  type = "fixed",
-  interval = "confidence"
+# Compare model predictions
+base_pred <- ggpredict(
+  h2_selective_models[[1]],
+  terms = c("age10 [all]", "age_cat")
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10 + age_senesce,
-         age_cat = group,
-         longevity = facet,
-         longevity_fct = factor(longevity)) %>% 
+         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
+
+# selective appearance for firstrepro=4,6 (10% and 90% of observed)
+selapp_pred <- ggpredict(
+  h2_selective_models[[2]],
+  terms = c("age10 [all]", "age_cat", "firstrepro [4,6]")
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = factor(group, levels = c("Young", "Old")),
+         firstrepro = facet) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
+
+# selective disappearance for lastrepro=5,17 (10% and 90% of observed) 
+seldis_pred <- ggpredict(
+  h2_selective_models[[4]],
+  terms = c("age10 [all]", "age_cat", "lastrepro [5,17]")
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = factor(group, levels = c("Young", "Old")),
+         lastrepro = facet) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
   
-ggplot(surv_pred_long, aes(age, predicted)) +
-  geom_ribbon(aes(fill = age_cat, 
-                  group = interaction(age_cat, longevity_fct),
-                  ymin = conf.low, 
-                  ymax = conf.high), 
-              alpha = 0.2) +
-  geom_line(aes(color = age_cat, linetype = longevity_fct)) +
+# Selective appearance predictions
+fig_selapp <- ggplot(base_pred, aes(age, predicted)) +
+  # Base predictions
+  geom_line(aes(color = age_cat), alpha = 0.5) +
+  # Selective appearance ages 4 and 6
+  geom_line(aes(color = age_cat, 
+                linetype = firstrepro),
+            selapp_pred) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring survival", 
-                     labels = scales::percent,
-                     limits = c(0, 0.62)) +
+                     labels = scales::percent) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
-  labs(x = "Age (years)") +
+  scale_linetype_manual(values = c("dashed", "dotted")) +
+  labs(x = "Maternal age (years)") +
   theme(legend.position = "none")
 
+fig_seldis <- ggplot(base_pred, aes(age, predicted)) +
+  # Base predictions
+  geom_line(aes(color = age_cat), alpha = 0.5) +
+  # Selective disappearance ages 5 and 17
+  geom_line(aes(color = age_cat, 
+                linetype = lastrepro),
+            seldis_pred) +
+  geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_y_continuous("Offspring survival", 
+                     labels = scales::percent) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_linetype_manual(values = c("dashed", "dotted")) +
+  labs(x = "Maternal age (years)") +
+  theme(legend.position = "none")
+
+fig_selapp | fig_seldis +
+  plot_annotation(tag_levels = "A")
 ```
+
+Maternal effect senescence was the most likely explanation for declining offspring survival with maternal age, although the evidence for selective appearance and disappearance was stronger for offspring survival than for maternal reproduction. The AIC weights for the base, selective appearance, selective disappearance, and combined models were 0.421, 0.254, 0.206, and 0.119, respectively, which indicates selective appearance and disappearance cannot be disregarded. However, as with maternal reproduction, the coefficients for ages at first (95% CI: -0.143 - 0.047) and last (95% CI: -0.263 - 1.09) reproduction were not significantly greater than 0 and the selective appearance/disappearance models did not generate qualitatively different predictions than the senescence-only model \[@fig-selective-h2\].
 
 ## Chronological versus biological age
 
@@ -808,8 +912,8 @@ ggplot(surv_pred_long, aes(age, predicted)) +
 
 bioage_senesce <- -7
 sealdat2 <- sealdat %>% 
-  drop_na(longevity) %>% 
-  mutate(bioage = age - longevity,
+  drop_na(lastrepro) %>% 
+  mutate(bioage = age - lastrepro,
          bioage10 = (bioage - bioage_senesce) / 10,
          bioage_cat = factor(bioage < bioage_senesce,
                              labels = c("Old", "Young")))
@@ -841,15 +945,15 @@ bioage_pval <- sprintf("%0.3f", summary(breed_bioage_mod)$coef["bioage10:bioage_
 
 breed_age_mod2 <- glmer(
   observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
-  drop_na(sealdat, longevity),
+  drop_na(sealdat, lastrepro),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
 )
 
 p_by_tau <- map_dbl(-10:-3, \(tau) {
   mod <- sealdat %>%
-    drop_na(longevity) %>%
-    mutate(bioage = age - longevity,
+    drop_na(lastrepro) %>%
+    mutate(bioage = age - lastrepro,
            bioage10 = (bioage - tau) / 10,
            bioage_cat = factor(bioage < tau,
                                labels = c("Old", "Young"))) %>% 
