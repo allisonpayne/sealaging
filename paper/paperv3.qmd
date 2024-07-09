@@ -1118,7 +1118,7 @@ bioage_pred_wgt <- ggpredict(
 ggplot(bioage_pred_pop, aes(bioage, predicted)) +
   geom_ribbon(aes(fill = bioage_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(aes(color = bioage_cat), linewidth = 1.2) +
+  geom_line(aes(color = bioage_cat), linewidth = 1.2, linetype = "dashed") +
   geom_line(aes(color = bioage_cat),
             bioage_pred_wgt, 
             linewidth = 1.2,
@@ -1128,9 +1128,10 @@ ggplot(bioage_pred_pop, aes(bioage, predicted)) +
                       ymax = perc_breed + se),
                   bioage_summ) +
   geom_vline(xintercept = bioage_senesce - 0.5, linetype = "dashed") +
-  scale_y_continuous("Breeding", labels = scales::percent) +
+  scale_y_continuous("Breeding", labels = scales::percent, limits = c(.7, 1)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_x_continuous(limits = c(-17, 0)) + 
   labs(x = "Biological age (years-to-death)") +
   theme(legend.position = "none")
 
