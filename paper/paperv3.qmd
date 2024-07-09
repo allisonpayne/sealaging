@@ -43,6 +43,7 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          age_cat = factor(age >= age_senesce, 
                           labels = c("Young", "Old"))) %>% 
   group_by(animalID) %>% 
+  # FIXME
   mutate(firstrepro = min(age),
          lastrepro = ifelse(max(year) < 2020,
                             max(age),
@@ -92,7 +93,6 @@ sighting_img <- sealdat %>%
           year = yearborn:last_obs,
           age = year - yearborn,
           prerecruit = year < first_obs) %>% 
-  filter(year > 1987) %>% 
   left_join(sealdat %>% 
               group_by(animalID, year) %>% 
               summarize(observed_int = max(observed_int),
@@ -173,11 +173,11 @@ summary(breed_age_mod)$coefficients
 #| fig-cap: "Breeding rates increased until age 10, then decreased from age 11 on. Black points represent mean and standard error of the observed breeding rates. The solid lines and shaded areas represent the mean and 95% confidence interval of the population-level model predictions. The observed data are unequally distributed across years, so the dashed lines indicate the predicted breeding rates averaged over years (i.e., including the random effect of year), weighted by the number of seals observed in each year."
 
 # Summarize the raw data
-breed_nonbreed <- sealdat %>% 
-  group_by(age) %>% 
-  summarize(n_observed = n(), 
-            perc_breed = sum(observed_int) / n_observed, 
-            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>% 
+breed_nonbreed <- sealdat %>%
+  group_by(age) %>%
+  summarize(n_observed = n(),
+            perc_breed = sum(observed_int) / n_observed,
+            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>%
   filter(age <= 20)
 
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions
@@ -192,7 +192,7 @@ breed_pred_pop <- ggpredict(breed_age_mod,
 
 # Create WEIGHTED-AVERAGE predictions using years' random effects
 seal_years <- count(sealdat, year_fct)
-breed_pred_wgt <- ggpredict(
+breed_pred_years <- ggpredict(
   breed_age_mod,
   terms = c("age10 [all]", "age_cat", "year_fct [all]"),
   type = "random",
@@ -204,22 +204,26 @@ breed_pred_wgt <- ggpredict(
          year_fct = facet) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
-         age <= 20) %>% 
+         age <= 20)
+breed_pred_wgt <- breed_pred_years %>% 
   left_join(seal_years, by = "year_fct") %>% 
   group_by(age, age_cat) %>% 
   summarize(predicted = weighted.mean(predicted, n),
             .groups = "drop")
   
 ggplot(breed_pred_pop, aes(age, predicted)) +
+  geom_line(aes(group = interaction(age_cat, year_fct)),
+            breed_pred_years,
+            alpha = 0.1) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
-              alpha = 0.2) +
+              alpha = 0.5) +
   geom_line(aes(color = age_cat), linewidth = 1.2) +
   geom_line(aes(color = age_cat),
             breed_pred_wgt, 
             linewidth = 1.2,
             linetype = "dashed") +
-  geom_pointrange(aes(y = perc_breed, 
-                      ymin = perc_breed - se, 
+  geom_pointrange(aes(y = perc_breed,
+                      ymin = perc_breed - se,
                       ymax = perc_breed + se),
                   breed_nonbreed) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
@@ -228,8 +232,6 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
-
-ggsave("outputs/breeding_success.svg", height = 6, width = 10, units = "in")
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
@@ -306,8 +308,26 @@ surv_pred_pop <- ggpredict(
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
+
+# Predictions for each year (random effect)
+surv_pred_years <- ggpredict(
+  pup_surv_mod,
+  terms = c("age10 [all]", "age_cat", "year_fct [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = group,
+         year_fct = facet) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
   
 fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
+  geom_line(aes(group = interaction(age_cat, year_fct)),
+            surv_pred_years,
+            alpha = 0.1) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
   geom_line(aes(color = age_cat), linewidth = 1.2) +
@@ -337,8 +357,26 @@ recr_pred_pop <- ggpredict(
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
+
+# Predictions for each year (random effect)
+recr_pred_years <- ggpredict(
+  pup_recr_mod,
+  terms = c("age10 [all]", "age_cat", "year_fct [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = group,
+         year_fct = facet) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
   
 fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
+  geom_line(aes(group = interaction(age_cat, year_fct)),
+            recr_pred_years,
+            alpha = 0.1) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
   geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
@@ -404,7 +442,25 @@ sexrat_pred <- ggpredict(sexrat_age_mod,
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce))
 
+# Predictions for each year (random effect)
+sexrat_pred_years <- ggpredict(
+  sexrat_age_mod,
+  terms = c("age10 [all]", "age_cat", "year_fct [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10 + age_senesce,
+         age_cat = group,
+         year_fct = facet) %>% 
+  filter((age_cat == "Young" & age < age_senesce) |
+           (age_cat == "Old" & age >= age_senesce),
+         age <= 20)
+
 ggplot(sexrat_pred, aes(age, predicted)) +
+  geom_line(aes(group = interaction(age_cat, year_fct)),
+            sexrat_pred_years,
+            alpha = 0.1) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
   geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
@@ -562,6 +618,36 @@ Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology
 
 # Supplemental Material
 
+## Detailed model outputs
+
+### H1: Reproductive senescence
+
+```{r}
+#| label: detailed-h1
+
+summary(breed_age_mod)
+
+```
+
+### H2: Maternal effect senescence
+
+```{r}
+#| label: detailed-h2
+
+summary(pup_surv_mod)
+summary(pup_recr_mod)
+
+```
+
+### H3: Offspring sex ratio
+
+```{r}
+#| label: detailed-h3
+
+summary(sexrat_age_mod)
+
+```
+
 ## Models' sensitivity to age of senescence
 
 ```{r}
@@ -575,7 +661,7 @@ fit_models <- function(a) {
   
   # H1
   breed_age_mod <- glmer(
-    observed_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+    observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
     sealdat,
     family = "binomial",
     control = glmerControl(optimizer = "bobyqa")
@@ -589,14 +675,14 @@ fit_models <- function(a) {
            pup_recr_int = as.integer(puprecruited)) 
   
   pup_surv_mod <- glmer(
-    pup_surv_int ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+    pup_surv_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
     surv_recr_data,
     family = "binomial",
     control = glmerControl(optimizer = "bobyqa")
   )
   
   pup_recr_mod <- glmer(
-    pup_recr_int ~ age10 * age_cat + (1 | year_fct),
+    pup_recr_int ~ age10 : age_cat + (1 | year_fct),
     filter(surv_recr_data, pupsex == "F"),
     family = "binomial",
     control = glmerControl(optimizer = "bobyqa")
@@ -609,7 +695,7 @@ fit_models <- function(a) {
     mutate(is_male = as.integer(pupsex == "M"))
   
   sexrat_age_mod <- glmer(
-    is_male ~ age10 * age_cat + (1 | animalID) + (1 | year_fct),
+    is_male ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
     pup_sex_data,
     family = "binomial"
   )
@@ -640,15 +726,22 @@ knitr::kable(p_tbl)
 
 ```{r}
 #| label: fig-mod-sens
-#| fig-cap: Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.051.
+#| fig-cap: Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.058.
 
 p_tbl %>% 
-  pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>% 
+  pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>%
   ggplot(aes(age_cutoff, p)) +
   geom_point() +
   geom_hline(yintercept = 0.05, linetype = "dashed") +
+  geom_text(aes(x, y, label = tag),
+            tibble(hypothesis = colnames(p_tbl)[-1],
+                   tag = LETTERS[1:4],
+                   x = 8, y = 0.75),
+            vjust = -0.2,
+            fontface = "bold") +
   scale_y_log10(labels = scales::number) +
   labs(x = "Senescence onset (years)") +
+  expand_limits(y = 1.3) +
   facet_wrap(~hypothesis)
 
 ```
@@ -903,7 +996,7 @@ fig_selapp | fig_seldis +
   plot_annotation(tag_levels = "A")
 ```
 
-Maternal effect senescence was the most likely explanation for declining offspring survival with maternal age, although the evidence for selective appearance and disappearance was stronger for offspring survival than for maternal reproduction. The AIC weights for the base, selective appearance, selective disappearance, and combined models were 0.421, 0.254, 0.206, and 0.119, respectively, which indicates selective appearance and disappearance cannot be disregarded. However, as with maternal reproduction, the coefficients for ages at first (95% CI: -0.143 - 0.047) and last (95% CI: -0.263 - 1.09) reproduction were not significantly greater than 0 and the selective appearance/disappearance models did not generate qualitatively different predictions than the senescence-only model \[@fig-selective-h2\].
+Maternal effect senescence was the most likely explanation for declining offspring survival with maternal age, although the evidence for selective appearance and disappearance was stronger for offspring survival than for maternal reproduction. The AIC weights for the base, selective appearance, selective disappearance, and combined models were 0.421, 0.254, 0.206, and 0.119, respectively, which indicates selective appearance and disappearance cannot be disregarded. However, as with maternal reproduction, the coefficients for ages at first (95% CI: -0.143 - 0.047) and last (95% CI: -0.263 - 1.09) reproduction were not significantly greater than 0 and the selective appearance/disappearance models did not generate qualitatively different predictions than the senescence-only model [@fig-selective-h2].
 
 ## Chronological versus biological age
 
