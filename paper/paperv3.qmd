@@ -43,15 +43,12 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          age_cat = factor(age >= age_senesce, 
                           labels = c("Young", "Old"))) %>% 
   group_by(animalID) %>% 
-  # FIXME
-  mutate(firstrepro = min(age),
-         lastrepro = ifelse(max(year) < 2020,
-                            max(age),
-                            NA),
-         lastrepro10 = lastrepro / 10,
-         recruit_age = ifelse(max(year) < 2020 && any(observed_int == 1),
-                              min(age[observed_int == 1]),
-                              NA)) %>% 
+  mutate(firstrepro = ifelse(max(year) < 2020 && any(observed_int == 1),
+                             min(age[observed_int == 1]),
+                             NA),
+         lastrepro = ifelse(max(year) < 2020 && any(observed_int == 1),
+                            max(age[observed_int == 1]),
+                            NA)) %>% 
   ungroup()
 
 resight <- read.csv(here::here("data/raw/fullresights.csv")) %>% 
@@ -331,7 +328,7 @@ fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
             alpha = 0.1) +
   geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
+  geom_line(aes(color = age_cat, linetype = age_cat), linewidth = 1.2) +
   geom_pointrange(aes(y = perc_surv, 
                       ymin = perc_surv - se_surv, 
                       ymax = perc_surv + se_surv),
@@ -342,6 +339,7 @@ fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
                      limits = c(0, 0.62)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_linetype_manual(values = c("dashed", "solid")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none")
 
@@ -749,13 +747,6 @@ p_tbl %>%
 
 ## Selective appearance and disappearance
 
-```{r}
-#| label: selective_values
-
-recruit_by_6 <- mean(sealdat$recruit_age <= 6, na.rm = TRUE)
-
-```
-
 Age-dependent life history shifts can result from within- or between-animal changes [@vandepol2006]. We hypothesized age-dependent changes in reproduction were due to senescence, i.e. within-animal changes. However, it is possible that selective appearance or disappearance of animals in the population can create the same pattern. For example, if animals the breed more frequently have lower survival, then older animals will reproduce less frequently not because of senescence but rather because infrequent breeders disproportionately survive to older ages (i.e. selective disappearance). We tested whether our significant results (reproductive senescence, maternal effect senescence in pup survival) were influenced by selective appearance and disappearance, following the methods of @vandepol2006, by adding terms for age at first and last reproduction, respectively. We used AIC to compare the base model to models with selective appearance and disappearance.
 
 ### H1: Reproductive senescence
@@ -785,7 +776,7 @@ h1_selective_models <- map(
   }
 )
 
-do.call(AIC, h1_selective_models) %>% 
+h1_aic <- do.call(AIC, h1_selective_models) %>% 
   as_tibble() %>% 
   mutate(model = c("Base", 
                    "Selective appearance", 
@@ -795,11 +786,22 @@ do.call(AIC, h1_selective_models) %>%
          rellik = exp(-0.5 * dAIC),
          weight = rellik / sum(rellik)) %>% 
   relocate(model)
+
+# Selective appearance model, first repro 95% ci
+h1_selapp_coef <- summary(h1_selective_models[[2]])$coef["firstrepro", ]
+make_95 <- function(ci95) {
+  sprintf("95%% CI: %0.3f - %0.3f", ci95[1], ci95[2])
+}
+h1_firstrepro_95ci <- (h1_selapp_coef["Estimate"] + c(-1.96, 1.96) * h1_selapp_coef["Std. Error"]) %>% 
+  make_95()
+
+h1_aic
 ```
 
 ```{r}
 #| label: fig-selective-h1
-#| fig-cap: Predicted breeding probabilities of (**A**) selective appearance and (**B**) selective disappearance models. The semi-transparent solid lines are predictions of the base model. The dashed and dotted lines represent predictions for the 10th and 90th percentiles of observed age at first (**A**) and last (**B**) reproduction. In **A**, these correspond to first reproduction at 4 and 6 years old, respectively. In **B**, these correspond to last reproduction at 5 and 17 years old, respectively. Confidence intervals not shown for clarity.
+#| fig-cap: Predicted breeding probabilities of (**A**) selective appearance and (**B**) selective disappearance models. The semi-transparent solid lines are predictions of the base model. The dashed and dotted lines represent predictions for the 10th and 90th percentiles of observed age at first (**A**) and last (**B**) reproduction. In **A**, these correspond to first reproduction at 4 and 7 years old, respectively. In **B**, these correspond to last reproduction at 5 and 17 years old, respectively. Confidence intervals not shown for clarity.
+#| fig-width: 9
 
 # Compare model predictions
 base_pred <- ggpredict(
@@ -816,7 +818,7 @@ base_pred <- ggpredict(
 # selective appearance for firstrepro=4,6 (10% and 90% of observed)
 selapp_pred <- ggpredict(
   h1_selective_models[[2]],
-  terms = c("age10 [all]", "age_cat", "firstrepro [4,6]")
+  terms = c("age10 [all]", "age_cat", "firstrepro [4,7]")
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10 + age_senesce,
@@ -876,7 +878,7 @@ fig_seldis <- ggplot(base_pred, aes(age, predicted)) +
   plot_annotation(tag_levels = "A")
 ```
 
-Selective appearance and disappearance did not explain the observed pattern of declining breeding probabilities with age. The AIC weights for the base, selective appearance, selective disappearance, and combined models were 0.526, 0.197, 0.201, and 0.076, respectively. These weights indicate the most likely explanation for the observed pattern is within-individual change, rather than selective appearance or disappearance. In the selective appearance and disappearance models, the coefficients for age at first reproduction (95% CI: -0.091 - 0.112) and last reproduction (95% CI: -0.037 - 0.051) were not significantly different than 0, respectively. Furthermore, predictions of the selective appearance and disappearance models did not meaningfully differ from the base model @fig-selective-h1.
+There was no evidence for selective appearance or disappearance influencing the relationship between maternal age and probability of reproduction. The selective appearance model (i.e., included a term for age-of-first-reproduction) had a similar AIC weight as the base model. However, in the selective appearance model, the coefficient for age at first reproduction was not significantly different than 0 (`r h1_firstrepro_95ci`). As a result, the predicted breeding probabilities for animals that first recruited at ages 4 and 7 (the 10th and 90th observed percentiles in the population) were not qualitatively different than the predictions of the base model [@fig-selective-h1]. Therefore the observed pattern is consistent with the senescence hypothesis (i.e., within-animal change with age).
 
 ### H2: Maternal effect senescence
 
@@ -905,7 +907,7 @@ h2_selective_models <- map(
   }
 )
 
-do.call(AIC, h2_selective_models) %>% 
+h2_aic <- do.call(AIC, h2_selective_models) %>% 
   as_tibble() %>% 
   mutate(model = c("Base", 
                    "Selective appearance", 
@@ -916,11 +918,19 @@ do.call(AIC, h2_selective_models) %>%
          weight = rellik / sum(rellik)) %>% 
   relocate(model)
 
+# Selective appearance model, first repro 95% ci
+h2_selapp_coef <- summary(h2_selective_models[[2]])$coef["firstrepro", ]
+h2_firstrepro_95ci <- (h2_selapp_coef["Estimate"] + c(-1.96, 1.96) * h2_selapp_coef["Std. Error"]) %>% 
+  make_95()
+
+h2_aic
+
 ```
 
 ```{r}
 #| label: fig-selective-h2
-#| fig-cap: Predicted breeding probabilities of (**A**) selective appearance and (**B**) selective disappearance models. The semi-transparent solid lines are predictions of the base model. The dashed and dotted lines represent predictions for the 10th and 90th percentiles of observed age at first (**A**) and last (**B**) reproduction. In **A**, these correspond to first reproduction at 4 and 6 years old, respectively. In **B**, these correspond to last reproduction at 5 and 17 years old, respectively. Confidence intervals not shown for clarity.
+#| fig-cap: Predicted breeding probabilities of (**A**) selective appearance and (**B**) selective disappearance models. The semi-transparent solid lines are predictions of the base model. The dashed and dotted lines represent predictions for the 10th and 90th percentiles of observed age at first (**A**) and last (**B**) reproduction. In **A**, these correspond to first reproduction at 4 and 7 years old, respectively. In **B**, these correspond to last reproduction at 5 and 17 years old, respectively. Confidence intervals not shown for clarity.
+#| fig-width: 9
 
 # Compare model predictions
 base_pred <- ggpredict(
@@ -937,7 +947,7 @@ base_pred <- ggpredict(
 # selective appearance for firstrepro=4,6 (10% and 90% of observed)
 selapp_pred <- ggpredict(
   h2_selective_models[[2]],
-  terms = c("age10 [all]", "age_cat", "firstrepro [4,6]")
+  terms = c("age10 [all]", "age_cat", "firstrepro [4,7]")
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10 + age_senesce,
@@ -997,7 +1007,7 @@ fig_selapp | fig_seldis +
   plot_annotation(tag_levels = "A")
 ```
 
-Maternal effect senescence was the most likely explanation for declining offspring survival with maternal age, although the evidence for selective appearance and disappearance was stronger for offspring survival than for maternal reproduction. The AIC weights for the base, selective appearance, selective disappearance, and combined models were 0.421, 0.254, 0.206, and 0.119, respectively, which indicates selective appearance and disappearance cannot be disregarded. However, as with maternal reproduction, the coefficients for ages at first (95% CI: -0.143 - 0.047) and last (95% CI: -0.263 - 1.09) reproduction were not significantly greater than 0 and the selective appearance/disappearance models did not generate qualitatively different predictions than the senescence-only model [@fig-selective-h2].
+There was no evidence for selective appearance or disappearance influencing the relationship between maternal age and offspring survival. The selective appearance model (i.e., included a term for age-of-first-reproduction) had a slightly greater AIC weight than the base model. However, in the selective appearance model, the coefficient for age at first reproduction was not significantly different than 0 (`r h2_firstrepro_95ci`). As a result, the predicted breeding probabilities for animals that first recruited at ages 4 and 7 (the 10th and 90th observed percentiles in the population) were not qualitatively different than the predictions of the base model [@fig-selective-h2]. Therefore the observed pattern is consistent with the senescence hypothesis (i.e., within-animal change with age).
 
 ## Chronological versus biological age
 
