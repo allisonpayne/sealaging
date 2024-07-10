@@ -188,38 +188,68 @@ breed_pred_pop <- ggpredict(breed_age_mod,
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
 
-# Create WEIGHTED-AVERAGE predictions using years' random effects
-seal_years <- count(sealdat, year_fct)
+# Create ANNUAL (i.e. rand effect of year only) predictions
 breed_pred_years <- ggpredict(
-  breed_age_mod,
-  terms = c("age10 [all]", "age_cat", "year_fct [all]"),
-  type = "random",
-  interval = "confidence"
+  breed_age_mod, 
+  terms = c("age10 [all]", "age_cat", "year_fct"),
+  type = "random"
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10 + age_senesce,
-         age_cat = group,
-         year_fct = facet) %>% 
+         age_cat = factor(group, levels = c("Young", "Old")),
+         year_fct = factor(facet)) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
-breed_pred_wgt <- breed_pred_years %>% 
+
+# Create WEIGHTED-AVERAGE predictions using years' random effects
+# ggpredict can't do that for confidence intervals
+# create prediction grid
+breed_grid <- expand_grid(
+  age = 4:20,
+  year_fct = factor(1988:2023)
+) %>% 
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(ifelse(age < age_senesce, "Young", "Old"),
+                          levels = c("Young", "Old")))
+
+# fixed + random effect predictions
+year_ranef <- ranef(breed_age_mod)$year_fct %>% 
+  as_tibble(rownames = "year_fct") %>% 
+  rename(year_ranef = `(Intercept)`)
+  
+breed_pred <- breed_grid %>% 
+  mutate(breed_fixef = predict(breed_age_mod, 
+                               newdata = breed_grid,
+                               re.form = NA)) %>% 
+  left_join(year_ranef, by = "year_fct") %>% 
+  mutate(mean_breed = breed_fixef + year_ranef)
+
+# add confidence intervals
+mm <- model.matrix(~ age_cat:age10, breed_grid)
+pvar1 <- diag(mm %*% tcrossprod(vcov(breed_age_mod), mm))
+breed_pred$ci_low <- breed_pred$mean_breed - 1.96 * sqrt(pvar1)
+breed_pred$ci_high <- breed_pred$mean_breed + 1.96 * sqrt(pvar1)
+
+# Apply weighted average
+seal_years <- count(sealdat, year_fct)
+breed_pred_wgt <- breed_pred %>% 
   left_join(seal_years, by = "year_fct") %>% 
   group_by(age, age_cat) %>% 
-  summarize(predicted = weighted.mean(predicted, n),
-            .groups = "drop")
+  summarize(across(c(mean_breed, ci_low, ci_high), \(x) weighted.mean(x, n)),
+            .groups = "drop") %>% 
+  # invert logit
+  mutate(across(c(mean_breed, ci_low, ci_high), 
+                family(breed_age_mod)$linkinv))
   
-ggplot(breed_pred_pop, aes(age, predicted)) +
-  geom_line(aes(group = interaction(age_cat, year_fct)),
+ggplot(breed_pred_wgt, aes(age)) +
+  geom_line(aes(y = predicted, group = interaction(age_cat, year_fct)),
             breed_pred_years,
             alpha = 0.1) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+  geom_ribbon(aes(fill = age_cat, ymin = ci_low, ymax = ci_high), 
               alpha = 0.5) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
-  geom_line(aes(color = age_cat),
-            breed_pred_wgt, 
-            linewidth = 1.2,
-            linetype = "dashed") +
+  geom_line(aes(y = mean_breed, color = age_cat),
+            linewidth = 1.2) +
   geom_pointrange(aes(y = perc_breed,
                       ymin = perc_breed - se,
                       ymax = perc_breed + se),
