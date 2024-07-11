@@ -149,7 +149,7 @@ age_dist <- sealdat %>%
 
 ### H1: Reproductive senescence
 
-We predicted that breeding success would decline with age. Based on the literature, we chose age `r age_senesce` to be the end of prime age and indicate the onset of senescence. If breeding success declined with age, we would expect to see a negative difference between the slopes of the two models (pre and post senescence) (@fig-breeding-mod).
+We predicted that breeding success would decline with age. Based on the literature, we chose age `r age_senesce` to be the end of prime age and indicate the onset of senescence. If breeding success declined with age, we would expect to see a negative slope post-senescence (@fig-breeding-mod).
 
 ```{r}
 #| label: breeding-mod
@@ -183,52 +183,87 @@ n_breed <- sealdat %>%
   filter(age <= 20) %>% 
   count(age)
 
-# Create POPULATION-LEVEL (i.e. without rand effects) predictions
-breed_pred_pop <- ggpredict(breed_age_mod, 
-                            terms = c("age10 [all]", "age_cat")) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10 + age_senesce,
-         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce),
-         age <= 20) %>% 
-  left_join(n_breed, by = "age")
+# # Create POPULATION-LEVEL (i.e. without rand effects) predictions
+# breed_pred_pop <- ggpredict(breed_age_mod, 
+#                             terms = c("age10 [all]", "age_cat")) %>% 
+#   as_tibble() %>% 
+#   mutate(age = x * 10 + age_senesce,
+#          age_cat = factor(group, levels = c("Young", "Old"))) %>% 
+#   filter((age_cat == "Young" & age < age_senesce) |
+#            (age_cat == "Old" & age >= age_senesce),
+#          age <= 20) %>% 
+#   left_join(n_breed, by = "age")
 
-# Create WEIGHTED-AVERAGE predictions using years' random effects
-seal_years <- count(sealdat, year_fct)
+# Create ANNUAL (i.e. rand effect of year only) predictions
 breed_pred_years <- ggpredict(
-  breed_age_mod,
-  terms = c("age10 [all]", "age_cat", "year_fct [all]"),
-  type = "random",
-  interval = "confidence"
+  breed_age_mod, 
+  terms = c("age10 [all]", "age_cat", "year_fct"),
+  type = "random"
 ) %>% 
   as_tibble() %>% 
   mutate(age = x * 10 + age_senesce,
-         age_cat = group,
-         year_fct = facet) %>% 
+         age_cat = factor(group, levels = c("Young", "Old")),
+         year_fct = factor(facet)) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
-breed_pred_wgt <- breed_pred_years %>% 
+
+# Create WEIGHTED-AVERAGE predictions using years' random effects
+# ggpredict can't do that for confidence intervals
+# create prediction grid
+breed_grid <- expand_grid(
+  age = 4:20,
+  year_fct = factor(1988:2023)
+) %>% 
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(ifelse(age < age_senesce, "Young", "Old"),
+                          levels = c("Young", "Old")))
+  
+seal_years <- count(sealdat, year_fct)
+breed_pred_wgt <- breed_grid %>% 
+  mutate(predicted = predict(breed_age_mod, 
+                             newdata = breed_grid,
+                             re.form = ~ (1 | year_fct)),
+         predicted_se = suppressWarnings(
+           # warning: "se.fit computation uses an approximation to estimate the sampling distribution of the parameters"
+           predict(breed_age_mod, 
+                   newdata = breed_grid,
+                   re.form = NA,
+                   se.fit = TRUE)
+         )$se.fit,
+         predicted_pop = predict(breed_age_mod, 
+                                 newdata = breed_grid,
+                                 re.form = NA),
+         conf_lo = predicted - 1.96 * predicted_se,
+         conf_hi = predicted + 1.96 * predicted_se) %>% 
   left_join(seal_years, by = "year_fct") %>% 
   group_by(age, age_cat) %>% 
-  summarize(predicted = weighted.mean(predicted, n),
-            .groups = "drop")
-
-ggplot(breed_pred_pop, aes(age, predicted)) +
+  summarize(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                   \(x) weighted.mean(x, n)),
+            .groups = "drop") %>% 
+  # invert logit
+  mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                family(breed_age_mod)$linkinv)) %>% 
+    left_join(n_breed, by = "age")
+  
+ggplot(breed_pred_wgt, aes(age, predicted)) +
+  # Predictions for individual years
   geom_line(aes(group = interaction(age_cat, year_fct)),
             breed_pred_years,
             alpha = 0.1) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+  # Weighted model (CI and mean response)
+  geom_ribbon(aes(fill = age_cat, ymin = conf_lo, ymax = conf_hi), 
               alpha = 0.5) +
-  geom_line(aes(color = age_cat), linewidth = 1.2) +
   geom_line(aes(color = age_cat),
-            breed_pred_wgt, 
+            linewidth = 1.2) +
+  # Population-level mean response
+  geom_line(aes(y = predicted_pop, group = age_cat),
+            linetype = "dotted",
             linewidth = 1.2,
-            linetype = "dashed") +
+            alpha = 0.5) +
   geom_pointrange(aes(y = perc_breed,
-                      ymin = perc_breed - se,
-                      ymax = perc_breed + se),
+                      ymin = perc_breed - 1.96 * se,
+                      ymax = perc_breed + 1.96 * se),
                   breed_nonbreed) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Breeding probability", labels = scales::percent) +
@@ -236,7 +271,7 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") + 
-  geom_text(aes(label = n, y = .55))
+  geom_text(aes(label = n, y = 1.1))
 
 ggsave("outputs/repro_senesce.svg", width = 11, height = 6, units = "in")
 ```
@@ -292,33 +327,55 @@ summary(pup_recr_mod)$coefficients
 # Summarize the raw data
 surv_recr_summ <- surv_recr_data %>% 
   group_by(age) %>% 
+  filter(age <= 19) %>% 
   summarize(n_pups = n(), 
             n_fpups = sum(pupsex == "F"),
             perc_surv = sum(pup_surv_int) / n_pups, 
             se_surv = (perc_surv * (1 - perc_surv) / n_pups)^0.5,
             perc_recr = sum(pup_recr_int) / n_fpups, 
-            se_recr = (perc_recr * (1 - perc_recr) / n_fpups)^0.5) %>% 
-  filter(age <= 20)
+            se_recr = (perc_recr * (1 - perc_recr) / n_fpups)^0.5)
 
 #Create sample size data frame
 n_surv <- surv_recr_data %>% 
   group_by(age) %>% 
+  filter(age <= 19) %>% 
   count(age)
 
-# Create pup survival POPULATION-LEVEL (i.e. without rand effects) predictions
-surv_pred_pop <- ggpredict(
-  pup_surv_mod, 
-  terms = c("age10 [all]", "age_cat"),
-  type = "fixed",
-  interval = "confidence"
+# Create pup survival predictions (population-level and weighted by year)
+surv_grid <- expand_grid(
+  age = 4:19,
+  year_fct = factor(1988:2016)
 ) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10 + age_senesce,
-         age_cat = group) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce),
-         age <= 20) %>% 
-  left_join(n_surv, by = "age")
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(ifelse(age < age_senesce, "Young", "Old"),
+                          levels = c("Young", "Old")))
+  
+surv_years <- count(surv_recr_data, year_fct)
+surv_pred_wgt <- surv_grid %>% 
+  mutate(predicted = predict(pup_surv_mod, 
+                             newdata = surv_grid,
+                             re.form = ~ (1 | year_fct)),
+         predicted_se = suppressWarnings(
+           # warning: "se.fit computation uses an approximation to estimate the sampling distribution of the parameters"
+           predict(pup_surv_mod, 
+                   newdata = surv_grid,
+                   re.form = NA,
+                   se.fit = TRUE),
+         )$se.fit,
+         predicted_pop = predict(pup_surv_mod, 
+                                 newdata = surv_grid,
+                                 re.form = NA),
+         conf_lo = predicted - 1.96 * predicted_se,
+         conf_hi = predicted + 1.96 * predicted_se) %>% 
+  left_join(surv_years, by = "year_fct") %>% 
+  group_by(age, age_cat) %>% 
+  summarize(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                   \(x) weighted.mean(x, n)),
+            .groups = "drop") %>% 
+  # invert logit
+  mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                family(pup_surv_mod)$linkinv)) %>% 
+      left_join(n_surv, by = "age")
 
 # Predictions for each year (random effect)
 surv_pred_years <- ggpredict(
@@ -334,18 +391,25 @@ surv_pred_years <- ggpredict(
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
-
-fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
+  
+fig_surv <- ggplot(surv_pred_wgt, aes(age, predicted)) +
+  # Individual years
   geom_line(aes(group = interaction(age_cat, year_fct)),
             surv_pred_years,
             alpha = 0.1) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+  # Weighted model (confidence interval and mean response)
+  geom_ribbon(aes(fill = age_cat, ymin = conf_lo, ymax = conf_hi), 
               alpha = 0.2) +
   geom_line(aes(color = age_cat, linetype = age_cat), linewidth = 1.2) +
+  # Population-level mean response
+  geom_line(aes(y = predicted_pop, group = age_cat),
+            linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
+  # Raw data
   geom_pointrange(aes(y = perc_surv, 
                       ymin = perc_surv - se_surv, 
                       ymax = perc_surv + se_surv),
                   surv_recr_summ) +
+  # Senescence threshold
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring survival", 
                      labels = scales::percent,
@@ -362,20 +426,43 @@ n_recruit <- surv_recr_data %>%
   filter(pupsex == "F") %>% 
   count(age)
 
-# Create pup recruit POPULATION-LEVEL (i.e. without rand effects) predictions
-recr_pred_pop <- ggpredict(
-  pup_recr_mod, 
-  terms = c("age10 [all]", "age_cat"),
-  type = "fixed",
-  interval = "confidence"
+# Create pup recruitment predictions (population-level and weighted by year)
+recr_grid <- expand_grid(
+  age = 4:19,
+  year_fct = factor(1988:2016)
 ) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10 + age_senesce,
-         age_cat = group) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce),
-         age <= 20) %>% 
-  left_join(n_recruit, by = "age")
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(ifelse(age < age_senesce, "Young", "Old"),
+                          levels = c("Young", "Old")))
+  
+recr_years <- surv_recr_data %>% 
+  filter(pupsex == "F") %>% 
+  count(year_fct)
+recr_pred <- recr_grid %>% 
+  mutate(predicted = predict(pup_recr_mod, 
+                             newdata = recr_grid,
+                             re.form = ~ (1 | year_fct)),
+         predicted_se = suppressWarnings(
+           # warning: "se.fit computation uses an approximation to estimate the sampling distribution of the parameters"
+           predict(pup_recr_mod, 
+                   newdata = recr_grid,
+                   re.form = NA,
+                   se.fit = TRUE),
+         )$se.fit,
+         predicted_pop = predict(pup_recr_mod, 
+                                 newdata = recr_grid,
+                                 re.form = NA),
+         conf_lo = predicted - 1.96 * predicted_se,
+         conf_hi = predicted + 1.96 * predicted_se) %>% 
+  left_join(recr_years, by = "year_fct") %>% 
+  group_by(age, age_cat) %>% 
+  summarize(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                   \(x) weighted.mean(x, n)),
+            .groups = "drop") %>% 
+  # invert logit
+  mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                family(pup_recr_mod)$linkinv)) %>% 
+        left_join(n_recruit, by = "age")
 
 # Predictions for each year (random effect)
 recr_pred_years <- ggpredict(
@@ -392,14 +479,19 @@ recr_pred_years <- ggpredict(
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
 
-
-fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
+fig_recr <- ggplot(recr_pred, aes(age, predicted)) +
+  # Individual years
   geom_line(aes(group = interaction(age_cat, year_fct)),
             recr_pred_years,
             alpha = 0.1) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+  # Weighted model (confidence interval and mean response)
+  geom_ribbon(aes(fill = age_cat, ymin = conf_lo, ymax = conf_hi), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
+  geom_line(aes(color = age_cat), linetype = "dashed", linewidth = 1.2) +
+  # Population-level mean response
+  geom_line(aes(y = predicted_pop, group = age_cat),
+            linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
+  # Raw data
   geom_pointrange(aes(y = perc_recr, 
                       ymin = perc_recr - se_recr, 
                       ymax = perc_recr + se_recr),
@@ -459,18 +551,44 @@ sexrat_summ <- pup_sex_data %>%
 n_sexrat <- pup_sex_data %>% 
   count(age)
 
-# Create POPULATION-LEVEL (i.e. without rand effects) predictions
-sexrat_pred <- ggpredict(sexrat_age_mod, 
-                         terms = c("age10 [all]", "age_cat")) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10 + age_senesce,
-         age_cat = factor(group, levels = c("Young", "Old"))) %>% 
-  filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce)) %>% 
+# Create offspring sex ratio predictions (population-level and weighted by year)
+sexrat_grid <- expand_grid(
+  age = 4:18,
+  year_fct = factor(1988:2023)
+) %>% 
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(ifelse(age < age_senesce, "Young", "Old"),
+                          levels = c("Young", "Old")))
+  
+sexrat_years <- count(pup_sex_data, year_fct)
+sexrat_pred <- sexrat_grid %>% 
+  mutate(predicted = predict(sexrat_age_mod, 
+                             newdata = sexrat_grid,
+                             re.form = ~ (1 | year_fct)),
+         predicted_se = suppressWarnings(
+           # warning: "se.fit computation uses an approximation to estimate the sampling distribution of the parameters"
+           predict(sexrat_age_mod, 
+                   newdata = sexrat_grid,
+                   re.form = NA,
+                   se.fit = TRUE),
+         )$se.fit,
+         predicted_pop = predict(sexrat_age_mod, 
+                                 newdata = sexrat_grid,
+                                 re.form = NA),
+         conf_lo = predicted - 1.96 * predicted_se,
+         conf_hi = predicted + 1.96 * predicted_se) %>% 
+  left_join(sexrat_years, by = "year_fct") %>% 
+  group_by(age, age_cat) %>% 
+  summarize(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                   \(x) weighted.mean(x, n)),
+            .groups = "drop") %>% 
+  # invert logit
+  mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
+                family(sexrat_age_mod)$linkinv)) %>% 
   left_join(n_sexrat, by = "age")
 
 # Predictions for each year (random effect)
-sexrat_pred_years <- ggpredict(
+sexrat_years <- ggpredict(
   sexrat_age_mod,
   terms = c("age10 [all]", "age_cat", "year_fct [all]"),
   type = "random",
@@ -485,20 +603,27 @@ sexrat_pred_years <- ggpredict(
          age <= 20)
 
 ggplot(sexrat_pred, aes(age, predicted)) +
+  # Individual years
   geom_line(aes(group = interaction(age_cat, year_fct)),
-            sexrat_pred_years,
+            sexrat_years,
             alpha = 0.1) +
-  geom_ribbon(aes(fill = age_cat, ymin = conf.low, ymax = conf.high), 
+  # Weighted model (confidence interval and mean response)
+  geom_ribbon(aes(fill = age_cat, ymin = conf_lo, ymax = conf_hi), 
               alpha = 0.2) +
-  geom_line(aes(color = age_cat), linewidth = 1.2, linetype = "dashed") +
+  geom_line(aes(color = age_cat, group = age_cat),
+            linetype = "dashed", linewidth = 1.2) +
+  # Population-level mean response
+  geom_line(aes(y = predicted_pop, group = age_cat),
+            linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
+  # Raw data
   geom_pointrange(aes(y = perc_male, 
                       ymin = perc_male - se, 
                       ymax = perc_male + se),
                   sexrat_summ) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
+  scale_y_continuous("Male offspring", labels = scales::percent) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
-  scale_y_continuous("Male offspring", labels = scales::percent) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") +
   geom_text(aes(label = n, y = .95))
