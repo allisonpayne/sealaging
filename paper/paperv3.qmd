@@ -3,7 +3,7 @@ title: "Reproduction frequency and offspring survival decline in elephant seals 
 format: 
   html: 
     echo: false
-    fig-width: 5
+    fig-width: 7
     fig-height: 5
     code-fold: true
     code-tools: true
@@ -178,6 +178,11 @@ breed_nonbreed <- sealdat %>%
             se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>%
   filter(age <= 20)
 
+#Create sample size data frame
+n_breed <- sealdat %>% 
+  filter(age <= 20) %>% 
+  count(age)
+
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions
 breed_pred_pop <- ggpredict(breed_age_mod, 
                             terms = c("age10 [all]", "age_cat")) %>% 
@@ -186,7 +191,8 @@ breed_pred_pop <- ggpredict(breed_age_mod,
          age_cat = factor(group, levels = c("Young", "Old"))) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
-         age <= 20)
+         age <= 20) %>% 
+  left_join(n_breed, by = "age")
 
 # Create WEIGHTED-AVERAGE predictions using years' random effects
 seal_years <- count(sealdat, year_fct)
@@ -208,7 +214,7 @@ breed_pred_wgt <- breed_pred_years %>%
   group_by(age, age_cat) %>% 
   summarize(predicted = weighted.mean(predicted, n),
             .groups = "drop")
-  
+
 ggplot(breed_pred_pop, aes(age, predicted)) +
   geom_line(aes(group = interaction(age_cat, year_fct)),
             breed_pred_years,
@@ -225,11 +231,14 @@ ggplot(breed_pred_pop, aes(age, predicted)) +
                       ymax = perc_breed + se),
                   breed_nonbreed) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_y_continuous("Breeding", labels = scales::percent) +
+  scale_y_continuous("Breeding probability", labels = scales::percent) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + 
+  geom_text(aes(label = n, y = .55))
+
+ggsave("outputs/repro_senesce.svg", width = 11, height = 6, units = "in")
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
@@ -277,10 +286,8 @@ summary(pup_recr_mod)$coefficients
 
 ```{r}
 #| label: fig-repro-age
-#| fig-width: 9
-
-n_recruit <- surv_recr_data %>% 
-  filter(pupsex == "F")
+#| fig-width: 8
+#| fig-height: 8
 
 # Summarize the raw data
 surv_recr_summ <- surv_recr_data %>% 
@@ -292,6 +299,11 @@ surv_recr_summ <- surv_recr_data %>%
             perc_recr = sum(pup_recr_int) / n_fpups, 
             se_recr = (perc_recr * (1 - perc_recr) / n_fpups)^0.5) %>% 
   filter(age <= 20)
+
+#Create sample size data frame
+n_surv <- surv_recr_data %>% 
+  group_by(age) %>% 
+  count(age)
 
 # Create pup survival POPULATION-LEVEL (i.e. without rand effects) predictions
 surv_pred_pop <- ggpredict(
@@ -305,7 +317,8 @@ surv_pred_pop <- ggpredict(
          age_cat = group) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
-         age <= 20)
+         age <= 20) %>% 
+  left_join(n_surv, by = "age")
 
 # Predictions for each year (random effect)
 surv_pred_years <- ggpredict(
@@ -321,7 +334,7 @@ surv_pred_years <- ggpredict(
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
-  
+
 fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
   geom_line(aes(group = interaction(age_cat, year_fct)),
             surv_pred_years,
@@ -336,12 +349,18 @@ fig_surv <- ggplot(surv_pred_pop, aes(age, predicted)) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring survival", 
                      labels = scales::percent,
-                     limits = c(0, 0.62)) +
+                     limits = c(0, 0.68)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_linetype_manual(values = c("dashed", "solid")) +
   labs(x = "Age (years)") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + 
+  geom_text(aes(label = n, y = .65))
+
+#Create sample size data frame
+n_recruit <- surv_recr_data %>% 
+  filter(pupsex == "F") %>% 
+  count(age)
 
 # Create pup recruit POPULATION-LEVEL (i.e. without rand effects) predictions
 recr_pred_pop <- ggpredict(
@@ -355,7 +374,8 @@ recr_pred_pop <- ggpredict(
          age_cat = group) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
-         age <= 20)
+         age <= 20) %>% 
+  left_join(n_recruit, by = "age")
 
 # Predictions for each year (random effect)
 recr_pred_years <- ggpredict(
@@ -371,7 +391,8 @@ recr_pred_years <- ggpredict(
   filter((age_cat == "Young" & age < age_senesce) |
            (age_cat == "Old" & age >= age_senesce),
          age <= 20)
-  
+
+
 fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   geom_line(aes(group = interaction(age_cat, year_fct)),
             recr_pred_years,
@@ -386,13 +407,15 @@ fig_recr <- ggplot(recr_pred_pop, aes(age, predicted)) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring recruitment", 
                      labels = scales::percent,
-                     limits = c(0, 0.62)) +
+                     limits = c(0, 0.68)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + 
+  geom_text(aes(label = n, y = .65))
 
-(fig_surv | fig_recr) + plot_annotation(tag_levels = "A")
+
+(fig_surv | fig_recr) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 2)
   
 ```
 
@@ -432,6 +455,10 @@ sexrat_summ <- pup_sex_data %>%
             se = (perc_male * (1 - perc_male) / n_observed)^0.5) %>% 
   filter(age <= 20)
 
+#Make sample size data frame
+n_sexrat <- pup_sex_data %>% 
+  count(age)
+
 # Create POPULATION-LEVEL (i.e. without rand effects) predictions
 sexrat_pred <- ggpredict(sexrat_age_mod, 
                          terms = c("age10 [all]", "age_cat")) %>% 
@@ -439,7 +466,8 @@ sexrat_pred <- ggpredict(sexrat_age_mod,
   mutate(age = x * 10 + age_senesce,
          age_cat = factor(group, levels = c("Young", "Old"))) %>% 
   filter((age_cat == "Young" & age < age_senesce) |
-           (age_cat == "Old" & age >= age_senesce))
+           (age_cat == "Old" & age >= age_senesce)) %>% 
+  left_join(n_sexrat, by = "age")
 
 # Predictions for each year (random effect)
 sexrat_pred_years <- ggpredict(
@@ -472,7 +500,9 @@ ggplot(sexrat_pred, aes(age, predicted)) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_y_continuous("Male offspring", labels = scales::percent) +
   labs(x = "Age (years)") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  geom_text(aes(label = n, y = .95))
+
 ```
 
 Sample size n = `r nrow(pup_sex_data)` observations of `r n_distinct(pup_sex_data$animalID)` individuals.
@@ -520,9 +550,16 @@ summary(pheno_model)
 ```{r}
 #| label: fig-pheno
 #| fig-cap: "Molting gets shorter but breeding doesn't. A: Observed annual time allocation averaged over individuals. B: Raw data for breeding and molting durations (mean ± se) and predictions (mean and 95% CI) from negative binomial weighted by number of seals obersved per year."
-#| fig-width: 9 
+#| fig-width: 4
+#| fig-height: 9 
 
-phenology_n <- unique(seal_phenology$animalID)
+phenology_unique_animals <- unique(seal_phenology$animalID)
+n_phenology <- seal_phenology %>% 
+  count(year)
+
+#Make sample size data frame
+n_phen <- seal_phenology %>% 
+  count(age)
 
 timing_summary <- seal_phenology %>% 
   group_by(age) %>% 
@@ -540,7 +577,8 @@ timing_summary <- seal_phenology %>%
                                           "Breeding haulout", 
                                           "Post-breeding", 
                                           "Molt haulout", 
-                                          "foraging2")))
+                                          "foraging2"))) %>% 
+    left_join(n_phen, by = "age")
 
 annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) + 
   geom_area(position = position_stack(reverse = TRUE),
@@ -557,10 +595,8 @@ annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
         legend.position = "bottom",
         legend.title = element_blank(),
         legend.text = element_text(size = 8),
-        legend.key.size = unit(3, "mm"))
-
-n_phenology <- seal_phenology %>% 
-  count(year)
+        legend.key.size = unit(3, "mm")) 
+  # geom_text(aes(label = n, color = "white", y = 300))
 
 pheno_raw <- seal_phenology %>% 
   select(breeddur, moltdur, age) %>% 
@@ -575,7 +611,20 @@ pheno_raw <- seal_phenology %>%
             dur_days_upr = dur_days + dur_days_se,
             .groups = "drop")
 
-duration_plot <- ggpredict(
+phen_pred_years <- ggpredict(
+  pheno_model,
+  terms = c("age10 [all]", "phase", "year [all]"),
+  type = "random",
+  interval = "confidence"
+) %>% 
+  as_tibble() %>% 
+  mutate(age = x * 10,
+         phase = group)
+
+breed_pheno_raw <- pheno_raw[pheno_raw$phase == "breeddur",]
+molt_pheno_raw <- pheno_raw[pheno_raw$phase == "moltdur",]
+
+breed_duration_plot <- ggpredict(
   pheno_model, 
   terms = c("age10 [all]", "phase", "year [all]")
 ) %>% 
@@ -587,33 +636,72 @@ duration_plot <- ggpredict(
             phase = group,
             year = as.numeric(as.character(facet))) %>% 
   left_join(n_phenology, by = "year") %>% 
-  group_by(age, phase) %>% 
+  group_by(age) %>% 
+  filter(phase == "breeddur") %>% 
   summarize(across(starts_with("dur_days"), \(x) weighted.mean(x, n)),
             .groups = "drop") %>% 
   ggplot(aes(age)) +
-  geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr, fill = phase),
-              alpha = 0.25) +
+  geom_line(aes(age, predicted, group = interaction(phase, facet)), 
+            phen_pred_years, 
+            alpha = 0.1) + 
+  geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr),
+              alpha = 0.25, 
+              fill = "#D05794") +
   geom_pointrange(aes(y = dur_days, 
                       ymin = dur_days_lwr, 
-                      ymax = dur_days_upr,
-                      color = phase),
-                  pheno_raw,
-                  position = position_dodge(width = 0.5)) +
-  geom_line(aes(y = dur_days, color = phase, linetype = phase)) +
-  annotate("text", 12, 14, label = "Molting", color = "#E09A2D", hjust = 0) +
-  annotate("text", 12, 32, label = "Breeding", color = "#D05794", hjust = 0) +
-  scale_fill_manual(values = c("#D05794", "#E09A2D")) +
-  scale_color_manual(values = c("#D05794", "#E09A2D")) +
-  scale_linetype_manual(values = c("dashed", "solid")) +
+                      ymax = dur_days_upr),
+                  breed_pheno_raw,
+                  position = position_dodge(width = 0.5), 
+                  color = "#D05794") +
+  geom_line(aes(y = dur_days), 
+            linetype = "dashed", 
+            color = "#D05794") +
   labs(x = "Maternal age (years)",
-       y = "Phase duration (days)") +
-  theme(legend.position = "none")
+       y = "Breeding haul out (days)") +
+  theme(legend.position = "none",
+        axis.text.y = element_text(size = 8))
 
-(annual_plot | duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(widths = c(1.25, 2))
+molt_duration_plot <- ggpredict(
+  pheno_model,
+  terms = c("age10 [all]", "phase", "year [all]")
+) %>%
+  as_tibble() %>%
+  transmute(age = x * 10,
+            dur_days = predicted,
+            dur_days_lwr = conf.low,
+            dur_days_upr = conf.high,
+            phase = group,
+            year = as.numeric(as.character(facet))) %>%
+  left_join(n_phenology, by = "year") %>%
+  group_by(age, phase) %>%
+  filter(phase == "moltdur") %>%
+  summarize(across(starts_with("dur_days"), \(x) weighted.mean(x, n)),
+            .groups = "drop") %>%
+  ggplot(aes(age)) +
+  geom_line(aes(age, predicted, group = interaction(phase, facet)), 
+            phen_pred_years, 
+            alpha = 0.1) + 
+  geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr),
+              alpha = 0.25, 
+              fill = "#E09A2D") +
+  geom_pointrange(aes(y = dur_days, 
+                      ymin = dur_days_lwr, 
+                      ymax = dur_days_upr),
+                  molt_pheno_raw,
+                  position = position_dodge(width = 0.5), 
+                  color = "#E09A2D") +
+  geom_line(aes(y = dur_days), 
+            color = "#E09A2D") +
+  labs(x = "Maternal age (years)",
+       y = "Molting haul out (days)") +
+  theme(legend.position = "none", 
+        axis.text.y = element_text(size = 8))
   
+
+(annual_plot | breed_duration_plot | molt_duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 3)
 ```
 
-Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_n)` individuals.
+Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_unique_animals)` individuals.
 
 # Supplemental Material
 
@@ -1128,7 +1216,7 @@ ggplot(bioage_pred_pop, aes(bioage, predicted)) +
                       ymax = perc_breed + se),
                   bioage_summ) +
   geom_vline(xintercept = bioage_senesce - 0.5, linetype = "dashed") +
-  scale_y_continuous("Breeding", labels = scales::percent, limits = c(.7, 1)) +
+  scale_y_continuous("Breeding probability", labels = scales::percent, limits = c(.7, 1)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_x_continuous(limits = c(-17, 0)) + 
