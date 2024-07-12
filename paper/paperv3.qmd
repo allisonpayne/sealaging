@@ -273,7 +273,7 @@ ggplot(breed_pred_wgt, aes(age, predicted)) +
   theme(legend.position = "none") + 
   geom_text(aes(label = n, y = 1.1))
 
-ggsave("outputs/repro_senesce.svg", width = 11, height = 6, units = "in")
+ggsave("outputs/repro_senesce.svg", width = 13, height = 6, units = "in")
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
@@ -654,6 +654,7 @@ Where: $d$ is the duration of the phase in days, $NB$ is the negative binomial d
 #| label: pheno-model
 
 seal_phenology <- sealdat %>% 
+  filter(year >= 2011) %>% 
   mutate(BA = firstobsbreeddoy, 
          BD = firstobsbreeddoy + breeddur, 
          MA = lastobsmoltdoy - moltdur, 
@@ -989,26 +990,58 @@ h1_selective_models <- map(
   }
 )
 
-h1_aic <- do.call(AIC, h1_selective_models) %>% 
-  as_tibble() %>% 
-  mutate(model = c("Base", 
-                   "Selective appearance", 
-                   "Selective disappearance", 
-                   "Selective appearance and disappearance"),
-         dAIC = AIC - min(AIC),
-         rellik = exp(-0.5 * dAIC),
-         weight = rellik / sum(rellik)) %>% 
-  relocate(model)
+h2_selective_models <- map(
+  list(
+    # Base model
+    pup_surv_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
+    # Selective appearance
+    pup_surv_int ~ age10 : age_cat + firstrepro + 
+      (1 | animalID) + (1 | year_fct),
+    # Selective disappearance
+    pup_surv_int ~ age10 : age_cat + lastrepro + 
+      (1 | animalID) + (1 | year_fct),
+    # Selective appearance and disappearance
+    pup_surv_int ~ age10 : age_cat + firstrepro + lastrepro +
+      (1 | animalID) + (1 | year_fct)
+  ),
+  \(form) {
+    glmer(form, 
+          drop_na(surv_recr_data, lastrepro), 
+          family = "binomial", 
+          control = glmerControl(optimizer = "bobyqa"))
+  }
+)
 
-# Selective appearance model, first repro 95% ci
-h1_selapp_coef <- summary(h1_selective_models[[2]])$coef["firstrepro", ]
-make_95 <- function(ci95) {
-  sprintf("95%% CI: %0.3f - %0.3f", ci95[1], ci95[2])
+get_old_coef <- function(model) {
+  old_coef <- summary(model)$coefficients["age10:age_catOld", "Estimate"]
+  old_se <- summary(model)$coefficients["age10:age_catOld", "Std. Error"]
+  ci <- old_coef + c(-1.96, 1.96) * old_se
+  tibble(mean = old_coef, 
+         lwr = ci[1], 
+         upr = ci[2])
 }
-h1_firstrepro_95ci <- (h1_selapp_coef["Estimate"] + c(-1.96, 1.96) * h1_selapp_coef["Std. Error"]) %>% 
-  make_95()
 
-h1_aic
+h1_selective_coef <- map(h1_selective_models, get_old_coef) %>% 
+  list_rbind() %>% 
+  mutate(model = c("Base", "Appearance", "Disappearance", "Combined"),
+         hypothesis = "H1") 
+
+h2_selective_coef <- map(h2_selective_models, get_old_coef) %>% 
+  list_rbind() %>% 
+  mutate(model = c("Base", "Appearance", "Disappearance", "Combined"), 
+         hypothesis = "H2") 
+
+selective_coef <- rbind(h1_selective_coef, h2_selective_coef) %>% 
+  mutate(model = factor(model, levels = c("Base", "Appearance", "Disappearance", "Combined")))
+
+ggplot(selective_coef, aes(model, mean, color = hypothesis)) + 
+  geom_pointrange(aes(ymin = lwr, ymax = upr), position = position_dodge(width = 0.2)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
+  expand_limits(y = 0) + 
+  labs(y = "Coefficient", x = "Model") + 
+  theme(legend.position = "none")
+
 ```
 
 ```{r}
@@ -1097,28 +1130,6 @@ There was no evidence for selective appearance or disappearance influencing the 
 
 ```{r}
 #| label: selective-h2
-
-h2_selective_models <- map(
-  list(
-    # Base model
-    pup_surv_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
-    # Selective appearance
-    pup_surv_int ~ age10 : age_cat + firstrepro + 
-      (1 | animalID) + (1 | year_fct),
-    # Selective disappearance
-    pup_surv_int ~ age10 : age_cat + lastrepro + 
-      (1 | animalID) + (1 | year_fct),
-    # Selective appearance and disappearance
-    pup_surv_int ~ age10 : age_cat + firstrepro + lastrepro +
-      (1 | animalID) + (1 | year_fct)
-  ),
-  \(form) {
-    glmer(form, 
-          drop_na(surv_recr_data, lastrepro), 
-          family = "binomial", 
-          control = glmerControl(optimizer = "bobyqa"))
-  }
-)
 
 h2_aic <- do.call(AIC, h2_selective_models) %>% 
   as_tibble() %>% 
@@ -1386,20 +1397,11 @@ missing_seals <- sealdat %>%
   left_join(select(sealdat, animalID, year, observed_int),
             by = c("animalID", "year"))
 
-missing_mod <- glmer(unobserved ~ age10 + (1 | year) + (1 | animalID), 
+missing_mod <- glmer(unobserved ~ age10 + (1 | year_fct) + (1 | animalID), 
                      missing_seals, 
                      family = binomial)
-missing_pred <- ggpredict(missing_mod,
-                          terms = "age10 [all]") %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10 + age_senesce,
-         unobserved = predicted)
 
-missing_age_coef <- sprintf(
-  "%0.3f \u00B1 %0.3f",
-  summary(missing_mod)$coef["age10", "Estimate"],
-  summary(missing_mod)$coef["age10", "Std. Error"] * 1.96
-)
+summary(missing_mod)
 
 ```
 
@@ -1409,6 +1411,34 @@ First, we tested whether probability of detection was related to age. We found t
 #| label: fig-unobserved
 #| fig-cap: The probability of an animal being unobserved increased with age. Points and error bars represent the proportion of unobserved animals within age classes plus/minus one standard error. The blue line and shaded area are the mean and 95% CI probability of an animal being unobserved estimated with a generalized linear mixed effect model. See text for model details.
 
+missing_years <- count(missing_seals, year_fct)
+missing_pred <- expand_grid(age = 5:19, 
+                            year_fct = factor(1989:2022)) %>% 
+  mutate(age10 = (age - age_senesce) / 10) %>% 
+  mutate(predicted = predict(missing_mod, 
+                             newdata = missing_grid,
+                             re.form = ~ (1 | year_fct)),
+         se = predict(missing_mod, 
+                      newdata = missing_grid,
+                      se.fit = TRUE,
+                      re.form = NA)$se.fit,
+         conf.low = predicted - 1.96 * se,
+         conf.high = predicted + 1.96 * se) %>% 
+  left_join(missing_years, by = "year_fct") %>% 
+  group_by(age) %>% 
+  summarize(across(c(predicted, conf.low, conf.high), mean)) %>% 
+  mutate(across(c(predicted, conf.low, conf.high), family(missing_mod)$linkinv))
+
+missing_pred_years <- expand_grid(age = 5:19, 
+                            year_fct = factor(1989:2022)) %>% 
+  mutate(age10 = (age - age_senesce) / 10) %>% 
+  mutate(predicted = predict(missing_mod, 
+                             newdata = missing_grid,
+                             type = "response",
+                             re.form = ~ (1 | year_fct)))
+
+missing_pred
+
 missing_seals %>% 
   group_by(age) %>% 
   summarize(unobserved_mean = mean(unobserved),
@@ -1416,19 +1446,23 @@ missing_seals %>%
             unobserved_lwr = unobserved_mean - unobserved_se,
             unobserved_upr = unobserved_mean + unobserved_se) %>% 
   ggplot(aes(age)) +
+  geom_line(aes(y = predicted, group = year_fct), 
+            missing_pred_years, 
+            alpha = 0.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
               missing_pred,
-              alpha = 0.2, 
+              alpha = 0.2,
               fill = "#de77ae") +
-  geom_line(aes(y = unobserved), 
-            missing_pred, 
+  geom_line(aes(y = predicted),
+            missing_pred,
             color = "#de77ae",
             linewidth = 2) +
   geom_pointrange(aes(y = unobserved_mean, 
                       ymin = unobserved_lwr, ymax = unobserved_upr)) +
   scale_x_continuous("Age", breaks = seq(5, 19, by = 4)) +
   scale_y_continuous("Unobserved proportion", 
-                     labels = scales::label_percent(accuracy = 1))
+                     labels = scales::label_percent(accuracy = 1),
+                     limits = c(0, NA))
 ```
 
 ```{r}
