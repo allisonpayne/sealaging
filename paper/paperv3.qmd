@@ -275,6 +275,7 @@ ggsave("outputs/repro_senesce.svg", width = 13, height = 6, units = "in")
 ```{r}
 #| label: h1-pred-deets
 
+#Overall decline 11-19
 tibble(age = c(11, 19),
        age10 = (age - age_senesce) / 10,
        age_cat = "Old") %>% 
@@ -291,6 +292,21 @@ tibble(age = c(11, 19),
          # Invert the logit
          across(c(predicted, pred_upr, pred_lwr), 
                 family(breed_age_mod)$linkinv))
+
+#Difference between years 
+best_worst_yr <- ranef(breed_age_mod)$year_fct %>% 
+  as_tibble(rownames = "year_fct") %>% 
+  arrange(`(Intercept)`) %>% 
+  slice(1, nrow(.))
+
+tibble(age = c(11, 19),
+       age10 = (age - age_senesce) / 10,
+       age_cat = "Old") %>% 
+  cross_join(best_worst_yr) %>% 
+  mutate(predicted = predict(breed_age_mod, 
+                             newdata = .,
+                             type = "response", 
+                             re.form = ~ (1 | year_fct)))
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
@@ -537,6 +553,43 @@ fig_recr <- ggplot(recr_pred, aes(age, predicted)) +
 
 Sample size for offspring survival was n = `r nrow(surv_recr_data)` observations of `r n_distinct(surv_recr_data$animalID)` individuals. Sample size for offspring recruitment was n = `r nrow(n_recruit)` observations of `r n_distinct(n_recruit$animalID)` female individuals.
 
+```{r}
+#| label: h2-pred-deets
+
+#Overall decline 11-19
+tibble(age = c(11, 19),
+       age10 = (age - age_senesce) / 10,
+       age_cat = "Old") %>% 
+  # logit-scale predictions
+  mutate(predicted = predict(pup_surv_mod, 
+                             newdata = .,
+                             re.form = NA),
+         se = suppressWarnings(predict(pup_surv_mod, 
+                                       newdata = .,
+                                       se.fit = TRUE,
+                                       re.form = NA)$se.fit),
+         pred_lwr = predicted - 1.96 * se,
+         pred_upr = predicted + 1.96 * se,
+         # Invert the logit
+         across(c(predicted, pred_upr, pred_lwr), 
+                family(pup_surv_mod)$linkinv))
+
+#Difference between years 
+best_worst_yr_surv <- ranef(pup_surv_mod)$year_fct %>% 
+  as_tibble(rownames = "year_fct") %>% 
+  arrange(`(Intercept)`) %>% 
+  slice(1, nrow(.))
+
+tibble(age = c(11, 19),
+       age10 = (age - age_senesce) / 10,
+       age_cat = "Old") %>% 
+  cross_join(best_worst_yr_surv) %>% 
+  mutate(predicted = predict(pup_surv_mod, 
+                             newdata = .,
+                             type = "response", 
+                             re.form = ~ (1 | year_fct)))
+```
+
 ### H3: Changes in pup sex ratio with increased maternal age
 
 We found that as maternal age increases, pup sex skews slightly towards males, but it is not significant (@fig-sex-ratio).
@@ -704,7 +757,7 @@ summary(pheno_model)
 ```{r}
 #| label: fig-pheno
 #| fig-cap: "Molting gets shorter but breeding doesn't. A: Observed annual time allocation averaged over individuals. B: Raw data for breeding and molting durations (mean ± se) and predictions (mean and 95% CI) from negative binomial weighted by number of seals obersved per year."
-#| fig-width: 4
+#| fig-width: 9
 #| fig-height: 9 
 
 phenology_unique_animals <- unique(seal_phenology$animalID)
@@ -714,6 +767,15 @@ n_phenology <- seal_phenology %>%
 #Make sample size data frame
 n_phen <- seal_phenology %>% 
   count(age)
+
+phen_dist <- seal_phenology %>% 
+  # group_by(age) %>% 
+  count(age) %>% 
+  ggplot(aes(x = age, y = n)) + 
+  geom_col(fill = "grey50") + 
+  labs(x = "Age (Years)", y = "Number of individuals") + 
+  theme()
+
 
 timing_summary <- seal_phenology %>% 
   group_by(age) %>% 
@@ -852,7 +914,7 @@ molt_duration_plot <- ggpredict(
         axis.text.y = element_text(size = 8))
   
 
-(annual_plot | breed_duration_plot | molt_duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 3)
+(annual_plot | phen_dist | breed_duration_plot | molt_duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 2, nrow = 2)
 ```
 
 Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_unique_animals)` individuals.
@@ -1362,6 +1424,13 @@ missing_pred_old <- expand_grid(age = 11:19,
   summarize(across(c(predicted, conf.low, conf.high), mean)) %>% 
   mutate(across(c(predicted, conf.low, conf.high), family(missing_mod)$linkinv))
 
+missing_pred_pop <- tibble(age = 5:19,
+                           age10 = (age - age_senesce) / 10) %>% 
+  mutate(predicted = predict(missing_mod, 
+                             newdata = .,
+                             type = "response",
+                             re.form = NA))
+
 missing_seals %>% 
   group_by(age) %>% 
   summarize(n = n(),
@@ -1389,6 +1458,7 @@ missing_seals %>%
               fill = "cornflowerblue") +
   geom_line(aes(y = predicted),
             missing_pred_old,
+            linetype = "dashed",
             color = "cornflowerblue",
             linewidth = 2) +
   # Raw data
