@@ -954,7 +954,7 @@ cutoff <- 8:13
 mod_sens <- map(cutoff, fit_models)
 
 # Are hypotheses supported by the model?
-extract_p <- \(h) map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Pr(>|z|)"])
+extract_p <- \(h) map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
 p_tbl <- tibble(age_cutoff = cutoff, 
                 "H1 (breeding)" = extract_p("h1"),
                 "H2a (survival)" = extract_p("h2_surv"),
@@ -977,12 +977,12 @@ p_tbl %>%
   geom_text(aes(x, y, label = tag),
             tibble(hypothesis = colnames(p_tbl)[-1],
                    tag = LETTERS[1:4],
-                   x = 8, y = 0.75),
-            vjust = -0.2,
+                   x = 8, y = 3),
+            vjust = 1,
             fontface = "bold") +
   scale_y_log10(labels = scales::number) +
   labs(x = "Senescence onset (years)") +
-  expand_limits(y = 1.3) +
+  expand_limits(y = 3) +
   facet_wrap(~hypothesis)
 
 ```
@@ -1080,7 +1080,7 @@ There was no evidence for selective appearance or disappearance influencing the 
 
 bioage_senesce <- -7
 sealdat2 <- sealdat %>% 
-  drop_na(lastrepro) %>% 
+  drop_na(lastobs) %>% 
   mutate(bioage = age - lastobs,
          bioage10 = (bioage - bioage_senesce) / 10,
          bioage_cat = factor(bioage < bioage_senesce,
@@ -1116,7 +1116,7 @@ bioage_pval <- sprintf("%0.3f", pnorm(-old_z))
 # Breakpoint comparison
 p_by_tau <- map_dbl(-12:-3, \(tau) {
   mod <- sealdat %>%
-    drop_na(lastrepro) %>%
+    drop_na(lastobs) %>%
     mutate(bioage = age - lastobs,
            bioage10 = (bioage - tau) / 10,
            bioage_cat = factor(bioage < tau,
@@ -1137,7 +1137,7 @@ tibble(`Biological age threshold` = -12:-3,
 # Model comparison
 breed_age_mod2 <- glmer(
   observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
-  drop_na(sealdat2, lastrepro),
+  drop_na(sealdat2, lastobs),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
 )
@@ -1253,11 +1253,7 @@ The chronological age model outperformed the biological age model according to A
 
 Based on these results, we find there is evidence to support the reproductive senescence hypothesis based on chronological age. The biological age proxy, years-to-death, should be a better predictor of senescence than chronological age if most mortality is age-related. However, adult elephant seal mortality is largely influenced by extrinsic factors, primarily food availability [@colegrove2005; @holser2021]. Poor foraging conditions during El Niño years, for example, may increase mortality rates among animals whose biological age is not yet advanced. As result, the years-to-death proxy for biological age likely conflates many biologically young and old animals that died due to extrinsic factors. More accurate measures of biological age, such as telomere length [@jylhävä2017], may be necessary to investigate senescence in elephant seals and other species with high extrinsic sources of mortality from a non-chronological perspective.
 
-::: callout-note
-Max's commentary: almost all seals bred in the last year they were observed. As a result, 96.6% (95% CI: 95.2% - 97.7%) of seals in the bioage 0 group bred. That proportion was greater than all bioages except -17 and -16, which had much smaller sample sizes (0: 903, -17: 1, -16: 4). With such a high probability in bioage 0, it's just about impossible to get a negative slope in the old age category, because that one data point is pulling the right side of the line up. FWIW, 53.7% of the bioage 0 animals have a chronological age 4-7, so that part of the "old" biological age category is mostly chronologically young animals.
-:::
-
-## Breeding state and detection probability
+## Observation frequency
 
 Not all seals were detected in all years. A non-detection year during the seal's lifespan (i.e. an unobserved year between the first and last observed years) could represent an unobserved animal at Año Nuevo or temporary emigration. In either case, the animal may or may not have reproduced that year. By excluding these unobserved animals, our inferences for H1 (reproductive senescence) may be biased if detectability varies with age and/or by breeding state. Here, we assess those potential biases.
 
@@ -1300,15 +1296,29 @@ missing_age_coef <- sprintf("%0.2f (95%% CI: %0.2f - %0.2f)",
                             missing_age_est - 1.96 * missing_age_se,
                             missing_age_est + 1.96 * missing_age_se)
 
+missing_mod_old <- glmer(
+  unobserved ~ age10 + (1 | year_fct),
+  filter(missing_seals, age >= 11),
+  family = binomial
+)
+
+summary(missing_mod_old)
+
+missing_old_se <- summary(missing_mod_old)$coef["age10", "Std. Error"]
+missing_old_est <- summary(missing_mod_old)$coef["age10", "Estimate"]
+missing_old_coef <- sprintf("%0.2f (95%% CI: %0.2f - %0.2f)",
+                            missing_old_est,
+                            missing_old_est - 1.96 * missing_old_se,
+                            missing_old_est + 1.96 * missing_old_se)
+
 ```
 
-First, we tested whether probability of detection was related to age. We found the proportion of unobserved animals increased with age. For this analysis, we excluded the first and last year of observation for each animal, because animals were necessarily observed in those years. For all years between, we determined whether animals were observed. Then we estimated the effect of age on probability of an animal being unobserved using a GLMM (binomial response, logit link) with random effects for year and animal ([@fig-unobserved]). The coefficient for age was `r missing_age_coef` (*p*\<0.0001).
+First, we tested whether probability of detection was related to age. We found the proportion of unobserved animals increased with age. For this analysis, we excluded the first and last year of observation for each animal, because animals were necessarily observed in those years. For all years between, we determined whether animals were observed. Then we estimated the effect of age on probability of an animal being unobserved using a GLMM (binomial response, logit link) with random effects for year and animal ([@fig-unobserved]). The coefficient for age was `r missing_age_coef` (*p*\<0.0001). The old-animals-only model estimated the age coefficient to be `r missing_old_coef`.
 
 ```{r}
 #| label: fig-unobserved
 #| fig-cap: The probability of an animal being unobserved increased with age. Points and error bars represent the proportion of unobserved animals within age classes plus/minus one standard error. The blue line and shaded area are the mean and 95% CI probability of an animal being unobserved estimated with a generalized linear mixed effect model. See text for model details.
 
-missing_years <- count(missing_seals, year_fct)
 missing_grid <- expand_grid(age = 5:19, 
                             year_fct = factor(1989:2022)) %>% 
   mutate(age10 = (age - age_senesce) / 10)
@@ -1323,7 +1333,7 @@ missing_pred <- missing_grid %>%
                                        re.form = NA)$se.fit),
          conf.low = predicted - 1.96 * se,
          conf.high = predicted + 1.96 * se) %>% 
-  left_join(missing_years, by = "year_fct") %>% 
+  left_join(count(missing_seals, year_fct), by = "year_fct") %>% 
   group_by(age) %>% 
   summarize(across(c(predicted, conf.low, conf.high), mean)) %>% 
   mutate(across(c(predicted, conf.low, conf.high), family(missing_mod)$linkinv))
@@ -1333,6 +1343,24 @@ missing_pred_years <- missing_grid %>%
                              newdata = .,
                              type = "response",
                              re.form = ~ (1 | year_fct)))
+
+missing_pred_old <- expand_grid(age = 11:19, 
+                                year_fct = factor(1989:2022)) %>% 
+  mutate(age10 = (age - age_senesce) / 10) %>% 
+  mutate(predicted = predict(missing_mod_old, 
+                             newdata = .,
+                             re.form = ~ (1 | year_fct)),
+         se = suppressWarnings(predict(missing_mod, 
+                                       newdata = .,
+                                       se.fit = TRUE,
+                                       re.form = NA)$se.fit),
+         conf.low = predicted - 1.96 * se,
+         conf.high = predicted + 1.96 * se) %>% 
+  left_join(count(filter(missing_seals, age >= 11), year_fct), 
+            by = "year_fct") %>% 
+  group_by(age) %>% 
+  summarize(across(c(predicted, conf.low, conf.high), mean)) %>% 
+  mutate(across(c(predicted, conf.low, conf.high), family(missing_mod)$linkinv))
 
 missing_seals %>% 
   group_by(age) %>% 
@@ -1345,14 +1373,25 @@ missing_seals %>%
   geom_line(aes(y = predicted, group = year_fct), 
             missing_pred_years, 
             alpha = 0.2) +
+  # Overall model
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
               missing_pred,
-              alpha = 0.2,
-              fill = "#de77ae") +
+              alpha = 0.3,
+              fill = "firebrick") +
   geom_line(aes(y = predicted),
             missing_pred,
-            color = "#de77ae",
+            color = "firebrick",
             linewidth = 2) +
+  # Old only
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              missing_pred_old,
+              alpha = 0.3,
+              fill = "cornflowerblue") +
+  geom_line(aes(y = predicted),
+            missing_pred_old,
+            color = "cornflowerblue",
+            linewidth = 2) +
+  # Raw data
   geom_pointrange(aes(y = unobserved_mean, 
                       ymin = unobserved_lwr, ymax = unobserved_upr)) +
   scale_x_continuous("Age", breaks = seq(5, 19, by = 4)) +
