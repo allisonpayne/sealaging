@@ -1538,4 +1538,66 @@ nonbreed_resight <- with(resight_by_observed[1, ],
 
 The pattern of unobserved animals increasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection. If there was no reproductive senescence in the population, then the apparent senescence we observed would have to result from older breeders being less detectable. However, the biology of northern elephant seals makes breeding a more detectable behavior than non-breeding. Animals must come to land for an extended period to give birth and wean their pups. Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare (cite me). The only plausible explanation for unobserved animals being disproportionately breeders would be crowding at the breeding colonies, which could obscure identifying marks. However, breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders. Therefore, it is biologically implausible that the unobserved seals were disproportionately breeders and our estimates for reproductive senescence are, if anything, conservative.
 
-## Threshold vs
+## Breakpoint vs quadratic
+
+### H1: Reproductive senescence
+
+```{r}
+#| label: quad-h1
+
+breed_age_quad <- glmer(
+  observed_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  sealdat,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+h1_age10_peak <- -summary(breed_age_quad)$coefficients[2, 1] / 
+  (2 * summary(breed_age_quad)$coefficients[3, 1])
+h1_age_peak <- h1_age10_peak * 10 + age_senesce
+
+summary(breed_age_quad)$coefficients
+
+sprintf("Age peak (H1) = %0.1f", h1_age_peak)
+
+```
+
+### H2: Maternal effect senescence
+
+```{r}
+#| label: quad-h2
+
+# H2a
+surv_age_quad <- glmer(
+  pup_surv_int ~ poly(age10, 2, raw = TRUE) + (1 | animalID) + (1 | year_fct),
+  surv_recr_data,
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+h2a_age10_peak <- -summary(surv_age_quad)$coefficients[2, 1] / 
+  (2 * summary(surv_age_quad)$coefficients[3, 1])
+h2a_age_peak <- h2a_age10_peak * 10 + age_senesce
+
+summary(surv_age_quad)$coefficients
+
+sprintf("Age peak (H2a) = %0.1f", h2a_age_peak)
+
+# H2b
+
+recr_age_quad <- glmer(
+  pup_recr_int ~ poly(age10, 2, raw = TRUE) + (1 | year_fct),
+  filter(surv_recr_data, pupsex == "F"),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
+)
+
+h2b_age10_peak <- -summary(recr_age_quad)$coefficients[2, 1] / 
+  (2 * summary(recr_age_quad)$coefficients[3, 1])
+h2b_age_peak <- h2b_age10_peak * 10 + age_senesce
+
+summary(recr_age_quad)$coefficients
+
+sprintf("Age peak (H2b) = %0.1f", h2b_age_peak)
+
+```
