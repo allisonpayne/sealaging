@@ -754,7 +754,7 @@ summary(pheno_model)
 ```{r}
 #| label: fig-pheno
 #| fig-cap: "Molting gets shorter but breeding doesn't. A: Observed annual time allocation averaged over individuals. B: Raw data for breeding and molting durations (mean ± se) and predictions (mean and 95% CI) from negative binomial weighted by number of seals obersved per year."
-#| fig-width: 4
+#| fig-width: 9
 #| fig-height: 9 
 
 phenology_unique_animals <- unique(seal_phenology$animalID)
@@ -764,6 +764,15 @@ n_phenology <- seal_phenology %>%
 #Make sample size data frame
 n_phen <- seal_phenology %>% 
   count(age)
+
+phen_dist <- seal_phenology %>% 
+  # group_by(age) %>% 
+  count(age) %>% 
+  ggplot(aes(x = age, y = n)) + 
+  geom_col(fill = "grey50") + 
+  labs(x = "Age (Years)", y = "Number of individuals") + 
+  theme()
+
 
 timing_summary <- seal_phenology %>% 
   group_by(age) %>% 
@@ -902,7 +911,7 @@ molt_duration_plot <- ggpredict(
         axis.text.y = element_text(size = 8))
   
 
-(annual_plot | breed_duration_plot | molt_duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 3)
+(annual_plot | phen_dist | breed_duration_plot | molt_duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 2, nrow = 2)
 ```
 
 Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_unique_animals)` individuals.
