@@ -174,8 +174,10 @@ summary(breed_age_mod)$coefficients
 breed_nonbreed <- sealdat %>%
   group_by(age) %>%
   summarize(n_observed = n(),
-            perc_breed = sum(observed_int) / n_observed,
-            se = (perc_breed * (1 - perc_breed) / n_observed)^0.5) %>%
+            n_breed = sum(observed_int),
+            perc_breed = n_breed / n_observed,
+            breed_lwr = binom.test(n_breed, n_observed)$conf.int[1],
+            breed_upr = binom.test(n_breed, n_observed)$conf.int[2]) %>%
   filter(age <= 20)
 
 #Create sample size data frame
@@ -261,19 +263,44 @@ ggplot(breed_pred_wgt, aes(age, predicted)) +
             linetype = "dotted",
             linewidth = 1.2,
             alpha = 0.5) +
+  # Summarized raw data
   geom_pointrange(aes(y = perc_breed,
-                      ymin = perc_breed - 1.96 * se,
-                      ymax = perc_breed + 1.96 * se),
+                      ymin = breed_lwr,
+                      ymax = breed_upr),
                   breed_nonbreed) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_y_continuous("Breeding probability", labels = scales::percent) +
+  scale_y_continuous("Breeding probability", 
+                     labels = scales::percent,
+                     limits = c(NA, 1.02),
+                     breaks = seq(0.4, 1.0, by = 0.2)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") + 
-  geom_text(aes(label = n, y = 1.1))
+  geom_text(aes(label = n), y = 1, vjust = -0.5)
 
 ggsave("outputs/repro_senesce.svg", width = 13, height = 6, units = "in")
+```
+
+```{r}
+#| label: h1-pred-deets
+
+tibble(age = c(11, 19),
+       age10 = (age - age_senesce) / 10,
+       age_cat = "Old") %>% 
+  # logit-scale predictions
+  mutate(predicted = predict(breed_age_mod, 
+                             newdata = .,
+                             re.form = NA),
+         se = suppressWarnings(predict(breed_age_mod, 
+                                       newdata = .,
+                                       se.fit = TRUE,
+                                       re.form = NA)$se.fit),
+         pred_lwr = predicted - 1.96 * se,
+         pred_upr = predicted + 1.96 * se,
+         # Invert the logit
+         across(c(predicted, pred_upr, pred_lwr), 
+                family(breed_age_mod)$linkinv))
 ```
 
 Sample size n = `r nrow(sealdat)` observations of `r n_distinct(sealdat$animalID)` individuals.
@@ -290,6 +317,7 @@ surv_recr_data <- sealdat %>%
   drop_na(pupID) %>% 
   # Only pups born 2016 or earlier (otherwise survival biased)
   filter(pupyearborn <= 2016) %>% 
+  filter(age < 20) %>% 
   mutate(pup_surv_int = as.integer(pup_survived),
          pup_recr_int = as.integer(puprecruited)) 
 
@@ -325,19 +353,25 @@ summary(pup_recr_mod)$coefficients
 #| fig-height: 8
 
 # Summarize the raw data
-surv_recr_summ <- surv_recr_data %>% 
+surv_summ <- surv_recr_data %>% 
   group_by(age) %>% 
   filter(age <= 19) %>% 
   summarize(n_pups = n(), 
-            n_fpups = sum(pupsex == "F"),
-            perc_surv = sum(pup_surv_int) / n_pups, 
-            se_surv = (perc_surv * (1 - perc_surv) / n_pups)^0.5,
-            perc_recr = sum(pup_recr_int) / n_fpups, 
-            se_recr = (perc_recr * (1 - perc_recr) / n_fpups)^0.5)
+            n_surv = sum(pup_surv_int),
+            perc_surv = n_surv / n_pups, 
+            surv_lwr = binom.test(n_surv, n_pups)$conf.int[1],
+            surv_upr = binom.test(n_surv, n_pups)$conf.int[2])
+recr_summ <- surv_recr_data %>% 
+  filter(pupsex == "F") %>% 
+  group_by(age) %>% 
+  summarize(n_fpups = n(), 
+            n_recr = sum(pup_recr_int),
+            perc_recr = n_recr / n_fpups, 
+            recr_lwr = binom.test(n_recr, n_fpups)$conf.int[1],
+            recr_upr = binom.test(n_recr, n_fpups)$conf.int[2])
 
 #Create sample size data frame
 n_surv <- surv_recr_data %>% 
-  group_by(age) %>% 
   filter(age <= 19) %>% 
   count(age)
 
@@ -406,20 +440,20 @@ fig_surv <- ggplot(surv_pred_wgt, aes(age, predicted)) +
             linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
   # Raw data
   geom_pointrange(aes(y = perc_surv, 
-                      ymin = perc_surv - se_surv, 
-                      ymax = perc_surv + se_surv),
-                  surv_recr_summ) +
+                      ymin = surv_lwr, 
+                      ymax = surv_upr),
+                  surv_summ) +
   # Senescence threshold
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring survival", 
                      labels = scales::percent,
-                     limits = c(0, 0.68)) +
+                     limits = c(0, 1)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_linetype_manual(values = c("dashed", "solid")) +
   labs(x = "Age (years)") +
-  theme(legend.position = "none") + 
-  geom_text(aes(label = n, y = .65))
+  theme(legend.position = "none") +
+  geom_text(aes(label = n), y = 1, vjust = 1)
 
 #Create sample size data frame
 n_recruit <- surv_recr_data %>% 
@@ -462,7 +496,7 @@ recr_pred <- recr_grid %>%
   # invert logit
   mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
                 family(pup_recr_mod)$linkinv)) %>% 
-        left_join(n_recruit, by = "age")
+  left_join(n_recruit, by = "age")
 
 # Predictions for each year (random effect)
 recr_pred_years <- ggpredict(
@@ -493,18 +527,18 @@ fig_recr <- ggplot(recr_pred, aes(age, predicted)) +
             linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
   # Raw data
   geom_pointrange(aes(y = perc_recr, 
-                      ymin = perc_recr - se_recr, 
-                      ymax = perc_recr + se_recr),
-                  surv_recr_summ) +
+                      ymin = recr_lwr, 
+                      ymax = recr_upr),
+                  recr_summ) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring recruitment", 
                      labels = scales::percent,
-                     limits = c(0, 0.68)) +
+                     limits = c(0, 1)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") + 
-  geom_text(aes(label = n, y = .65))
+  geom_text(aes(label = n), y = 1, vjust = 1)
 
 
 (fig_surv | fig_recr) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 2)
@@ -543,7 +577,9 @@ summary(sexrat_age_mod)$coefficients
 sexrat_summ <- pup_sex_data %>% 
   group_by(age) %>% 
   summarize(n_observed = n(), 
-            perc_male = mean(is_male), 
+            n_male = sum(is_male),
+            perc_male = n_male / n_observed, 
+            male_lwr = binom.test()
             se = (perc_male * (1 - perc_male) / n_observed)^0.5) %>% 
   filter(age <= 20)
 
@@ -1499,3 +1535,5 @@ nonbreed_resight <- with(resight_by_observed[1, ],
 ```
 
 The pattern of unobserved animals increasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection. If there was no reproductive senescence in the population, then the apparent senescence we observed would have to result from older breeders being less detectable. However, the biology of northern elephant seals makes breeding a more detectable behavior than non-breeding. Animals must come to land for an extended period to give birth and wean their pups. Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare (cite me). The only plausible explanation for unobserved animals being disproportionately breeders would be crowding at the breeding colonies, which could obscure identifying marks. However, breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders. Therefore, it is biologically implausible that the unobserved seals were disproportionately breeders and our estimates for reproductive senescence are, if anything, conservative.
+
+## Threshold vs
