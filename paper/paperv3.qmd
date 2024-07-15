@@ -579,8 +579,8 @@ sexrat_summ <- pup_sex_data %>%
   summarize(n_observed = n(), 
             n_male = sum(is_male),
             perc_male = n_male / n_observed, 
-            male_lwr = binom.test()
-            se = (perc_male * (1 - perc_male) / n_observed)^0.5) %>% 
+            male_lwr = binom.test(n_male, n_observed)$conf.int[1], 
+            male_upr = binom.test(n_male, n_observed)$conf.int[2]) %>% 
   filter(age <= 20)
 
 #Make sample size data frame
@@ -653,16 +653,18 @@ ggplot(sexrat_pred, aes(age, predicted)) +
             linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
   # Raw data
   geom_pointrange(aes(y = perc_male, 
-                      ymin = perc_male - se, 
-                      ymax = perc_male + se),
+                      ymin = male_lwr, 
+                      ymax = male_upr),
                   sexrat_summ) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  scale_y_continuous("Male offspring", labels = scales::percent) +
+  scale_y_continuous("Male offspring", 
+                     labels = scales::percent,
+                     limits = c(NA, 0.97)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") +
-  geom_text(aes(label = n, y = .95))
+  geom_text(aes(label = n), y = .97, vjust = 0)
 
 ```
 
