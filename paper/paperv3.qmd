@@ -52,7 +52,8 @@ sealdat <- read_csv(here::here("data/raw/128L pull 2023_12_05.csv"),
          lastobs = ifelse(max(year) < 2020, max(age), NA)) %>% 
   ungroup()
 
-resight <- read.csv(here::here("data/raw/fullresights.csv")) %>% 
+resight <- read_csv(here::here("data/raw/fullresights.csv"), 
+                    show_col_types = FALSE) %>% 
   select(animalID, resightID, season, date, timeofyear, calyear, yday) %>% 
   mutate(animalID = as.factor(animalID))
 
@@ -261,10 +262,10 @@ ggplot(breed_pred_wgt, aes(age, predicted)) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Breeding probability", 
                      labels = scales::percent,
-                     limits = c(NA, 1.02),
-                     breaks = seq(0.4, 1.0, by = 0.2)) +
+                     breaks = seq(0.4, 1.0, by = 0.1)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  coord_cartesian(ylim = c(0.68, 1.02)) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") + 
   geom_text(aes(label = n), y = 1, vjust = -0.5)
@@ -452,14 +453,14 @@ fig_surv <- ggplot(surv_pred_wgt, aes(age, predicted)) +
   # Senescence threshold
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring survival", 
-                     labels = scales::percent,
-                     limits = c(0, 1)) +
+                     labels = scales::percent) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_linetype_manual(values = c("dashed", "solid")) +
+  coord_cartesian(ylim = c(0, 0.6)) +
   labs(x = "Age (years)") +
-  theme(legend.position = "none") +
-  geom_text(aes(label = n), y = 1, vjust = 1)
+  theme(legend.position = "none") + 
+  geom_label(aes(label = n), y = 0.6, vjust = 1)
 
 #Create sample size data frame
 n_recruit <- surv_recr_data %>% 
@@ -538,13 +539,13 @@ fig_recr <- ggplot(recr_pred, aes(age, predicted)) +
                   recr_summ) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
   scale_y_continuous("Offspring recruitment", 
-                     labels = scales::percent,
-                     limits = c(0, 1)) +
+                     labels = scales::percent) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  coord_cartesian(ylim = c(0, 0.6)) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") + 
-  geom_text(aes(label = n), y = 1, vjust = 1)
+  geom_label(aes(label = n), y = 0.6, vjust = 1)
 
 
 (fig_surv | fig_recr) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 2)
@@ -724,12 +725,11 @@ We fit a generalized linear mixed-effects model with the duration of a phase (mo
 $$
 \begin{align}
 d &\sim NB(\mu, k) \\
-\mu &= exp(\eta) \\
-\eta &= \beta_0 + \beta_p * a + Zy
+e^\mu &= \beta_0 + \beta_p a + Zy
 \end{align}
 $$
 
-Where: $d$ is the duration of the phase in days, $NB$ is the negative binomial distribution with location $\mu$ and dispersion $k$, $\eta$ is the linear predictor, $\beta_0$ is the intercept, $\beta_p$ is the coefficient for age ($a$) by phase (i.e., for $p$ in "molting" or "breeding"), $y$ is the year, and $Z$ is the design matrix relating $y$ to $\eta$.
+Where: $d$ is the duration of the phase in days, $NB$ is the negative binomial distribution with location $\mu$ and dispersion $k$, $\beta_0$ is the intercept, $\beta_p$ is the coefficient for age ($a$) by phase (i.e., for $p$ in "molting" or "breeding"), $y$ is the year, and $Z$ is the design matrix relating $y$ to $e^\mu$.
 
 ```{r}
 #| label: pheno-model
@@ -866,7 +866,7 @@ breed_duration_plot <- ggpredict(
             .groups = "drop") %>% 
   ggplot(aes(age)) +
   geom_line(aes(age, predicted, group = interaction(phase, facet)), 
-            phen_pred_years, 
+            filter(phen_pred_years, phase == "breeddur"), 
             alpha = 0.1) + 
   geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr),
               alpha = 0.25, 
@@ -903,7 +903,7 @@ molt_duration_plot <- ggpredict(
             .groups = "drop") %>%
   ggplot(aes(age)) +
   geom_line(aes(age, predicted, group = interaction(phase, facet)), 
-            phen_pred_years, 
+            filter(phen_pred_years, phase == "moltdur"), 
             alpha = 0.1) + 
   geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr),
               alpha = 0.25, 
@@ -1029,7 +1029,7 @@ p_tbl <- tibble(age_cutoff = cutoff,
                 "H1 (breeding)" = extract_p("h1"),
                 "H2a (survival)" = extract_p("h2_surv"),
                 "H2b (recruitment)" = extract_p("h2_recr"),
-                "H3 (sex ratio)" = extract_p("h3"))
+                "H3 (sex ratio)" = extract_p("h3") * 2)
 
 knitr::kable(p_tbl)
 
@@ -1166,7 +1166,7 @@ The chronological age of an individual may not reflect their biological age beca
 # Biological age model
 breed_bioage_mod <- glmer(
   observed_int ~ bioage10 : bioage_cat + (1 | animalID) + (1 | year_fct),
-  sealdat2,
+  filter(sealdat2, bioage < 0),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
 )
@@ -1191,6 +1191,7 @@ p_by_tau <- map_dbl(-12:-3, \(tau) {
            bioage10 = (bioage - tau) / 10,
            bioage_cat = factor(bioage < tau,
                                labels = c("Old", "Young"))) %>% 
+    filter(bioage < 0) %>% 
     glmer(
       observed_int ~ bioage10 : bioage_cat + (1 | animalID) + (1 | year_fct),
       .,
@@ -1207,7 +1208,7 @@ tibble(`Biological age threshold` = -12:-3,
 # Model comparison
 breed_age_mod2 <- glmer(
   observed_int ~ age10 : age_cat + (1 | animalID) + (1 | year_fct),
-  drop_na(sealdat2, lastobs),
+  filter(sealdat2, bioage < 0),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
 )
@@ -1224,7 +1225,9 @@ chrono_bio_aicw <- chrono_bio_rellik / sum(chrono_bio_rellik)
 #| fig-cap: Breeding probability over biological age. Points and error bars are the mean ± SE of observed breeding proportions within age classes. The vertical dashed line indicates the threshold for senescence. Solid lines and ribbons are the mean and 95% CI of the population-level breeding probability, estimated by a GLMM with random effects for individual and year. The dashed lines represent the mean of yearly breeding probabilities, weighted by the number of seals observed each year, which should match the observed data more closely than the population-level probabilities.
 
 # Summarize the raw data
-bioage_summ <- sealdat2 %>% 
+bioage_summ <- sealdat2 %>%
+  # exclude n=1 age class
+  filter(bioage >= -15) %>% 
   group_by(bioage) %>% 
   summarize(n_obs = n(), 
             n_breed = sum(observed_int),
@@ -1244,14 +1247,14 @@ bioage_pred_years <- ggpredict(
          year_fct = factor(facet)) %>% 
   filter((bioage_cat == "Young" & bioage < bioage_senesce) |
            (bioage_cat == "Old" & bioage >= bioage_senesce),
-         bioage <= 20)
+         bioage >= -15)
 
 # Create WEIGHTED-AVERAGE predictions using years' random effects
 # ggpredict can't do that for confidence intervals
 # create prediction grid
 bioage_grid <- expand_grid(
-  bioage = -17:0,
-  year_fct = factor(1988:2019)
+  bioage = -15:-1,
+  year_fct = factor(1988:2018)
 ) %>% 
   mutate(bioage10 = (bioage - bioage_senesce) / 10,
          bioage_cat = factor(ifelse(bioage < bioage_senesce, "Young", "Old"),
@@ -1323,9 +1326,13 @@ The chronological age model outperformed the biological age model according to A
 
 Based on these results, we find there is evidence to support the reproductive senescence hypothesis based on chronological age. The biological age proxy, years-to-death, should be a better predictor of senescence than chronological age if most mortality is age-related. However, adult elephant seal mortality is largely influenced by extrinsic factors, primarily food availability [@colegrove2005; @holser2021]. Poor foraging conditions during El Niño years, for example, may increase mortality rates among animals whose biological age is not yet advanced. As result, the years-to-death proxy for biological age likely conflates many biologically young and old animals that died due to extrinsic factors. More accurate measures of biological age, such as telomere length [@jylhävä2017], may be necessary to investigate senescence in elephant seals and other species with high extrinsic sources of mortality from a non-chronological perspective.
 
+TODO: fix sample size for bioage=0
+
 ## Observation frequency
 
 Not all seals were detected in all years. A non-detection year during the seal's lifespan (i.e. an unobserved year between the first and last observed years) could represent an unobserved animal at Año Nuevo or temporary emigration. In either case, the animal may or may not have reproduced that year. By excluding these unobserved animals, our inferences for H1 (reproductive senescence) may be biased if detectability varies with age and/or by breeding state. Here, we assess those potential biases.
+
+TODO: include from age 4 on
 
 ```{r}
 #| label: missing-seals
@@ -1514,6 +1521,8 @@ nonbreed_resight <- with(resight_by_observed[1, ],
 The pattern of unobserved animals increasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection. If there was no reproductive senescence in the population, then the apparent senescence we observed would have to result from older breeders being less detectable. However, the biology of northern elephant seals makes breeding a more detectable behavior than non-breeding. Animals must come to land for an extended period to give birth and wean their pups. Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare (cite me). The only plausible explanation for unobserved animals being disproportionately breeders would be crowding at the breeding colonies, which could obscure identifying marks. However, breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders. Therefore, it is biologically implausible that the unobserved seals were disproportionately breeders and our estimates for reproductive senescence are, if anything, conservative.
 
 ## Breakpoint vs quadratic
+
+TODO: AIC comparison
 
 ### H1: Reproductive senescence
 
