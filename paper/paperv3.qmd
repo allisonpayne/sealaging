@@ -1024,12 +1024,22 @@ cutoff <- 8:13
 mod_sens <- map(cutoff, fit_models)
 
 # Are hypotheses supported by the model?
-extract_p <- \(h) map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
+extract_p <- function(h, tails = 1) {
+  if (tails == 1) {
+    map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
+  } else if (tails == 2) {
+    map_dbl(mod_sens, \(m) 2 * pnorm(m[[h]]["age10:age_catOld", "z value"],
+                                     lower.tail = FALSE))
+  } else {
+    stop("tails must be 1 or 2")
+  }
+}
 p_tbl <- tibble(age_cutoff = cutoff, 
                 "H1 (breeding)" = extract_p("h1"),
                 "H2a (survival)" = extract_p("h2_surv"),
                 "H2b (recruitment)" = extract_p("h2_recr"),
-                "H3 (sex ratio)" = extract_p("h3") * 2)
+                "H3 (sex ratio)" = extract_p("h3"),
+                "H3 (sex ratio; 2 tail)" = extract_p("h3", tails = 2))
 
 knitr::kable(p_tbl)
 
@@ -1041,19 +1051,24 @@ knitr::kable(p_tbl)
 
 p_tbl %>% 
   pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>%
+  mutate(hypgrp = ifelse(str_detect(hypothesis, "H3"), 
+                         "H3 (sex ratio)", 
+                         hypothesis)) %>% 
   ggplot(aes(age_cutoff, p)) +
-  geom_point() +
+  geom_point(aes(color = hypothesis == "H3 (sex ratio; 2 tail)")) +
   geom_hline(yintercept = 0.05, linetype = "dashed") +
   geom_text(aes(x, y, label = tag),
-            tibble(hypothesis = colnames(p_tbl)[-1],
+            tibble(hypgrp = colnames(p_tbl)[2:5],
                    tag = LETTERS[1:4],
                    x = 8, y = 3),
             vjust = 1,
             fontface = "bold") +
   scale_y_log10(labels = scales::number) +
+  scale_color_manual(values = c("black", "grey50")) +
   labs(x = "Senescence onset (years)") +
   expand_limits(y = 3) +
-  facet_wrap(~hypothesis)
+  facet_wrap(~hypgrp) +
+  theme(legend.position = "none")
 
 ```
 
