@@ -1306,8 +1306,23 @@ ggplot(bioage_pred_wgt, aes(bioage, predicted)) +
   geom_pointrange(aes(y = perc_breed,
                       ymin = breed_lwr,
                       ymax = breed_upr),
-                  bioage_summ) +
+                  filter(bioage_summ, bioage < 0)) +
+  geom_pointrange(aes(y = perc_breed,
+                      ymin = breed_lwr,
+                      ymax = breed_upr),
+                  color = "grey50",
+                  filter(bioage_summ, bioage == 0)) +
   geom_vline(xintercept = bioage_senesce - 0.5, linetype = "dashed") +
+  # Sample size labels
+  geom_text(aes(label = n_obs),
+            filter(bioage_summ, bioage < 0), 
+            y = 1, 
+            vjust = -0.5) +
+  geom_text(aes(label = n_obs),
+            filter(bioage_summ, bioage == 0), 
+            y = 1, 
+            vjust = -0.5,
+            color = "grey50") +
   scale_y_continuous("Breeding probability", 
                      labels = scales::percent,
                      limits = c(NA, 1.02),
@@ -1315,8 +1330,7 @@ ggplot(bioage_pred_wgt, aes(bioage, predicted)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   labs(x = "Biological age (years)") +
-  theme(legend.position = "none") + 
-  geom_text(aes(label = n), y = 1, vjust = -0.5)
+  theme(legend.position = "none")
 
 ```
 
