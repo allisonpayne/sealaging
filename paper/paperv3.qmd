@@ -69,7 +69,7 @@ Our hypotheses:
 
 3.  Offspring sex ratios shift towards males with old age.
 
-4.  Phenology (breeding haulout and molt haulout) is shifted later for older animals and breeders.
+4.  Annual cycle phenology - specifically, the duration of the molt haulout - will shift for older animals.
 
 # Results
 
@@ -80,7 +80,7 @@ n = `r n_distinct(sealdat$animalID)` distinct animals, with `r n_distinct(sealda
 ```{r}
 #| label: fig-raw-data
 #| fig-width: 9
-#| fig-cap: "A: Raw longitudinal data for 1,202 known-age female elephant seals and their observations from birth, to recruitment, to death. B: Histogram of the number of seals in each age class in the dataset."
+#| fig-cap: "A large number of elephant seals from each cohort are tagged during their birth year (yellow) and observations take place for the rest of their lives so that breeding status (greens and blues) can be assigned and compared to age. A: Raw longitudinal data for 1,203 known-age female elephant seals and their observations from birth, to recruitment, to death. B: Histogram of the number of seals in each age class in the dataset."
 
 sighting_img <- sealdat %>% 
   group_by(animalID) %>% 
@@ -171,7 +171,7 @@ summary(breed_age_mod)$coefficients
 
 ```{r}
 #| label: fig-breeding-mod
-#| fig-cap: "Breeding rates increased until age 10, then decreased from age 11 on. Black points represent mean and standard error of the observed breeding rates. The solid lines and shaded areas represent the mean and 95% confidence interval of the population-level model predictions. The observed data are unequally distributed across years, so the dotted lines indicate the predicted breeding rates averaged over years (i.e., including the random effect of year), weighted by the number of seals observed in each year."
+#| fig-cap: "Breeding probability for adult female elephant seals increased up to age 11, and decreased above it, providing evidence for reproductive senescence. Black points and error bars show the mean and 95% CI of breeding rates. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). The thick solid lines and shaded areas show the mean response and 95% confidence interval of the fitted model, weighted by the number of seals observed in each year. The unweighted fitted model is shown by the dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 # Summarize the raw data
 breed_nonbreed <- sealdat %>%
@@ -271,7 +271,9 @@ breed_plot <- ggplot(breed_pred_wgt, aes(age, predicted)) +
   theme(legend.position = "none") + 
   geom_text(aes(label = n), y = 1, vjust = -0.5)
 
-ggsave("outputs/repro_senesce.svg", breed_plot, width = 13, height = 6, units = "in")
+breed_plot
+
+#ggsave("outputs/repro_senesce.svg", breed_plot, width = 13, height = 6, units = "in")
 ```
 
 ```{r}
@@ -367,6 +369,7 @@ pnorm(summary(pup_recr_mod)$coef["age10:age_catOld", "z value"])
 #| label: fig-repro-age
 #| fig-width: 8
 #| fig-height: 8
+#| fig-cap: "Elephant seal pup survival (A) but not recruitment (B) decreased with maternal age above the threshold age of 11 years. Both males and females were included in the survival analysis, but only females were included for recruitment. This caused some values of recruitment to be higher than survival at the same maternal age. Black points and error bars show means and 95% CI of survival or recruitment for each maternal age. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). Thick dashed and solid lines show the weighted mean response and 95% CI, with solid lines indicating significant trends. The unweighted fitted model is indicated by a dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 # Summarize the raw data
 surv_summ <- surv_recr_data %>% 
@@ -605,14 +608,13 @@ tibble(age = c(11, 19),
 
 ### H3: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males, but it is not significant (@fig-sex-ratio).
+We found that as maternal age increases, the pup sex ratio does not change (@fig-sex-ratio).
 
 ```{r}
 #| label: sex-ratio
 
 pup_sex_data <- sealdat %>% 
-  filter(pupsex %in% c("M", "F"), 
-         age < 19) %>% 
+  filter(pupsex %in% c("M", "F")) %>% 
   mutate(is_male = as.integer(pupsex == "M"))
 
 sexrat_age_mod <- glmer(
@@ -629,7 +631,7 @@ pnorm(summary(sexrat_age_mod)$coef["age10:age_catOld", "z value"])
 
 ```{r}
 #| label: fig-sex-ratio
-#| fig-cap: "Offspring sex ratio skews towards males with increasing maternal age, but the result is not significant (p = 0.6). Black points show the mean and solid black lines show the standard error of the observed sex ratio."
+#| fig-cap: "Offspring sex ratio trended towards more males with maternal age above the age threshold, but the trend was not significant. Black points and error bars show the mean and 95% CI. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). Thick dashed lines show the weighted mean response and 95% CI; neither trend was significant. The unweighted fitted model is indicated by a dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 # Summarize the raw data
 sexrat_summ <- pup_sex_data %>% 
@@ -647,7 +649,7 @@ n_sexrat <- pup_sex_data %>%
 
 # Create offspring sex ratio predictions (population-level and weighted by year)
 sexrat_grid <- expand_grid(
-  age = 4:18,
+  age = 4:20,
   year_fct = factor(1988:2023)
 ) %>% 
   mutate(age10 = (age - age_senesce) / 10,
@@ -728,7 +730,7 @@ ggplot(sexrat_pred, aes(age, predicted)) +
 
 Sample size n = `r nrow(pup_sex_data)` observations of `r n_distinct(pup_sex_data$animalID)` individuals.
 
-**Note**: In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
+**Note**: In the above figure, the population-level and weighted-average lie directly on top of each other. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
 ### Phenology
 
@@ -946,8 +948,9 @@ mean_om_phen <- pheno_raw %>%
 Overall, the breeding haul out was `r mean_yb_phen$mean_yb` ± `r mean_yb_phen$sd_yb` days for animals younger than 11 years old and `r mean_ob_phen$mean_ob` ± `r mean_ob_phen$sd_ob` days for animals 11 years old and older. The molting haul out was `r mean_ym_phen$mean_ym` ± `r mean_ym_phen$sd_ym` days for animals younger than 11 years old and `r mean_om_phen$mean_om` ± `r mean_om_phen$sd_om` days for animals 11 years old and older.
 
 ```{r}
-#| label: phen-fig
+#| label: fig-phen
 #| fig-width: 8
+#| fig-cap: "Neither molting nor breeding haul out duration changed with old age. A: Raw data plotting the observed annual time allocation averaged over all n = 387 individuals. B & C: Points and error bars represent the mean and CI for haul out durations. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). Thick solid and dashed lines represent the mean response and 95% CI of the fitted model, weighted by the number of seals observed per year, with solid lines indicating significant trends. The unweighted fitted model is indicated by a dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 phenology_unique_animals <- unique(seal_phenology$animalID)
 n_phenology <- seal_phenology %>% 
@@ -1140,7 +1143,7 @@ knitr::kable(p_tbl)
 
 ```{r}
 #| label: fig-mod-sens
-#| fig-cap: Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.058.
+#| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.058."
 
 p_tbl %>% 
   pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>%
@@ -1171,7 +1174,7 @@ Age-dependent life history shifts can result from within- or between-animal chan
 
 ```{r}
 #| label: fig-selective
-#| fig-cap: The coefficient for age in the old age class in models accounting for selective appearance and disappearance. Red and blue indicate  reproductive senescence (H1) and maternal effect senescence (H2a), respectively. Compared to the base model, the appearance model includes a term for age at first reproduction, the disappearance model includes a term for age at last reproduction, and the combined model includes both.
+#| fig-cap: "The coefficient for age in the old age class in models accounting for selective appearance and disappearance. Red and blue indicate  reproductive senescence (H1) and maternal effect senescence (H2a), respectively. Compared to the base model, the appearance model includes a term for age at first reproduction, the disappearance model includes a term for age at last reproduction, and the combined model includes both."
 
 h1_selective_models <- map(
   list(
@@ -1339,7 +1342,7 @@ AIC(breed_bioage_mod, breed_age_mod2) %>%
 
 ```{r}
 #| label: fig-bio-age
-#| fig-cap: Breeding probability over biological age. Points and error bars are the mean ± SE of observed breeding proportions within age classes. The vertical dashed line indicates the threshold for senescence. Solid lines and ribbons are the mean and 95% CI of the population-level breeding probability, estimated by a GLMM with random effects for individual and year. The dashed lines represent the mean of yearly breeding probabilities, weighted by the number of seals observed each year, which should match the observed data more closely than the population-level probabilities.
+#| fig-cap: "Breeding probability over biological age. Points and error bars are the mean ± SE of observed breeding proportions within age classes. The vertical dashed line indicates the threshold for senescence. Solid lines and ribbons are the mean and 95% CI of the population-level breeding probability, estimated by a GLMM with random effects for individual and year. The dashed lines represent the mean of yearly breeding probabilities, weighted by the number of seals observed each year, which should match the observed data more closely than the population-level probabilities."
 
 # Summarize the raw data
 bioage_summ <- sealdat2 %>%
@@ -1605,9 +1608,9 @@ nonbreed_resight <- with(resight_by_observed[1, ],
 
 ```
 
-This needs to be rethought now!
+The pattern of unobserved animals decreasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection.
 
-The pattern of unobserved animals increasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection. If there was no reproductive senescence in the population, then the apparent senescence we observed would have to result from older breeders being less detectable. However, the biology of northern elephant seals makes breeding a more detectable behavior than non-breeding. Animals must come to land for an extended period to give birth and wean their pups. Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare (cite me). The only plausible explanation for unobserved animals being disproportionately breeders would be crowding at the breeding colonies, which could obscure identifying marks. However, breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders. Therefore, it is biologically implausible that the unobserved seals were disproportionately breeders and our estimates for reproductive senescence are, if anything, conservative.
+Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare. Breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders.
 
 ## Breakpoint vs quadratic
 
