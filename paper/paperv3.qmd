@@ -214,6 +214,7 @@ breed_grid <- expand_grid(
                           levels = c("Young", "Old")))
   
 seal_years <- count(sealdat, year_fct)
+
 breed_pred_wgt <- breed_grid %>% 
   mutate(predicted = predict(breed_age_mod, 
                              newdata = breed_grid,
@@ -238,7 +239,15 @@ breed_pred_wgt <- breed_grid %>%
   # invert logit
   mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
                 family(breed_age_mod)$linkinv)) %>% 
-  left_join(n_breed, by = "age")
+  left_join(n_breed, by = "age") 
+
+breed_pred_wgt %>% filter(age > 9, 
+                          age <13) %>% 
+  summarize(mean_breed = mean(predicted))
+
+breed_pred_wgt %>% 
+  mutate(perc_pop = n/sum(n), 
+         pred_pups = n * predicted)
   
 breed_plot <- ggplot(breed_pred_wgt, aes(age, predicted)) +
   # Predictions for individual years
@@ -346,7 +355,7 @@ pup_recr_mod <- glmer(
   # NOTE: no random effect for individual bc singular fit
   # In survival model, 93 individuals (15%) had >3 pups (male+female pups)
   # In recruit model, only 17 individuals (4%) had >3 pups (female pups only)
-  pup_recr_int ~ age10 : age_cat + (1 | year_fct),
+  pup_recr_int ~ age10 : age_cat + (1 | year_fct) + (1 | animalID),
   filter(surv_recr_data, pupsex == "F"),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -771,8 +780,9 @@ pheno_model <- seal_phenology %>%
   pivot_longer(moltdur:breeddur, 
                names_to = "phase", 
                values_to = "dur_days") %>% 
-  glmer.nb(dur_days ~ age10:phase:age_cat + (1 | year_fct), 
-           data = .)
+  glmer(dur_days ~ age10:phase:age_cat + (1 | year_fct) + (1 | animalID), 
+        data = ., 
+        family = Gamma(link = "log"))
 
 summary(pheno_model)
 
@@ -928,24 +938,16 @@ molt_duration_plot <- pheno_pred %>%
 ```{r}
 
 mean_yb_phen <- pheno_raw %>% 
-  filter(age < age_senesce, phase == "breeddur") %>% 
-  summarize(mean_yb = mean(dur_days), 
-            sd_yb = sd(dur_days))
+  filter(age == 4, phase == "breeddur") 
 mean_ob_phen <- pheno_raw %>% 
-  filter(age >= age_senesce, phase == "breeddur") %>% 
-  summarize(mean_ob = mean(dur_days), 
-            sd_ob = sd(dur_days))
+  filter(age == 11, phase == "breeddur")
 mean_ym_phen <- pheno_raw %>% 
-  filter(age < age_senesce, phase == "moltdur") %>% 
-  summarize(mean_ym = mean(dur_days), 
-            sd_ym = sd(dur_days))
+  filter(age == 4, phase == "moltdur")
 mean_om_phen <- pheno_raw %>% 
-  filter(age >= age_senesce, phase == "moltdur") %>% 
-  summarize(mean_om = mean(dur_days), 
-            sd_om = sd(dur_days))
+  filter(age == 11, phase == "moltdur") 
 ```
 
-Overall, the breeding haul out was `r mean_yb_phen$mean_yb` ± `r mean_yb_phen$sd_yb` days for animals younger than 11 years old and `r mean_ob_phen$mean_ob` ± `r mean_ob_phen$sd_ob` days for animals 11 years old and older. The molting haul out was `r mean_ym_phen$mean_ym` ± `r mean_ym_phen$sd_ym` days for animals younger than 11 years old and `r mean_om_phen$mean_om` ± `r mean_om_phen$sd_om` days for animals 11 years old and older.
+Overall, the breeding haul out was `r mean_yb_phen$dur_days` (`r mean_yb_phen$dur_days_lwr` - `r mean_yb_phen$dur_days_upr`) days for 4 year olds and `r mean_ob_phen$dur_days` (`r mean_ob_phen$dur_days_lwr` - `r mean_ob_phen$dur_days_upr`) days for 11 year old animals. The molting haul out was `r mean_ym_phen$dur_days` (`r mean_ym_phen$dur_days_lwr` - `r mean_ym_phen$dur_days_upr`) days for 4 year olds and `r mean_om_phen$dur_days` (`r mean_om_phen$dur_days_lwr` - `r mean_om_phen$dur_days_upr`) days for animals 11 years old and older.
 
 ```{r}
 #| label: fig-phen
@@ -1697,4 +1699,71 @@ pmap(list(break_mod = list(breed_age_mod, pup_surv_mod, pup_recr_mod),
      aic) %>% 
   list_rbind() %>% 
   knitr::kable()
+```
+
+## Population dynamics?
+
+What effect does senescence have on reproduction and offspring survival? First, calculate the total pup production of the age-structured population in one year. Then, let's pretend senescence *doesn't happen*. In this hypothetical population, all animals older than 11 years old reproduce like an 11 year old. How many more pups would that population produce? And how many more of those pups would survive to reproductive age?
+
+The observed pup production (in the age-structured population) is:
+
+$$
+\pi_{1a} = \frac{\sum_{a=4}^{20} b(a)n(a)}{\sum_{a=4}^{20} n(a)}
+$$
+
+Where $\pi_1$ is pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.
+
+Hypothetical pup production in a non-senescing population is:
+
+$$
+\pi_{2a} = \frac{\sum_{a=4}^{11} b(a) n(a) + \sum_{a=12}^{20} b(11) n(a)}{\sum_{a=4}^{20}n(a)}
+$$
+
+I.e., $b$ does not decline post-age 11.
+
+Similarly, the observed and hypothetical quantity of pups that survive to adulthood adds a term $s$ for offspring survival.
+
+$$
+\pi_{1b} = \frac{\sum_{a=4}^{20} b(a) n(a) s(a)}{\sum_{a=4}^{20} n(a)}
+$$
+
+$$
+\pi_{2b} = \frac{\sum_{a=4}^{11} b(a) n(a) s(a) + \sum_{a=12}^{20} b(11) n(a) (s11)}{\sum_{a=4}^{20}n(a)}
+$$
+
+```{r}
+#| label: popdy
+
+# a, b, n, and s 
+popdy_df <- count(sealdat, age) %>% 
+  filter(age <= 20) %>% 
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old"))) %>% 
+  mutate(b = predict(breed_age_mod, newdata = ., re.form = NA, type = "response"),
+         s = predict(pup_surv_mod, newdata = ., re.form = NA, type = "response"))
+
+# pup production (pi1a and pi2a)
+pi1a <- with(popdy_df, sum(b * n) / sum(n)) 
+
+b11 <- popdy_df$b[popdy_df$age == 11]
+pi2a <- with(popdy_df, sum(ifelse(age > 11, b11, b) * n) / sum(n))
+
+# Survivng offspring (pi1b and pi2b)
+pi1b <- with(popdy_df, sum(b * n * s) / sum(n))
+
+s11 <- popdy_df$s[popdy_df$age == 11]
+pi2b <- with(popdy_df, sum(ifelse(age > 11, b11 * s11, b * s) * n) / sum(n))
+
+
+str_glue("
+pi1a: {round(pi1a, 5)}
+pi2a: {round(pi2a, 5)}
+pi1b: {round(pi1b, 5)}
+pi2b: {round(pi2b, 5)}")
+
+str_glue("
+delta pi a {round(100 * (pi1a - pi2a) / pi2a, 2)}%,
+delta pi b {round(100 * (pi1b - pi2b) / pi2b, 2)}%")
+
 ```
