@@ -1701,6 +1701,68 @@ pmap(list(break_mod = list(breed_age_mod, pup_surv_mod, pup_recr_mod),
   knitr::kable()
 ```
 
+## Nursing duration
+
+What's the mean and 95% CI duration of nursing? [@reiter1981] provide the following information in Table III:
+
++-------+----------+----------+----------+----------+----------+----------+----------+
+| 2     | 3        | 4        | 5        | 6        | 7        | 8        | 9        |
++=======+==========+==========+==========+==========+==========+==========+==========+
+| 22±0  | 23.7±1.6 | 26.6±1.6 | 26.1±1.9 | 26.5±2.2 | 27.1±1.2 | 28.2±0.8 | 28.5±0.7 |
+|       |          |          |          |          |          |          |          |
+| \(1\) | \(9\)    | \(24\)   | \(12\)   | \(6\)    | \(8\)    | \(5\)    | \(2\)    |
++-------+----------+----------+----------+----------+----------+----------+----------+
+
+Where the column names are the age of the seal in years, and row values indicate mean±SD (n). To get the mean and 95% CI duration of nursing, we pooled the samples for mothers age 4 and up (i.e., excluded 2- and 3-year olds).
+
+The formulas we used for pooling the variances come from [@oneill2014].
+
+```{r}
+#| label: pooled-nursing
+
+# N, mean, and SD from Reiter et al. (1981) Table III for 4+ yo mothers
+n <- c(24, 12, 6, 8, 5, 2)
+m <- c(26.6, 26.1, 26.5, 27.1, 28.2, 28.5)
+s <- c(1.6, 1.9, 2.2, 1.2, 0.8, 0.7)
+
+# Function for pooling two samples
+pool_samples <- function(sample1, sample2) {
+  # sample1 and sample2 must be numeric vectors of length 3 with names v, m, and n
+  is_valid <- function(x) {
+    is.numeric(x) &&
+      is.vector(x) &&
+      (length(x) == 3) &&
+      all(c("v", "m", "n") %in% names(x))
+  }
+
+  if (!(is_valid(sample1) && is_valid(sample2))) 
+    stop("sample1 and sample2 must be numeric vectors of length 3 with names v, m, and n (variance, mean, and number of elements)")
+  
+  v1 <- sample1["v"]
+  m1 <- sample1["m"]
+  n1 <- sample1["n"]
+  v2 <- sample2["v"]
+  m2 <- sample2["m"]
+  n2 <- sample2["n"]
+  
+  n3 <- n1 + n2
+  m3 <- weighted.mean(c(m1, m2), c(n1, n2))
+  v3 <- 1 / (n1 + n2 - 1) * ((n1 - 1) * v1 + (n2 - 1) * v2 + n1 * n2 / (n1 + n2) * (m1 - m2)^2)
+  result <- c(v3, m3, n3)
+  names(result) <- c("v", "m", "n")
+  result
+}
+
+# Pool the samples iteratively using reduction
+samples <- pmap(list(n, m, s), \(.n, .m, .s) c(v = .s^2, m = .m, n = .n))
+pooled_samples <- reduce(samples, pool_samples)
+
+sprintf("%0.1f (95%%CI: %0.1f - %0.1f)", 
+        pooled_samples["m"],
+        pooled_samples["m"] - 1.96 * sqrt(pooled_samples["v"]),
+        pooled_samples["m"] + 1.96 * sqrt(pooled_samples["v"]))
+```
+
 ## Population dynamics?
 
 What effect does senescence have on reproduction and offspring survival? First, calculate the total pup production of the age-structured population in one year. Then, let's pretend senescence *doesn't happen*. In this hypothetical population, all animals older than 11 years old reproduce like an 11 year old. How many more pups would that population produce? And how many more of those pups would survive to reproductive age?
@@ -1708,7 +1770,7 @@ What effect does senescence have on reproduction and offspring survival? First, 
 The observed pup production (in the age-structured population) is:
 
 $$
-\pi_{1a} = \frac{\sum_{a=4}^{20} b(a)n(a)}{\sum_{a=4}^{20} n(a)}
+\pi_{1a} = \frac{\sum_{a=4}^{20} b_a n_a}{\sum_{a=4}^{20} n_a}
 $$
 
 Where $\pi_1$ is pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.
@@ -1716,7 +1778,7 @@ Where $\pi_1$ is pup production per mother per year by the age-structured popula
 Hypothetical pup production in a non-senescing population is:
 
 $$
-\pi_{2a} = \frac{\sum_{a=4}^{11} b(a) n(a) + \sum_{a=12}^{20} b(11) n(a)}{\sum_{a=4}^{20}n(a)}
+\pi_{2a} = \frac{\sum_{a=4}^{11} b_a n_a + \sum_{a=12}^{20} b_{11} n_a}{\sum_{a=4}^{20}n_a}
 $$
 
 I.e., $b$ does not decline post-age 11.
@@ -1724,11 +1786,11 @@ I.e., $b$ does not decline post-age 11.
 Similarly, the observed and hypothetical quantity of pups that survive to adulthood adds a term $s$ for offspring survival.
 
 $$
-\pi_{1b} = \frac{\sum_{a=4}^{20} b(a) n(a) s(a)}{\sum_{a=4}^{20} n(a)}
+\pi_{1b} = \frac{\sum_{a=4}^{20} b_a n_a s_a}{\sum_{a=4}^{20} n_a}
 $$
 
 $$
-\pi_{2b} = \frac{\sum_{a=4}^{11} b(a) n(a) s(a) + \sum_{a=12}^{20} b(11) n(a) (s11)}{\sum_{a=4}^{20}n(a)}
+\pi_{2b} = \frac{\sum_{a=4}^{11} b_a n_a s_a + \sum_{a=12}^{20} b_{11} n_a s_{11}}{\sum_{a=4}^{20} n_a}
 $$
 
 ```{r}
@@ -1765,5 +1827,4 @@ pi2b: {round(pi2b, 5)}")
 str_glue("
 delta pi a {round(100 * (pi1a - pi2a) / pi2a, 2)}%,
 delta pi b {round(100 * (pi1b - pi2b) / pi2b, 2)}%")
-
 ```
