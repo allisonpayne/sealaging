@@ -177,7 +177,8 @@ for(i in rows){ #for each row of those rows
 }
 
 #subset to females only here (moms) for the main dataset
-final = final %>% filter(tagsex=="F")
+final = final %>% filter(tagsex=="F") %>% 
+  select(-c(numbreed, firstyearindicator, indices, tagsex))
 
 write.csv(final,here::here("data/raw/128L pull 2023_12_05.csv"),
           row.names=FALSE)

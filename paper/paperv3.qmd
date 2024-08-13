@@ -69,7 +69,7 @@ Our hypotheses:
 
 3.  Offspring sex ratios shift towards males with old age.
 
-4.  Phenology (breeding haulout and molt haulout) is shifted later for older animals and breeders.
+4.  Annual cycle phenology - specifically, the duration of the molt haulout - will shift for older animals.
 
 # Results
 
@@ -80,7 +80,7 @@ n = `r n_distinct(sealdat$animalID)` distinct animals, with `r n_distinct(sealda
 ```{r}
 #| label: fig-raw-data
 #| fig-width: 9
-#| fig-cap: "A: Raw longitudinal data for 1,202 known-age female elephant seals and their observations from birth, to recruitment, to death. B: Histogram of the number of seals in each age class in the dataset."
+#| fig-cap: "A large number of elephant seals from each cohort are tagged during their birth year (yellow) and observations take place for the rest of their lives so that breeding status (greens and blues) can be assigned and compared to age. A: Raw longitudinal data for 1,203 known-age female elephant seals and their observations from birth, to recruitment, to death. B: Histogram of the number of seals in each age class in the dataset."
 
 sighting_img <- sealdat %>% 
   group_by(animalID) %>% 
@@ -117,6 +117,7 @@ sighting_img <- sealdat %>%
   ungroup() %>% 
   arrange(yearborn, lastrepro, animalID) %>% 
   mutate(animalID = factor(animalID, levels = unique(animalID))) %>% 
+  filter(year > 1987) %>% 
   ggplot(aes(year, animalID)) +
   geom_raster(aes(fill = observed)) +
   scale_fill_viridis_d(direction = -1) +
@@ -129,7 +130,7 @@ sighting_img <- sealdat %>%
         axis.ticks.y = element_blank(),
         axis.title.x = element_blank(),
         legend.title = element_blank(),
-        # legend.position.inside = c(0.01, 0.99),
+        legend.position = c(0.1, 0.95),
         legend.justification = c(0, 1),
         legend.background = element_blank(),
         legend.key.size = unit(4, "mm"),
@@ -170,7 +171,7 @@ summary(breed_age_mod)$coefficients
 
 ```{r}
 #| label: fig-breeding-mod
-#| fig-cap: "Breeding rates increased until age 10, then decreased from age 11 on. Black points represent mean and standard error of the observed breeding rates. The solid lines and shaded areas represent the mean and 95% confidence interval of the population-level model predictions. The observed data are unequally distributed across years, so the dotted lines indicate the predicted breeding rates averaged over years (i.e., including the random effect of year), weighted by the number of seals observed in each year."
+#| fig-cap: "Breeding probability for adult female elephant seals increased up to age 11, and decreased above it, providing evidence for reproductive senescence. Black points and error bars show the mean and 95% CI of breeding rates. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). The thick solid lines and shaded areas show the mean response and 95% confidence interval of the fitted model, weighted by the number of seals observed in each year. The unweighted fitted model is shown by the dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 # Summarize the raw data
 breed_nonbreed <- sealdat %>%
@@ -213,6 +214,7 @@ breed_grid <- expand_grid(
                           levels = c("Young", "Old")))
   
 seal_years <- count(sealdat, year_fct)
+
 breed_pred_wgt <- breed_grid %>% 
   mutate(predicted = predict(breed_age_mod, 
                              newdata = breed_grid,
@@ -237,9 +239,17 @@ breed_pred_wgt <- breed_grid %>%
   # invert logit
   mutate(across(c(predicted, predicted_pop, conf_lo, conf_hi), 
                 family(breed_age_mod)$linkinv)) %>% 
-  left_join(n_breed, by = "age")
+  left_join(n_breed, by = "age") 
+
+breed_pred_wgt %>% filter(age > 9, 
+                          age <13) %>% 
+  summarize(mean_breed = mean(predicted))
+
+breed_pred_wgt %>% 
+  mutate(perc_pop = n/sum(n), 
+         pred_pups = n * predicted)
   
-ggplot(breed_pred_wgt, aes(age, predicted)) +
+breed_plot <- ggplot(breed_pred_wgt, aes(age, predicted)) +
   # Predictions for individual years
   geom_line(aes(group = interaction(age_cat, year_fct)),
             breed_pred_years,
@@ -270,11 +280,15 @@ ggplot(breed_pred_wgt, aes(age, predicted)) +
   theme(legend.position = "none") + 
   geom_text(aes(label = n), y = 1, vjust = -0.5)
 
-ggsave("outputs/repro_senesce.svg", width = 13, height = 6, units = "in")
+breed_plot
+
+#ggsave("outputs/repro_senesce.svg", breed_plot, width = 13, height = 6, units = "in")
 ```
 
 ```{r}
 #| label: h1-pred-deets
+
+pnorm(summary(breed_age_mod)$coef["age10:age_catOld", "z value"])
 
 #Overall decline 11-19
 tibble(age = c(11, 19),
@@ -341,7 +355,7 @@ pup_recr_mod <- glmer(
   # NOTE: no random effect for individual bc singular fit
   # In survival model, 93 individuals (15%) had >3 pups (male+female pups)
   # In recruit model, only 17 individuals (4%) had >3 pups (female pups only)
-  pup_recr_int ~ age10 : age_cat + (1 | year_fct),
+  pup_recr_int ~ age10 : age_cat + (1 | year_fct) + (1 | animalID),
   filter(surv_recr_data, pupsex == "F"),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -352,12 +366,19 @@ summary(pup_surv_mod)$coefficients
 "Recruitment"
 summary(pup_recr_mod)$coefficients
 
+#survival 1 tailed
+pnorm(summary(pup_surv_mod)$coef["age10:age_catOld", "z value"])
+#recruit 1 tailed
+pnorm(summary(pup_recr_mod)$coef["age10:age_catOld", "z value"])
+
+
 ```
 
 ```{r}
 #| label: fig-repro-age
 #| fig-width: 8
 #| fig-height: 8
+#| fig-cap: "Elephant seal pup survival (A) but not recruitment (B) decreased with maternal age above the threshold age of 11 years. Both males and females were included in the survival analysis, but only females were included for recruitment. This caused some values of recruitment to be higher than survival at the same maternal age. Black points and error bars show means and 95% CI of survival or recruitment for each maternal age. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). Thick dashed and solid lines show the weighted mean response and 95% CI, with solid lines indicating significant trends. The unweighted fitted model is indicated by a dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 # Summarize the raw data
 surv_summ <- surv_recr_data %>% 
@@ -458,14 +479,17 @@ fig_surv <- ggplot(surv_pred_wgt, aes(age, predicted)) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   scale_linetype_manual(values = c("dashed", "solid")) +
   coord_cartesian(ylim = c(0, 0.6)) +
-  labs(x = "Age (years)") +
-  theme(legend.position = "none") + 
-  geom_label(aes(label = n), y = 0.6, vjust = 1)
+  theme(legend.position = "none", 
+        axis.title.x = element_blank()) + 
+  geom_text(aes(label = n), y = 0.6, vjust = 1, nudge_x = 0.2)
 
 #Create sample size data frame
 n_recruit <- surv_recr_data %>% 
   filter(pupsex == "F") %>% 
   count(age)
+n_recruit_indiv <- surv_recr_data %>% 
+  filter(pupsex == "F") %>% 
+  group_by(animalID)
 
 # Create pup recruitment predictions (population-level and weighted by year)
 recr_grid <- expand_grid(
@@ -545,14 +569,14 @@ fig_recr <- ggplot(recr_pred, aes(age, predicted)) +
   coord_cartesian(ylim = c(0, 0.6)) +
   labs(x = "Age (years)") +
   theme(legend.position = "none") + 
-  geom_label(aes(label = n), y = 0.6, vjust = 1)
+  geom_text(aes(label = n), y = 0.6, vjust = 1, nudge_x = 0.2)
 
 
 (fig_surv | fig_recr) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 1, nrow = 2)
   
 ```
 
-Sample size for offspring survival was n = `r nrow(surv_recr_data)` observations of `r n_distinct(surv_recr_data$animalID)` individuals. Sample size for offspring recruitment was n = `r nrow(n_recruit)` observations of `r n_distinct(n_recruit$animalID)` female individuals.
+Sample size for offspring survival was n = `r nrow(surv_recr_data)` observations of `r n_distinct(surv_recr_data$animalID)` individuals. Sample size for offspring recruitment was n = `r n_distinct(n_recruit_indiv)` observations of `r n_distinct(n_recruit_indiv$animalID)` female individuals.
 
 ```{r}
 #| label: h2-pred-deets
@@ -593,14 +617,13 @@ tibble(age = c(11, 19),
 
 ### H3: Changes in pup sex ratio with increased maternal age
 
-We found that as maternal age increases, pup sex skews slightly towards males, but it is not significant (@fig-sex-ratio).
+We found that as maternal age increases, the pup sex ratio does not change (@fig-sex-ratio).
 
 ```{r}
 #| label: sex-ratio
 
 pup_sex_data <- sealdat %>% 
-  filter(pupsex %in% c("M", "F"), 
-         age < 19) %>% 
+  filter(pupsex %in% c("M", "F")) %>% 
   mutate(is_male = as.integer(pupsex == "M"))
 
 sexrat_age_mod <- glmer(
@@ -610,12 +633,14 @@ sexrat_age_mod <- glmer(
 )
 
 summary(sexrat_age_mod)$coefficients
+pnorm(summary(sexrat_age_mod)$coef["age10:age_catOld", "z value"])
+
 
 ```
 
 ```{r}
 #| label: fig-sex-ratio
-#| fig-cap: "Offspring sex ratio skews towards males with increasing maternal age, but the result is not significant (p = 0.6). Black points show the mean and solid black lines show the standard error of the observed sex ratio."
+#| fig-cap: "Offspring sex ratio trended towards more males with maternal age above the age threshold, but the trend was not significant. Black points and error bars show the mean and 95% CI. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). Thick dashed lines show the weighted mean response and 95% CI; neither trend was significant. The unweighted fitted model is indicated by a dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 # Summarize the raw data
 sexrat_summ <- pup_sex_data %>% 
@@ -633,7 +658,7 @@ n_sexrat <- pup_sex_data %>%
 
 # Create offspring sex ratio predictions (population-level and weighted by year)
 sexrat_grid <- expand_grid(
-  age = 4:18,
+  age = 4:20,
   year_fct = factor(1988:2023)
 ) %>% 
   mutate(age10 = (age - age_senesce) / 10,
@@ -706,7 +731,7 @@ ggplot(sexrat_pred, aes(age, predicted)) +
                      limits = c(NA, 0.97)) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
-  labs(x = "Age (years)") +
+  labs(x = "Maternal age (years)") +
   theme(legend.position = "none") +
   geom_text(aes(label = n), y = .97, vjust = 0)
 
@@ -714,7 +739,7 @@ ggplot(sexrat_pred, aes(age, predicted)) +
 
 Sample size n = `r nrow(pup_sex_data)` observations of `r n_distinct(pup_sex_data$animalID)` individuals.
 
-**Note**: In the above figure, the population-level and weighted-average would lie directly on top of each other, so we've excluded the weighted average. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
+**Note**: In the above figure, the population-level and weighted-average lie directly on top of each other. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
 ### Phenology
 
@@ -755,10 +780,12 @@ pheno_model <- seal_phenology %>%
   pivot_longer(moltdur:breeddur, 
                names_to = "phase", 
                values_to = "dur_days") %>% 
-  glmer.nb(dur_days ~ age10:phase:age_cat + (1 | year_fct), 
-           data = .)
+  glmer(dur_days ~ age10:phase:age_cat + (1 | year_fct) + (1 | animalID), 
+        data = ., 
+        family = Gamma(link = "log"))
 
 summary(pheno_model)
+
 
 ```
 
@@ -841,7 +868,7 @@ pheno_raw <- seal_phenology %>%
             dur_days_lwr = dur_days - dur_days_se,
             dur_days_upr = dur_days + dur_days_se,
             .groups = "drop")
-
+  
 breed_duration_plot <- pheno_pred %>% 
   filter(phase == "breeddur") %>% 
   ggplot(aes(age)) +
@@ -849,6 +876,9 @@ breed_duration_plot <- pheno_pred %>%
   geom_line(aes(age, predicted, group = interaction(phase, age_cat, year_fct)), 
             filter(phen_pred_years, phase == "breeddur"),
             alpha = 0.1) + 
+    # Population-level mean response
+  geom_line(aes(y = predicted_pop, group = age_cat),
+            linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
   # Weighted model (CI + mean)
   geom_ribbon(aes(ymin = conf_lo, ymax = conf_hi, fill = age_cat),
               alpha = 0.25) +
@@ -858,20 +888,18 @@ breed_duration_plot <- pheno_pred %>%
                       ymin = dur_days_lwr, 
                       ymax = dur_days_upr),
                   filter(pheno_raw, phase == "breeddur"),
-                  position = position_dodge(width = 0.5)) +
-    # Population-level mean response
-  geom_line(aes(y = predicted_pop, group = age_cat),
-            linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
+                  position = position_dodge(width = 0.5), 
+                  size = 0.2) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  geom_text(aes(label = n), y = 36.5, vjust = 0) +
+  geom_text(aes(label = n), y = 36.5, vjust = 0, size = 3) +
   scale_linetype_manual(values = c("solid", "dashed")) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
-  scale_y_continuous(limits = c(15, 37)) +
-  labs(x = "Maternal age (years)",
-       y = "Breeding haul out (days)") +
+  scale_y_continuous(limits = c(15, 40)) +
+  labs(y = "Breeding haul out (days)") +
   theme(legend.position = "none",
-        axis.text.y = element_text(size = 8))
+        axis.text.y = element_text(size = 6), 
+        axis.title.x = element_blank())
 
 molt_duration_plot <- pheno_pred %>% 
   filter(phase == "moltdur") %>% 
@@ -880,6 +908,9 @@ molt_duration_plot <- pheno_pred %>%
   geom_line(aes(age, predicted, group = interaction(phase, age_cat, year_fct)), 
             filter(phen_pred_years, phase == "moltdur"),
             alpha = 0.1) + 
+    # Population-level mean response
+   geom_line(aes(y = predicted_pop, group = age_cat),
+             linetype = "dotted", linewidth = 1.2, alpha = 0.2) +
   # Weighted model (CI + mean)
   geom_ribbon(aes(ymin = conf_lo, ymax = conf_hi, fill = age_cat),
               alpha = 0.25) +
@@ -889,24 +920,39 @@ molt_duration_plot <- pheno_pred %>%
                       ymin = dur_days_lwr, 
                       ymax = dur_days_upr),
                   filter(pheno_raw, phase == "moltdur"),
-                  position = position_dodge(width = 0.5)) +
-    # Population-level mean response
-  geom_line(aes(y = predicted_pop, group = age_cat),
-            linetype = "dotted", linewidth = 1.2, alpha = 0.5) +
+                  position = position_dodge(width = 0.5), 
+                  size = 0.2) +
   geom_vline(xintercept = age_senesce - 0.5, linetype = "dashed") +
-  geom_text(aes(label = n), y = 36.5, vjust = 0) +
+  geom_text(aes(label = n), y = 36.5, vjust = 0, size = 3) +
   scale_linetype_manual(values = c("solid", "dashed")) +
   scale_color_manual(values = c("#7fbc41", "#de77ae")) +
   scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
-  scale_y_continuous(limits = c(15, 37)) +
+  scale_y_continuous(limits = c(15, 40)) +
   labs(x = "Maternal age (years)",
        y = "Molt haul out (days)") +
   theme(legend.position = "none",
-        axis.text.y = element_text(size = 8))
+        axis.text.y = element_text(size = 6))
 
 ```
 
 ```{r}
+
+mean_yb_phen <- pheno_raw %>% 
+  filter(age == 4, phase == "breeddur") 
+mean_ob_phen <- pheno_raw %>% 
+  filter(age == 11, phase == "breeddur")
+mean_ym_phen <- pheno_raw %>% 
+  filter(age == 4, phase == "moltdur")
+mean_om_phen <- pheno_raw %>% 
+  filter(age == 11, phase == "moltdur") 
+```
+
+Overall, the breeding haul out was `r mean_yb_phen$dur_days` (`r mean_yb_phen$dur_days_lwr` - `r mean_yb_phen$dur_days_upr`) days for 4 year olds and `r mean_ob_phen$dur_days` (`r mean_ob_phen$dur_days_lwr` - `r mean_ob_phen$dur_days_upr`) days for 11 year old animals. The molting haul out was `r mean_ym_phen$dur_days` (`r mean_ym_phen$dur_days_lwr` - `r mean_ym_phen$dur_days_upr`) days for 4 year olds and `r mean_om_phen$dur_days` (`r mean_om_phen$dur_days_lwr` - `r mean_om_phen$dur_days_upr`) days for animals 11 years old and older.
+
+```{r}
+#| label: fig-phen
+#| fig-width: 8
+#| fig-cap: "Neither molting nor breeding haul out duration changed with old age. A: Raw data plotting the observed annual time allocation averaged over all n = 387 individuals. B & C: Points and error bars represent the mean and CI for haul out durations. Sample sizes for each age class are included above the points. Thin gray lines show the mean response for each year of the study (i.e., including the random effect of year). Thick solid and dashed lines represent the mean response and 95% CI of the fitted model, weighted by the number of seals observed per year, with solid lines indicating significant trends. The unweighted fitted model is indicated by a dotted gray line. The weighted model is emphasized because of the large impact of the random effect of year."
 
 phenology_unique_animals <- unique(seal_phenology$animalID)
 n_phenology <- seal_phenology %>% 
@@ -952,11 +998,11 @@ annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
   scale_x_continuous("Maternal age (years)", expand = expansion(mult = 0)) +
   scale_y_continuous("Day of year", expand = expansion(mult = 0)) +
     geom_text(aes(label = "Breeding haul out"), 
-            x = 8,
+            x = 9,
             y = 30,
             color = "white") +
     geom_text(aes(label = "Molting haul out"), 
-            x = 8,
+            x = 9,
             y = 135,
             color = "white") + 
       geom_text(aes(label = "Foraging"), 
@@ -966,106 +1012,15 @@ annual_plot <- ggplot(timing_summary, aes(x = age, y = doy, fill = event)) +
   theme(panel.spacing = unit(1, "lines"), 
         legend.position = "none") 
 
-pheno_raw <- seal_phenology %>% 
-  select(breeddur, moltdur, age) %>% 
-  pivot_longer(c(breeddur, moltdur), 
-               names_to = "phase", 
-               values_to = "dur_days") %>% 
-  group_by(age, phase) %>% 
-  summarize(n = n(),
-            dur_days_se = sd(dur_days) / sqrt(n),
-            dur_days = mean(dur_days),
-            dur_days_lwr = dur_days - dur_days_se,
-            dur_days_upr = dur_days + dur_days_se,
-            .groups = "drop")
+design <- "
+  12
+  13
+"
 
-phen_pred_years <- ggpredict(
-  pheno_model,
-  terms = c("age10 [all]", "phase", "year [all]"),
-  type = "random",
-  interval = "confidence"
-) %>% 
-  as_tibble() %>% 
-  mutate(age = x * 10,
-         phase = group)
-
-breed_pheno_raw <- pheno_raw[pheno_raw$phase == "breeddur",]
-molt_pheno_raw <- pheno_raw[pheno_raw$phase == "moltdur",]
-
-breed_duration_plot <- ggpredict(
-  pheno_model, 
-  terms = c("age10 [all]", "phase", "year [all]")
-) %>% 
-  as_tibble() %>% 
-  transmute(age = x * 10,
-            dur_days = predicted,
-            dur_days_lwr = conf.low,
-            dur_days_upr = conf.high,
-            phase = group,
-            year = as.numeric(as.character(facet))) %>% 
-  left_join(n_phenology, by = "year") %>% 
-  group_by(age) %>% 
-  filter(phase == "breeddur") %>% 
-  summarize(across(starts_with("dur_days"), \(x) weighted.mean(x, n)),
-            .groups = "drop") %>% 
-  ggplot(aes(age)) +
-  geom_line(aes(age, predicted, group = interaction(phase, facet)), 
-            filter(phen_pred_years, phase == "breeddur"), 
-            alpha = 0.1) + 
-  geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr),
-              alpha = 0.25, 
-              fill = "#D05794") +
-  geom_pointrange(aes(y = dur_days, 
-                      ymin = dur_days_lwr, 
-                      ymax = dur_days_upr),
-                  breed_pheno_raw,
-                  position = position_dodge(width = 0.5), 
-                  color = "#D05794") +
-  geom_line(aes(y = dur_days), 
-            linetype = "dashed", 
-            color = "#D05794") +
-  labs(x = "Maternal age (years)",
-       y = "Breeding haul out (days)") +
-  theme(legend.position = "none",
-        axis.text.y = element_text(size = 8))
-
-molt_duration_plot <- ggpredict(
-  pheno_model,
-  terms = c("age10 [all]", "phase", "year [all]")
-) %>%
-  as_tibble() %>%
-  transmute(age = x * 10,
-            dur_days = predicted,
-            dur_days_lwr = conf.low,
-            dur_days_upr = conf.high,
-            phase = group,
-            year = as.numeric(as.character(facet))) %>%
-  left_join(n_phenology, by = "year") %>%
-  group_by(age, phase) %>%
-  filter(phase == "moltdur") %>%
-  summarize(across(starts_with("dur_days"), \(x) weighted.mean(x, n)),
-            .groups = "drop") %>%
-  ggplot(aes(age)) +
-  geom_line(aes(age, predicted, group = interaction(phase, facet)), 
-            filter(phen_pred_years, phase == "moltdur"), 
-            alpha = 0.1) + 
-  geom_ribbon(aes(ymin = dur_days_lwr, ymax = dur_days_upr),
-              alpha = 0.25, 
-              fill = "#E09A2D") +
-  geom_pointrange(aes(y = dur_days, 
-                      ymin = dur_days_lwr, 
-                      ymax = dur_days_upr),
-                  molt_pheno_raw,
-                  position = position_dodge(width = 0.5), 
-                  color = "#E09A2D") +
-  geom_line(aes(y = dur_days), 
-            color = "#E09A2D") +
-  labs(x = "Maternal age (years)",
-       y = "Molting haul out (days)") +
-  theme(legend.position = "none", 
-        axis.text.y = element_text(size = 8))
-
-(annual_plot | phen_dist | breed_duration_plot | molt_duration_plot) + plot_annotation(tag_levels = "A") + plot_layout(ncol = 2, nrow = 2)
+annual_plot + breed_duration_plot + molt_duration_plot + 
+  plot_annotation(tag_levels = "A") + 
+  plot_layout(design = design, 
+              widths = c(1, 2)) 
 ```
 
 Sample size n = `r nrow(seal_phenology)` observations of `r n_distinct(phenology_unique_animals)` individuals.
@@ -1190,7 +1145,7 @@ knitr::kable(p_tbl)
 
 ```{r}
 #| label: fig-mod-sens
-#| fig-cap: Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.058.
+#| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.058."
 
 p_tbl %>% 
   pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>%
@@ -1221,7 +1176,7 @@ Age-dependent life history shifts can result from within- or between-animal chan
 
 ```{r}
 #| label: fig-selective
-#| fig-cap: The coefficient for age in the old age class in models accounting for selective appearance and disappearance. Red and blue indicate  reproductive senescence (H1) and maternal effect senescence (H2a), respectively. Compared to the base model, the appearance model includes a term for age at first reproduction, the disappearance model includes a term for age at last reproduction, and the combined model includes both.
+#| fig-cap: "The coefficient for age in the old age class in models accounting for selective appearance and disappearance. Red and blue indicate  reproductive senescence (H1) and maternal effect senescence (H2a), respectively. Compared to the base model, the appearance model includes a term for age at first reproduction, the disappearance model includes a term for age at last reproduction, and the combined model includes both."
 
 h1_selective_models <- map(
   list(
@@ -1371,16 +1326,25 @@ breed_age_mod2 <- glmer(
   control = glmerControl(optimizer = "bobyqa")
 )
 
-chrono_bio_aic <- AIC(breed_bioage_mod, breed_age_mod2)
-daic <- chrono_bio_aic$AIC - min(chrono_bio_aic$AIC)
-chrono_bio_rellik <- exp(-0.5 * daic)
-chrono_bio_aicw <- chrono_bio_rellik / sum(chrono_bio_rellik)
+```
+
+```{r}
+#| label: chrono-bio-aic
+
+AIC(breed_bioage_mod, breed_age_mod2) %>% 
+  as_tibble() %>% 
+  mutate(dAIC = AIC - min(AIC),
+         rellik = exp(-0.5 * dAIC),
+         weight = rellik / sum(rellik),
+         model = c("Biological age", "Chronological age")) %>% 
+  select(model, AIC, dAIC, weight) %>% 
+  knitr::kable()
 
 ```
 
 ```{r}
 #| label: fig-bio-age
-#| fig-cap: Breeding probability over biological age. Points and error bars are the mean ± SE of observed breeding proportions within age classes. The vertical dashed line indicates the threshold for senescence. Solid lines and ribbons are the mean and 95% CI of the population-level breeding probability, estimated by a GLMM with random effects for individual and year. The dashed lines represent the mean of yearly breeding probabilities, weighted by the number of seals observed each year, which should match the observed data more closely than the population-level probabilities.
+#| fig-cap: "Breeding probability over biological age. Points and error bars are the mean ± SE of observed breeding proportions within age classes. The vertical dashed line indicates the threshold for senescence. Solid lines and ribbons are the mean and 95% CI of the population-level breeding probability, estimated by a GLMM with random effects for individual and year. The dashed lines represent the mean of yearly breeding probabilities, weighted by the number of seals observed each year, which should match the observed data more closely than the population-level probabilities."
 
 # Summarize the raw data
 bioage_summ <- sealdat2 %>%
@@ -1493,7 +1457,7 @@ ggplot(bioage_pred_wgt, aes(bioage, predicted)) +
 
 The biological age model did not support the reproductive senescence hypothesis. The coefficient for biological age among older animals (biological age \> -7 years) was `r bioage_coef` (95% CI) which was not significantly different than 0 (*p* = `r bioage_pval`). Choice of breakpoint for senescence did not affect the significance of this coefficient. For breakpoints -12 to -3 years, *p* reached a minimum at biological age -7 years (see table above).
 
-The chronological age model outperformed the biological age model according to AIC. The difference in AIC between the two models was `r sprintf("%0.1f", -diff(chrono_bio_aic$AIC))` and the chronological age model had an AIC weight of `r sprintf("%0.3f", chrono_bio_aicw[2])`.
+The chronological age model outperformed the biological age model according to AIC.
 
 Based on these results, we find there is evidence to support the reproductive senescence hypothesis based on chronological age. The biological age proxy, years-to-death, should be a better predictor of senescence than chronological age if most mortality is age-related. However, adult elephant seal mortality is largely influenced by extrinsic factors, primarily food availability [@colegrove2005; @holser2021]. Poor foraging conditions during El Niño years, for example, may increase mortality rates among animals whose biological age is not yet advanced. As result, the years-to-death proxy for biological age likely conflates many biologically young and old animals that died due to extrinsic factors. More accurate measures of biological age, such as telomere length [@jylhävä2017], may be necessary to investigate senescence in elephant seals and other species with high extrinsic sources of mortality from a non-chronological perspective.
 
@@ -1646,9 +1610,9 @@ nonbreed_resight <- with(resight_by_observed[1, ],
 
 ```
 
-This needs to be rethought now!
+The pattern of unobserved animals decreasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection.
 
-The pattern of unobserved animals increasing with age means it is highly unlikely our inferences about reproductive senescence are due to partial detection. If there was no reproductive senescence in the population, then the apparent senescence we observed would have to result from older breeders being less detectable. However, the biology of northern elephant seals makes breeding a more detectable behavior than non-breeding. Animals must come to land for an extended period to give birth and wean their pups. Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare (cite me). The only plausible explanation for unobserved animals being disproportionately breeders would be crowding at the breeding colonies, which could obscure identifying marks. However, breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders. Therefore, it is biologically implausible that the unobserved seals were disproportionately breeders and our estimates for reproductive senescence are, if anything, conservative.
+Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare. Breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders.
 
 ## Breakpoint vs quadratic
 
@@ -1797,5 +1761,70 @@ sprintf("%0.1f (95%%CI: %0.1f - %0.1f)",
         pooled_samples["m"],
         pooled_samples["m"] - 1.96 * sqrt(pooled_samples["v"]),
         pooled_samples["m"] + 1.96 * sqrt(pooled_samples["v"]))
+```
 
+## Population dynamics?
+
+What effect does senescence have on reproduction and offspring survival? First, calculate the total pup production of the age-structured population in one year. Then, let's pretend senescence *doesn't happen*. In this hypothetical population, all animals older than 11 years old reproduce like an 11 year old. How many more pups would that population produce? And how many more of those pups would survive to reproductive age?
+
+The observed pup production (in the age-structured population) is:
+
+$$
+\pi_{1a} = \frac{\sum_{a=4}^{20} b_a n_a}{\sum_{a=4}^{20} n_a}
+$$
+
+Where $\pi_1$ is pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.
+
+Hypothetical pup production in a non-senescing population is:
+
+$$
+\pi_{2a} = \frac{\sum_{a=4}^{11} b_a n_a + \sum_{a=12}^{20} b_{11} n_a}{\sum_{a=4}^{20}n_a}
+$$
+
+I.e., $b$ does not decline post-age 11.
+
+Similarly, the observed and hypothetical quantity of pups that survive to adulthood adds a term $s$ for offspring survival.
+
+$$
+\pi_{1b} = \frac{\sum_{a=4}^{20} b_a n_a s_a}{\sum_{a=4}^{20} n_a}
+$$
+
+$$
+\pi_{2b} = \frac{\sum_{a=4}^{11} b_a n_a s_a + \sum_{a=12}^{20} b_{11} n_a s_{11}}{\sum_{a=4}^{20} n_a}
+$$
+
+```{r}
+#| label: popdy
+
+# a, b, n, and s 
+popdy_df <- count(sealdat, age) %>% 
+  filter(age <= 20) %>% 
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old"))) %>% 
+  mutate(b = predict(breed_age_mod, newdata = ., re.form = NA, type = "response"),
+         s = predict(pup_surv_mod, newdata = ., re.form = NA, type = "response"))
+
+# pup production (pi1a and pi2a)
+pi1a <- with(popdy_df, sum(b * n) / sum(n)) 
+
+b11 <- popdy_df$b[popdy_df$age == 11]
+pi2a <- with(popdy_df, sum(ifelse(age > 11, b11, b) * n) / sum(n))
+
+# Survivng offspring (pi1b and pi2b)
+pi1b <- with(popdy_df, sum(b * n * s) / sum(n))
+
+s11 <- popdy_df$s[popdy_df$age == 11]
+pi2b <- with(popdy_df, sum(ifelse(age > 11, b11 * s11, b * s) * n) / sum(n))
+
+
+str_glue("
+pi1a: {round(pi1a, 5)}
+pi2a: {round(pi2a, 5)}
+pi1b: {round(pi1b, 5)}
+pi2b: {round(pi2b, 5)}")
+
+str_glue("
+delta pi a {round(100 * (pi1a - pi2a) / pi2a, 2)}%,
+delta pi b {round(100 * (pi1b - pi2b) / pi2b, 2)}%")
 ```
