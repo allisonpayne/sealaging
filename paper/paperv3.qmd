@@ -741,7 +741,7 @@ Sample size n = `r nrow(pup_sex_data)` observations of `r n_distinct(pup_sex_dat
 
 **Note**: In the above figure, the population-level and weighted-average lie directly on top of each other. This is because the random effect of year has very little impact on offspring sex ratio, which makes sense biologically. It's easy to imagine scenarios where reproduction would vary year-to-year, but harder to think of a mechanism linking year and offspring sex ratio.
 
-### Phenology
+### H4: Phenology
 
 Does the timing of breeding and molting suggest a mechanistic explanation for observed patterns in reproductive and maternal-effect senescence?
 
@@ -937,17 +937,25 @@ molt_duration_plot <- pheno_pred %>%
 
 ```{r}
 
-mean_yb_phen <- pheno_raw %>% 
-  filter(age == 4, phase == "breeddur") 
-mean_ob_phen <- pheno_raw %>% 
-  filter(age == 11, phase == "breeddur")
-mean_ym_phen <- pheno_raw %>% 
-  filter(age == 4, phase == "moltdur")
-mean_om_phen <- pheno_raw %>% 
-  filter(age == 11, phase == "moltdur") 
-```
+pheno_linkinv <- family(pheno_model)$linkinv
+expand_grid(
+  age = c(4, 10),
+  phase = c("moltdur", "breeddur")
+) %>% 
+  mutate(age_cat = factor(age >= age_senesce, 
+                          labels = c("Young")),
+         age10 = (age - age_senesce) / 10) %>% 
+  mutate(dur_days_eta = predict(pheno_model, newdata = ., re.form = NA),
+         dur_days_se = suppressWarnings(predict(pheno_model, 
+                                                newdata = ., 
+                                                re.form = NA, 
+                                                se.fit = TRUE)$se.fit),
+         dur_days = pheno_linkinv(dur_days_eta),
+         dur_days_lwr = pheno_linkinv(dur_days_eta - 1.96 * dur_days_se),
+         dur_days_upr = pheno_linkinv(dur_days_eta + 1.96 * dur_days_se)) %>% 
+  select(-age10, -dur_days_eta, -dur_days_se)
 
-Overall, the breeding haul out was `r mean_yb_phen$dur_days` (`r mean_yb_phen$dur_days_lwr` - `r mean_yb_phen$dur_days_upr`) days for 4 year olds and `r mean_ob_phen$dur_days` (`r mean_ob_phen$dur_days_lwr` - `r mean_ob_phen$dur_days_upr`) days for 11 year old animals. The molting haul out was `r mean_ym_phen$dur_days` (`r mean_ym_phen$dur_days_lwr` - `r mean_ym_phen$dur_days_upr`) days for 4 year olds and `r mean_om_phen$dur_days` (`r mean_om_phen$dur_days_lwr` - `r mean_om_phen$dur_days_upr`) days for animals 11 years old and older.
+```
 
 ```{r}
 #| label: fig-phen
@@ -1244,13 +1252,12 @@ h2_selective_coef <- map(h2_selective_models, get_old_coef) %>%
 selective_coef <- rbind(h1_selective_coef, h2_selective_coef) %>% 
   mutate(model = factor(model, levels = c("Base", "Appearance", "Disappearance", "Combined")))
 
-ggplot(selective_coef, aes(model, mean, color = hypothesis)) + 
+ggplot(selective_coef, aes(hypothesis, mean, color = model)) + 
   geom_pointrange(aes(ymin = lwr, ymax = upr), position = position_dodge(width = 0.2)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  scale_color_manual(values = c("firebrick", "cornflowerblue")) +
   expand_limits(y = 0) + 
   labs(y = "Coefficient", x = "Model") + 
-  theme(legend.position = "none")
+  theme(legend.title = element_blank())
 
 ```
 
@@ -1461,21 +1468,25 @@ The chronological age model outperformed the biological age model according to A
 
 Based on these results, we find there is evidence to support the reproductive senescence hypothesis based on chronological age. The biological age proxy, years-to-death, should be a better predictor of senescence than chronological age if most mortality is age-related. However, adult elephant seal mortality is largely influenced by extrinsic factors, primarily food availability [@colegrove2005; @holser2021]. Poor foraging conditions during El Niño years, for example, may increase mortality rates among animals whose biological age is not yet advanced. As result, the years-to-death proxy for biological age likely conflates many biologically young and old animals that died due to extrinsic factors. More accurate measures of biological age, such as telomere length [@jylhävä2017], may be necessary to investigate senescence in elephant seals and other species with high extrinsic sources of mortality from a non-chronological perspective.
 
-## Observation frequency
+## Detection frequency
 
 Not all seals were detected in all years. A non-detection year during the seal's lifespan (i.e. an unobserved year between the first and last observed years) could represent an unobserved animal at Año Nuevo or temporary emigration. In either case, the animal may or may not have reproduced that year. By excluding these unobserved animals, our inferences for H1 (reproductive senescence) may be biased if detectability varies with age and/or by breeding state. Here, we assess those potential biases.
 
 ```{r}
-#| label: missing-seals
+#| label: seal-detections
 
-## Are we missing animals more or less with age?
-missing_seals <- sealdat %>% 
+# Are seal detections changing with age?
+detection_seals <- sealdat %>% 
   filter(age <= 20) %>% 
   # Fill in non-resighted years
   group_by(animalID) %>% 
-  arrange(year) %>% 
-  reframe(tibble(year2 = (yearborn[1] + 4):max(year), # from age 4 to last obs
-                 unobserved = as.integer(!year2 %in% year),
+  # Keep only animals seen at least 2 years apart (i.e. if only seen in consecutive years remove them)
+  mutate(year_range = max(year) - min(year)) %>% 
+  filter(year_range > 2) %>% 
+  select(-year_range) %>% 
+  # Interpolate seen/not seen
+  reframe(tibble(year2 = (yearborn[1] + 4):(max(year) - 1), # from age 4 to year prior last obs
+                 observed = as.integer(year2 %in% year),
                  age = year2 - yearborn[1],
                  age10 = (age - age_senesce) / 10)) %>% 
   ungroup() %>% 
@@ -1488,92 +1499,95 @@ missing_seals <- sealdat %>%
             by = c("animalID", "year"))
 
 # Summary: mean and 95% CI 
-missing_summ <- missing_seals %>% 
+detection_summ <- detection_seals %>% 
   group_by(age, age_cat) %>% 
   summarize(n = n(),
-            n_unobserved = sum(unobserved),
-            unobserved_mean = n_unobserved / n,
-            unobserved_lwr = binom.test(n_unobserved, n)$conf.int[1],
-            unobserved_upr = binom.test(n_unobserved, n)$conf.int[2],
+            n_observed = sum(observed),
+            observed_mean = n_observed / n,
+            observed_lwr = binom.test(n_observed, n)$conf.int[1],
+            observed_upr = binom.test(n_observed, n)$conf.int[2],
             .groups = "drop")
 
-missing_mod <- glmer(
-  unobserved ~ age10 + (1 | year_fct) + (1 | animalID), 
-  missing_seals, 
+detection_mod <- glmer(
+  observed ~ age10:age_cat + (1 | year_fct) + (1 | animalID), 
+  detection_seals, 
   family = binomial
 )
 
-summary(missing_mod)
+summary(detection_mod)
 
 ```
 
-First, we tested whether probability of detection was related to age. We found the proportion of unobserved animals decreased with age (i.e., older seals are more likely to be observed). For this analysis, we excluded the last year each animal was observed. Then, for all years between animals' age 4 year to the year prior to final observation, we determined whether each animal was observed. We estimated the effect of age on probability of an animal being unobserved using a GLMM (binomial response, logit link) with random effects for year and animal ([@fig-unobserved]). The coefficient for age was -0.2593 (95% CI: -0.4896 - -0.0290, *p* = 0.027). The change in mean unobserved rate from age 4 to 20 was 20.0% to 14.2%.
+First, we tested whether detection probability was related to age. We found detection probalities decreased with age (i.e., older seals are less likely to be detected). For this analysis, we excluded the last year each animal was observed. Then, for all years between animals' age 4 year to the year prior to final observation, we determined whether each animal was detected. We estimated the effect of age on detection probability using a GLMM (binomial response, logit link) with an interaction between age and age category (young = age \< 11, old = age \> 11) and random effects for year and animal ([@fig-unobserved]). The coefficient for age was not significantly different than 0 for animals older than 11, but detection probability decreased significantly with age up to age 11. The change in detection probability from age 11 to 19 was 70.1% (61.7 - 77.3%) to 59.9% (44.4% - 73.7%).
 
 ```{r}
 #| label: fig-unobserved
-#| fig-cap: The probability of an animal being unobserved decreased with age. Points and error bars represent the proportion of unobserved animals with 95% CI. The blue line and shaded area are the mean and 95% CI probability of an animal being unobserved (GLMM, with random effect of year weighted by number of seals observed each year). The dotted line is the mean response of the unweighted predictions. Numbers at the top indicate number of seals in each age category. See text for model details.
+#| fig-cap: Detection probabilities decreased with age for young, but not old, animals. Points and error bars represent the proportion of detected animals with 95% CI. The green and pink lines and shaded areas are the mean and 95% CI probability of an animal being detected (GLMM with random effect of year, weighted by number of seals observed each year), color-coded by age category. The dotted line is the mean response of the unweighted predictions. Numbers at the top indicate number of seals of each age. See text for model details.
 
 # Prediction grid
-missing_grid <- expand_grid(age = 4:20, 
-                            year_fct = factor(1989:2022)) %>% 
-  mutate(age10 = (age - age_senesce) / 10)
+detection_grid <- expand_grid(age = 4:19, 
+                              year_fct = factor(1989:2022)) %>% 
+  mutate(age10 = (age - age_senesce) / 10,
+         age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old")))
 
-# Missing seal predictions (weighted model)
-missing_pred <- missing_grid %>% 
-  mutate(predicted = predict(missing_mod, 
+# Seal detection predictions (weighted model)
+detection_pred <- detection_grid %>% 
+  mutate(predicted = predict(detection_mod, 
                              newdata = .,
                              re.form = ~ (1 | year_fct)),
-         pred_pop = predict(missing_mod, 
+         pred_pop = predict(detection_mod, 
                             newdata = .,
                             type = "response",
                             re.form = NA),
-         se = suppressWarnings(predict(missing_mod, 
+         se = suppressWarnings(predict(detection_mod, 
                                        newdata = .,
                                        se.fit = TRUE,
                                        re.form = NA)$se.fit),
          conf.low = predicted - 1.96 * se,
          conf.high = predicted + 1.96 * se) %>% 
-  left_join(count(missing_seals, year_fct), by = "year_fct") %>% 
-  group_by(age) %>% 
-  summarize(across(c(predicted, pred_pop, conf.low, conf.high), mean)) %>% 
+  left_join(count(detection_seals, year_fct), by = "year_fct") %>% 
+  group_by(age, age_cat) %>% 
+  summarize(across(c(predicted, pred_pop, conf.low, conf.high), mean), .groups = "drop") %>% 
   mutate(across(c(predicted, conf.low, conf.high), 
-                family(missing_mod)$linkinv))
+                family(detection_mod)$linkinv))
 
 # Yearly predictions
-missing_pred_years <- missing_grid %>% 
-  mutate(predicted = predict(missing_mod, 
+detection_pred_years <- detection_grid %>% 
+  mutate(predicted = predict(detection_mod, 
                              newdata = .,
                              type = "response",
                              re.form = ~ (1 | year_fct)))
 
-ggplot(missing_pred, aes(age)) +
+ggplot(detection_pred, aes(age, color = age_cat, fill = age_cat)) +
   # Line per year
-  geom_line(aes(y = predicted, group = year_fct), 
-            missing_pred_years, 
+  geom_line(aes(y = predicted, group = interaction(age_cat, year_fct)), 
+            detection_pred_years, 
             alpha = 0.2) +
   # Weighted model
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
-              alpha = 0.3,
-              fill = "cornflowerblue") +
-  geom_line(aes(y = predicted),
-            linewidth = 2,
-            color = "cornflowerblue") +
+              alpha = 0.3, 
+              color = NA) +
+  geom_line(aes(y = predicted, linetype = age_cat),
+            linewidth = 1.5) +
   # Population-level model
   geom_line(aes(y = pred_pop), 
             linetype = "dotted",
-            linewidth = 1.2,
-            color = "cornflowerblue") +
+            linewidth = 1.1) +
   # Raw data
-  geom_pointrange(aes(y = unobserved_mean, 
-                      ymin = unobserved_lwr, 
-                      ymax = unobserved_upr),
-                  missing_summ) +
+  geom_pointrange(aes(y = observed_mean, 
+                      ymin = observed_lwr, 
+                      ymax = observed_upr),
+                  detection_summ) +
   # Sample size
-  geom_text(aes(age, label = n), missing_summ, y = 0.8, vjust = 1.1) +
-  scale_x_continuous("Age", breaks = seq(4, 20, by = 4)) +
-  scale_y_continuous("Unobserved proportion", 
+  geom_text(aes(age, label = n), detection_summ, y = 0, vjust = 0) +
+  scale_x_continuous("Age", breaks = seq(4, 19, by = 4)) +
+  scale_y_continuous("Detection rate", 
                      labels = scales::label_percent(accuracy = 1),
                      limits = c(0, NA)) +
+  scale_linetype_manual(values = c("solid", "dashed")) +
+  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   theme(legend.position = "none")
 ```
 
@@ -1763,7 +1777,7 @@ sprintf("%0.1f (95%%CI: %0.1f - %0.1f)",
         pooled_samples["m"] + 1.96 * sqrt(pooled_samples["v"]))
 ```
 
-## Population dynamics?
+## Population dynamics
 
 What effect does senescence have on reproduction and offspring survival? First, calculate the total pup production of the age-structured population in one year. Then, let's pretend senescence *doesn't happen*. In this hypothetical population, all animals older than 11 years old reproduce like an 11 year old. How many more pups would that population produce? And how many more of those pups would survive to reproductive age?
 
