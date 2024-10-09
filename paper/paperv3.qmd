@@ -1121,12 +1121,16 @@ fit_models <- function(a) {
     h1 = summary(breed_age_mod)$coefficients,
     h2_surv = summary(pup_surv_mod)$coefficients,
     h2_recr = summary(pup_recr_mod)$coefficients,
-    h3 = summary(sexrat_age_mod)$coefficients
+    h3 = summary(sexrat_age_mod)$coefficients,
+    h1_aic = AIC(breed_age_mod),
+    h2_surv_aic = AIC(pup_surv_mod),
+    h2_recr_aic = AIC(pup_recr_mod),
+    h3_aic = AIC(sexrat_age_mod)
   )
 }
 
 # Fit models with cut-off at ages 8-13
-cutoff <- 8:13
+cutoff <- 6:14
 mod_sens <- map(cutoff, fit_models)
 
 # Are hypotheses supported by the model?
@@ -1135,19 +1139,33 @@ extract_p <- function(h, tails = 1) {
     map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
   } else if (tails == 2) {
     map_dbl(mod_sens, \(m) 2 * pnorm(m[[h]]["age10:age_catOld", "z value"],
-                                     lower.tail = FALSE))
+                                     lower.tail = (m[[h]]["age10:age_catOld", "z value"] < 0)
+                                     ))
   } else {
     stop("tails must be 1 or 2")
   }
 }
+extract_aic <- function(h) {
+  map_dbl(mod_sens, paste(h, "aic", sep = "_"))
+}
 p_tbl <- tibble(age_cutoff = cutoff, 
-                "H1 (breeding)" = extract_p("h1"),
-                "H2a (survival)" = extract_p("h2_surv"),
-                "H2b (recruitment)" = extract_p("h2_recr"),
-                "H3 (sex ratio)" = extract_p("h3"),
+                "H1 (breeding)" = extract_p("h1", tails = 2),
+                "H2a (survival)" = extract_p("h2_surv", tails = 2),
+                "H2b (recruitment)" = extract_p("h2_recr", tails = 2),
                 "H3 (sex ratio; 2 tail)" = extract_p("h3", tails = 2))
+aic_weight <- function(x) {
+  rellik <- exp(-0.5 * (x - min(x)))
+  rellik / sum(rellik)
+}
+aic_tbl <- tibble(age_cutoff = cutoff,
+                  "H1 (breeding)" = extract_aic("h1"),
+                  "H2a (survival)" = extract_aic("h2_surv"),
+                  "H2b (recruitment)" = extract_aic("h2_recr"),
+                  "H3 (sex ratio)" = extract_aic("h3")) %>% 
+  mutate(across(-age_cutoff, aic_weight))
 
 knitr::kable(p_tbl)
+knitr::kable(aic_tbl)
 
 ```
 
