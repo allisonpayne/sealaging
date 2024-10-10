@@ -120,7 +120,7 @@ sighting_img <- sealdat %>%
   filter(year > 1987) %>% 
   ggplot(aes(year, animalID)) +
   geom_raster(aes(fill = observed)) +
-  scale_fill_viridis_d(direction = -1) +
+  scale_fill_brewer(palette = "YlGnBu", direction = 1) +
   guides(fill = guide_legend(position = "inside", 
                              direction = "horizontal",
                              ncol = 1,
@@ -355,7 +355,7 @@ pup_recr_mod <- glmer(
   # NOTE: no random effect for individual bc singular fit
   # In survival model, 93 individuals (15%) had >3 pups (male+female pups)
   # In recruit model, only 17 individuals (4%) had >3 pups (female pups only)
-  pup_recr_int ~ age10 : age_cat + (1 | year_fct) + (1 | animalID),
+  pup_recr_int ~ age10 : age_cat + (1 | year_fct),
   filter(surv_recr_data, pupsex == "F"),
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")
@@ -784,9 +784,6 @@ pheno_model <- seal_phenology %>%
         data = ., 
         family = Gamma(link = "log"))
 
-summary(pheno_model)
-
-
 ```
 
 ```{r}
@@ -1065,6 +1062,15 @@ summary(sexrat_age_mod)
 
 ```
 
+### H4: Phenology
+
+```{r}
+#| label: detailed-h4
+
+summary(pheno_model)
+
+```
+
 ## Models' sensitivity to age of senescence
 
 ```{r}
@@ -1133,7 +1139,7 @@ fit_models <- function(a) {
 cutoff <- 6:14
 mod_sens <- map(cutoff, fit_models)
 
-# Are hypotheses supported by the model?
+# Are hypotheses supported by the model? note to future readers...this part could have been done way easier, and you will have to trust our process that this was the path of least resistence for us at the point of final revisions!
 extract_p <- function(h, tails = 1) {
   if (tails == 1) {
     map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
