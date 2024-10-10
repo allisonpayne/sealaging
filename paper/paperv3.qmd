@@ -1158,7 +1158,7 @@ p_tbl <- tibble(age_cutoff = cutoff,
                 "H1 (breeding)" = extract_p("h1", tails = 2),
                 "H2a (survival)" = extract_p("h2_surv", tails = 2),
                 "H2b (recruitment)" = extract_p("h2_recr", tails = 2),
-                "H3 (sex ratio; 2 tail)" = extract_p("h3", tails = 2))
+                "H3 (sex ratio)" = extract_p("h3", tails = 2))
 aic_weight <- function(x) {
   rellik <- exp(-0.5 * (x - min(x)))
   rellik / sum(rellik)
@@ -1652,9 +1652,20 @@ The pattern of unobserved animals decreasing with age means it is highly unlikel
 
 Among the animals in this study, breeders hauled out for longer than non-breeders (1st - 3rd quartile: breeders `r breed_haulout` days; non-breeders `r non_breed_haulout` days). This extended period of time on the beach makes them more accessible to observers. Furthermore, northern elephant seals exhibit a high degree of site fidelity. Once they recruit to a breeding colony, temporary emigration is rare. Breeding animals were resighted `r breed_resight` times per year, compared to `r nonbreed_resight` for non-breeders (mean, 1st - 3rd quartile), which suggests that breeders are more readily observable than non-breeders.
 
-## Breakpoint vs quadratic
+## Breakpoint vs quadratic vs linear
 
 ### H1: Reproductive senescence
+
+```{r}
+#| label: linear-h1
+
+breed_age_line <- lmer(
+  observed_int ~ age10 + (1 | animalID) + (1 | year),
+  sealdat
+)
+
+summary(breed_age_line)$coefficients
+```
 
 ```{r}
 #| label: quad-h1
@@ -1677,6 +1688,26 @@ sprintf("Age peak (H1) = %0.1f", h1_age_peak)
 ```
 
 ### H2: Maternal effect senescence
+
+```{r}
+#| label: linear-h2
+
+#h2a
+surv_age_line <- lmer(
+  pup_surv_int ~ age10 + (1 | animalID) + (1 | year),
+  surv_recr_data
+)
+
+summary(surv_age_line)$coefficients
+
+#h2b
+recr_age_line <- lmer(
+  pup_recr_int ~ age10 + (1 | year),
+  filter(surv_recr_data, pupsex == "F")
+)
+
+summary(recr_age_line)$coefficients
+```
 
 ```{r}
 #| label: quad-h2
@@ -1720,19 +1751,20 @@ sprintf("Age peak (H2b) = %0.1f", h2b_age_peak)
 ```{r}
 #| label: quad-aic
 
-aic <- function(break_mod, quad_mod, hyp) {
-  AIC(break_mod, quad_mod) %>% 
+aic <- function(break_mod, quad_mod, line_mod, hyp) {
+  AIC(break_mod, quad_mod, line_mod) %>% 
     as_tibble() %>% 
     mutate(dAIC = AIC - min(AIC),
          rellik = exp(-0.5 * dAIC),
          weight = rellik / sum(rellik),
          hypothesis = hyp,
-         model = c("Breakpoint", "Quadratic")) %>% 
+         model = c("Breakpoint", "Quadratic", "Linear")) %>% 
   select(hypothesis, model, AIC, weight)
 }
 
 pmap(list(break_mod = list(breed_age_mod, pup_surv_mod, pup_recr_mod),
           quad_mod = list(breed_age_quad, surv_age_quad, recr_age_quad),
+          line_mod = list(breed_age_line, surv_age_line, recr_age_line), 
           hyp = c("H1", "H2a", "H2b")),
      aic) %>% 
   list_rbind() %>% 
