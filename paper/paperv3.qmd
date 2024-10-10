@@ -25,6 +25,7 @@ library(tidyverse)
 library(ggeffects)
 library(ggridges)
 library(patchwork)
+> library(qpcR)
 source(here::here("R/format.R"))
 theme_set(theme_few(base_size = 13))
 
