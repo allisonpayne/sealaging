@@ -1538,7 +1538,15 @@ detection_mod <- glmer(
   family = binomial
 )
 
+detection_mod_line <- lmer(
+  observed ~ age10 + (1 | year_fct) + (1 | animalID), 
+  detection_seals
+)
+
 summary(detection_mod)
+summary(detection_mod_line)
+AIC(detection_mod, detection_mod_line)
+akaike.weights(AIC(detection_mod, detection_mod_line))
 
 ```
 
