@@ -25,7 +25,7 @@ library(tidyverse)
 library(ggeffects)
 library(ggridges)
 library(patchwork)
-> library(qpcR)
+library(qpcR)
 source(here::here("R/format.R"))
 theme_set(theme_few(base_size = 13))
 
@@ -1539,9 +1539,10 @@ detection_mod <- glmer(
   family = binomial
 )
 
-detection_mod_line <- lmer(
+detection_mod_line <- glmer(
   observed ~ age10 + (1 | year_fct) + (1 | animalID), 
-  detection_seals
+  detection_seals, 
+  family = "binomial"
 )
 
 summary(detection_mod)
@@ -1668,9 +1669,11 @@ Among the animals in this study, breeders hauled out for longer than non-breeder
 ```{r}
 #| label: linear-h1
 
-breed_age_line <- lmer(
+breed_age_line <- glmer(
   observed_int ~ age10 + (1 | animalID) + (1 | year),
-  sealdat
+  sealdat, 
+  family = "binomial", 
+  control = glmerControl(optimizer = "bobyqa")
 )
 
 summary(breed_age_line)$coefficients
