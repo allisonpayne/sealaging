@@ -1027,14 +1027,14 @@ poly(age10, 2, raw = TRUE)2 -1.3154889  0.3381634 -3.890098 1.002036e-04</code><
 <h3 class="anchored" data-anchor-id="h2-maternal-effect-senescence-2">H2: Maternal effect senescence</h3>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
-<pre><code>                Estimate Std. Error         df    t value     Pr(&gt;|t|)
-(Intercept)  0.261463885 0.02682180   48.24558  9.7481847 5.493484e-13
-age10       -0.009445507 0.03844662 1060.06826 -0.2456785 8.059787e-01</code></pre>
+<pre><code>               Estimate Std. Error    z value     Pr(&gt;|z|)
+(Intercept) -1.10634518  0.1455802 -7.5995569 2.971464e-14
+age10       -0.04932588  0.2057500 -0.2397369 8.105342e-01</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>               Estimate Std. Error        df   t value     Pr(&gt;|t|)
-(Intercept)  0.13870553 0.02696936  74.09628  5.143078 2.133641e-06
-age10       -0.05588151 0.04792531 633.23503 -1.166013 2.440483e-01</code></pre>
+<pre><code>              Estimate Std. Error   z value     Pr(&gt;|z|)
+(Intercept) -1.9293825  0.2219267 -8.693783 3.505657e-18
+age10       -0.4506991  0.3817415 -1.180639 2.377460e-01</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -1094,37 +1094,37 @@ poly(age10, 2, raw = TRUE)2 -0.7712672  1.0382858 -0.7428274 4.575862e-01</code>
 <td style="text-align: left;">H2a</td>
 <td style="text-align: left;">Breakpoint</td>
 <td style="text-align: right;">1541.2724</td>
-<td style="text-align: right;">0.7949337</td>
+<td style="text-align: right;">0.7382134</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">H2a</td>
 <td style="text-align: left;">Quadratic</td>
 <td style="text-align: right;">1543.9823</td>
-<td style="text-align: right;">0.2050663</td>
+<td style="text-align: right;">0.1904343</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">H2a</td>
 <td style="text-align: left;">Linear</td>
-<td style="text-align: right;">1623.6172</td>
-<td style="text-align: right;">0.0000000</td>
+<td style="text-align: right;">1545.9456</td>
+<td style="text-align: right;">0.0713523</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">H2b</td>
 <td style="text-align: left;">Breakpoint</td>
 <td style="text-align: right;">573.9538</td>
-<td style="text-align: right;">0.0066240</td>
+<td style="text-align: right;">0.3664485</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">H2b</td>
 <td style="text-align: left;">Quadratic</td>
 <td style="text-align: right;">575.0764</td>
-<td style="text-align: right;">0.0037787</td>
+<td style="text-align: right;">0.2090432</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">H2b</td>
 <td style="text-align: left;">Linear</td>
-<td style="text-align: right;">563.9406</td>
-<td style="text-align: right;">0.9895973</td>
+<td style="text-align: right;">573.6597</td>
+<td style="text-align: right;">0.4245083</td>
 </tr>
 </tbody>
 </table>
@@ -3414,211 +3414,215 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb41-1765"><a href="#cb41-1765" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: linear-h2</span></span>
 <span id="cb41-1766"><a href="#cb41-1766" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-1767"><a href="#cb41-1767" aria-hidden="true" tabindex="-1"></a><span class="co">#h2a</span></span>
-<span id="cb41-1768"><a href="#cb41-1768" aria-hidden="true" tabindex="-1"></a>surv_age_line <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
+<span id="cb41-1768"><a href="#cb41-1768" aria-hidden="true" tabindex="-1"></a>surv_age_line <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
 <span id="cb41-1769"><a href="#cb41-1769" aria-hidden="true" tabindex="-1"></a>  pup_surv_int <span class="sc">~</span> age10 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
-<span id="cb41-1770"><a href="#cb41-1770" aria-hidden="true" tabindex="-1"></a>  surv_recr_data</span>
-<span id="cb41-1771"><a href="#cb41-1771" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb41-1772"><a href="#cb41-1772" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1773"><a href="#cb41-1773" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(surv_age_line)<span class="sc">$</span>coefficients</span>
+<span id="cb41-1770"><a href="#cb41-1770" aria-hidden="true" tabindex="-1"></a>  surv_recr_data, </span>
+<span id="cb41-1771"><a href="#cb41-1771" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb41-1772"><a href="#cb41-1772" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb41-1773"><a href="#cb41-1773" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb41-1774"><a href="#cb41-1774" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1775"><a href="#cb41-1775" aria-hidden="true" tabindex="-1"></a><span class="co">#h2b</span></span>
-<span id="cb41-1776"><a href="#cb41-1776" aria-hidden="true" tabindex="-1"></a>recr_age_line <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
-<span id="cb41-1777"><a href="#cb41-1777" aria-hidden="true" tabindex="-1"></a>  pup_recr_int <span class="sc">~</span> age10 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
-<span id="cb41-1778"><a href="#cb41-1778" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(surv_recr_data, pupsex <span class="sc">==</span> <span class="st">"F"</span>)</span>
-<span id="cb41-1779"><a href="#cb41-1779" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb41-1780"><a href="#cb41-1780" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1781"><a href="#cb41-1781" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(recr_age_line)<span class="sc">$</span>coefficients</span>
-<span id="cb41-1782"><a href="#cb41-1782" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb41-1783"><a href="#cb41-1783" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1786"><a href="#cb41-1786" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb41-1787"><a href="#cb41-1787" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: quad-h2</span></span>
-<span id="cb41-1788"><a href="#cb41-1788" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1789"><a href="#cb41-1789" aria-hidden="true" tabindex="-1"></a><span class="co"># H2a</span></span>
-<span id="cb41-1790"><a href="#cb41-1790" aria-hidden="true" tabindex="-1"></a>surv_age_quad <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb41-1791"><a href="#cb41-1791" aria-hidden="true" tabindex="-1"></a>  pup_surv_int <span class="sc">~</span> <span class="fu">poly</span>(age10, <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
-<span id="cb41-1792"><a href="#cb41-1792" aria-hidden="true" tabindex="-1"></a>  surv_recr_data,</span>
-<span id="cb41-1793"><a href="#cb41-1793" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
-<span id="cb41-1794"><a href="#cb41-1794" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
-<span id="cb41-1795"><a href="#cb41-1795" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb41-1796"><a href="#cb41-1796" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1797"><a href="#cb41-1797" aria-hidden="true" tabindex="-1"></a>h2a_age10_peak <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">summary</span>(surv_age_quad)<span class="sc">$</span>coefficients[<span class="dv">2</span>, <span class="dv">1</span>] <span class="sc">/</span> </span>
-<span id="cb41-1798"><a href="#cb41-1798" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">2</span> <span class="sc">*</span> <span class="fu">summary</span>(surv_age_quad)<span class="sc">$</span>coefficients[<span class="dv">3</span>, <span class="dv">1</span>])</span>
-<span id="cb41-1799"><a href="#cb41-1799" aria-hidden="true" tabindex="-1"></a>h2a_age_peak <span class="ot">&lt;-</span> h2a_age10_peak <span class="sc">*</span> <span class="dv">10</span> <span class="sc">+</span> age_senesce</span>
+<span id="cb41-1775"><a href="#cb41-1775" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(surv_age_line)<span class="sc">$</span>coefficients</span>
+<span id="cb41-1776"><a href="#cb41-1776" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1777"><a href="#cb41-1777" aria-hidden="true" tabindex="-1"></a><span class="co">#h2b</span></span>
+<span id="cb41-1778"><a href="#cb41-1778" aria-hidden="true" tabindex="-1"></a>recr_age_line <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb41-1779"><a href="#cb41-1779" aria-hidden="true" tabindex="-1"></a>  pup_recr_int <span class="sc">~</span> age10 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year),</span>
+<span id="cb41-1780"><a href="#cb41-1780" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(surv_recr_data, pupsex <span class="sc">==</span> <span class="st">"F"</span>), </span>
+<span id="cb41-1781"><a href="#cb41-1781" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb41-1782"><a href="#cb41-1782" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb41-1783"><a href="#cb41-1783" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb41-1784"><a href="#cb41-1784" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1785"><a href="#cb41-1785" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(recr_age_line)<span class="sc">$</span>coefficients</span>
+<span id="cb41-1786"><a href="#cb41-1786" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb41-1787"><a href="#cb41-1787" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1790"><a href="#cb41-1790" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb41-1791"><a href="#cb41-1791" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: quad-h2</span></span>
+<span id="cb41-1792"><a href="#cb41-1792" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1793"><a href="#cb41-1793" aria-hidden="true" tabindex="-1"></a><span class="co"># H2a</span></span>
+<span id="cb41-1794"><a href="#cb41-1794" aria-hidden="true" tabindex="-1"></a>surv_age_quad <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb41-1795"><a href="#cb41-1795" aria-hidden="true" tabindex="-1"></a>  pup_surv_int <span class="sc">~</span> <span class="fu">poly</span>(age10, <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb41-1796"><a href="#cb41-1796" aria-hidden="true" tabindex="-1"></a>  surv_recr_data,</span>
+<span id="cb41-1797"><a href="#cb41-1797" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb41-1798"><a href="#cb41-1798" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb41-1799"><a href="#cb41-1799" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb41-1800"><a href="#cb41-1800" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1801"><a href="#cb41-1801" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(surv_age_quad)<span class="sc">$</span>coefficients</span>
-<span id="cb41-1802"><a href="#cb41-1802" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1803"><a href="#cb41-1803" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Age peak (H2a) = %0.1f"</span>, h2a_age_peak)</span>
+<span id="cb41-1801"><a href="#cb41-1801" aria-hidden="true" tabindex="-1"></a>h2a_age10_peak <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">summary</span>(surv_age_quad)<span class="sc">$</span>coefficients[<span class="dv">2</span>, <span class="dv">1</span>] <span class="sc">/</span> </span>
+<span id="cb41-1802"><a href="#cb41-1802" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">2</span> <span class="sc">*</span> <span class="fu">summary</span>(surv_age_quad)<span class="sc">$</span>coefficients[<span class="dv">3</span>, <span class="dv">1</span>])</span>
+<span id="cb41-1803"><a href="#cb41-1803" aria-hidden="true" tabindex="-1"></a>h2a_age_peak <span class="ot">&lt;-</span> h2a_age10_peak <span class="sc">*</span> <span class="dv">10</span> <span class="sc">+</span> age_senesce</span>
 <span id="cb41-1804"><a href="#cb41-1804" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1805"><a href="#cb41-1805" aria-hidden="true" tabindex="-1"></a><span class="co"># H2b</span></span>
-<span id="cb41-1806"><a href="#cb41-1806" aria-hidden="true" tabindex="-1"></a>recr_age_quad <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb41-1807"><a href="#cb41-1807" aria-hidden="true" tabindex="-1"></a>  pup_recr_int <span class="sc">~</span> <span class="fu">poly</span>(age10, <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
-<span id="cb41-1808"><a href="#cb41-1808" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(surv_recr_data, pupsex <span class="sc">==</span> <span class="st">"F"</span>),</span>
-<span id="cb41-1809"><a href="#cb41-1809" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
-<span id="cb41-1810"><a href="#cb41-1810" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
-<span id="cb41-1811"><a href="#cb41-1811" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb41-1812"><a href="#cb41-1812" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1813"><a href="#cb41-1813" aria-hidden="true" tabindex="-1"></a>h2b_age10_peak <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">summary</span>(recr_age_quad)<span class="sc">$</span>coefficients[<span class="dv">2</span>, <span class="dv">1</span>] <span class="sc">/</span> </span>
-<span id="cb41-1814"><a href="#cb41-1814" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">2</span> <span class="sc">*</span> <span class="fu">summary</span>(recr_age_quad)<span class="sc">$</span>coefficients[<span class="dv">3</span>, <span class="dv">1</span>])</span>
-<span id="cb41-1815"><a href="#cb41-1815" aria-hidden="true" tabindex="-1"></a>h2b_age_peak <span class="ot">&lt;-</span> h2b_age10_peak <span class="sc">*</span> <span class="dv">10</span> <span class="sc">+</span> age_senesce</span>
+<span id="cb41-1805"><a href="#cb41-1805" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(surv_age_quad)<span class="sc">$</span>coefficients</span>
+<span id="cb41-1806"><a href="#cb41-1806" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1807"><a href="#cb41-1807" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Age peak (H2a) = %0.1f"</span>, h2a_age_peak)</span>
+<span id="cb41-1808"><a href="#cb41-1808" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1809"><a href="#cb41-1809" aria-hidden="true" tabindex="-1"></a><span class="co"># H2b</span></span>
+<span id="cb41-1810"><a href="#cb41-1810" aria-hidden="true" tabindex="-1"></a>recr_age_quad <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
+<span id="cb41-1811"><a href="#cb41-1811" aria-hidden="true" tabindex="-1"></a>  pup_recr_int <span class="sc">~</span> <span class="fu">poly</span>(age10, <span class="dv">2</span>, <span class="at">raw =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct),</span>
+<span id="cb41-1812"><a href="#cb41-1812" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(surv_recr_data, pupsex <span class="sc">==</span> <span class="st">"F"</span>),</span>
+<span id="cb41-1813"><a href="#cb41-1813" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">"binomial"</span>,</span>
+<span id="cb41-1814"><a href="#cb41-1814" aria-hidden="true" tabindex="-1"></a>  <span class="at">control =</span> <span class="fu">glmerControl</span>(<span class="at">optimizer =</span> <span class="st">"bobyqa"</span>)</span>
+<span id="cb41-1815"><a href="#cb41-1815" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb41-1816"><a href="#cb41-1816" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1817"><a href="#cb41-1817" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(recr_age_quad)<span class="sc">$</span>coefficients</span>
-<span id="cb41-1818"><a href="#cb41-1818" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1819"><a href="#cb41-1819" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Age peak (H2b) = %0.1f"</span>, h2b_age_peak)</span>
+<span id="cb41-1817"><a href="#cb41-1817" aria-hidden="true" tabindex="-1"></a>h2b_age10_peak <span class="ot">&lt;-</span> <span class="sc">-</span><span class="fu">summary</span>(recr_age_quad)<span class="sc">$</span>coefficients[<span class="dv">2</span>, <span class="dv">1</span>] <span class="sc">/</span> </span>
+<span id="cb41-1818"><a href="#cb41-1818" aria-hidden="true" tabindex="-1"></a>  (<span class="dv">2</span> <span class="sc">*</span> <span class="fu">summary</span>(recr_age_quad)<span class="sc">$</span>coefficients[<span class="dv">3</span>, <span class="dv">1</span>])</span>
+<span id="cb41-1819"><a href="#cb41-1819" aria-hidden="true" tabindex="-1"></a>h2b_age_peak <span class="ot">&lt;-</span> h2b_age10_peak <span class="sc">*</span> <span class="dv">10</span> <span class="sc">+</span> age_senesce</span>
 <span id="cb41-1820"><a href="#cb41-1820" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1821"><a href="#cb41-1821" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb41-1821"><a href="#cb41-1821" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(recr_age_quad)<span class="sc">$</span>coefficients</span>
 <span id="cb41-1822"><a href="#cb41-1822" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1823"><a href="#cb41-1823" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIC Comparison</span></span>
+<span id="cb41-1823"><a href="#cb41-1823" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Age peak (H2b) = %0.1f"</span>, h2b_age_peak)</span>
 <span id="cb41-1824"><a href="#cb41-1824" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1827"><a href="#cb41-1827" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb41-1828"><a href="#cb41-1828" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: quad-aic</span></span>
-<span id="cb41-1829"><a href="#cb41-1829" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1830"><a href="#cb41-1830" aria-hidden="true" tabindex="-1"></a>aic <span class="ot">&lt;-</span> <span class="cf">function</span>(break_mod, quad_mod, line_mod, hyp) {</span>
-<span id="cb41-1831"><a href="#cb41-1831" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AIC</span>(break_mod, quad_mod, line_mod) <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1832"><a href="#cb41-1832" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1833"><a href="#cb41-1833" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">dAIC =</span> AIC <span class="sc">-</span> <span class="fu">min</span>(AIC),</span>
-<span id="cb41-1834"><a href="#cb41-1834" aria-hidden="true" tabindex="-1"></a>         <span class="at">rellik =</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fl">0.5</span> <span class="sc">*</span> dAIC),</span>
-<span id="cb41-1835"><a href="#cb41-1835" aria-hidden="true" tabindex="-1"></a>         <span class="at">weight =</span> rellik <span class="sc">/</span> <span class="fu">sum</span>(rellik),</span>
-<span id="cb41-1836"><a href="#cb41-1836" aria-hidden="true" tabindex="-1"></a>         <span class="at">hypothesis =</span> hyp,</span>
-<span id="cb41-1837"><a href="#cb41-1837" aria-hidden="true" tabindex="-1"></a>         <span class="at">model =</span> <span class="fu">c</span>(<span class="st">"Breakpoint"</span>, <span class="st">"Quadratic"</span>, <span class="st">"Linear"</span>)) <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1838"><a href="#cb41-1838" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(hypothesis, model, AIC, weight)</span>
-<span id="cb41-1839"><a href="#cb41-1839" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb41-1840"><a href="#cb41-1840" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1841"><a href="#cb41-1841" aria-hidden="true" tabindex="-1"></a><span class="fu">pmap</span>(<span class="fu">list</span>(<span class="at">break_mod =</span> <span class="fu">list</span>(breed_age_mod, pup_surv_mod, pup_recr_mod),</span>
-<span id="cb41-1842"><a href="#cb41-1842" aria-hidden="true" tabindex="-1"></a>          <span class="at">quad_mod =</span> <span class="fu">list</span>(breed_age_quad, surv_age_quad, recr_age_quad),</span>
-<span id="cb41-1843"><a href="#cb41-1843" aria-hidden="true" tabindex="-1"></a>          <span class="at">line_mod =</span> <span class="fu">list</span>(breed_age_line, surv_age_line, recr_age_line), </span>
-<span id="cb41-1844"><a href="#cb41-1844" aria-hidden="true" tabindex="-1"></a>          <span class="at">hyp =</span> <span class="fu">c</span>(<span class="st">"H1"</span>, <span class="st">"H2a"</span>, <span class="st">"H2b"</span>)),</span>
-<span id="cb41-1845"><a href="#cb41-1845" aria-hidden="true" tabindex="-1"></a>     aic) <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1846"><a href="#cb41-1846" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list_rbind</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1847"><a href="#cb41-1847" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span>
-<span id="cb41-1848"><a href="#cb41-1848" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb41-1849"><a href="#cb41-1849" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1850"><a href="#cb41-1850" aria-hidden="true" tabindex="-1"></a><span class="fu">## Nursing duration</span></span>
-<span id="cb41-1851"><a href="#cb41-1851" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1852"><a href="#cb41-1852" aria-hidden="true" tabindex="-1"></a>What's the mean and 95% CI duration of nursing? <span class="co">[</span><span class="ot">@reiter1981</span><span class="co">]</span> provide the following information in Table III:</span>
+<span id="cb41-1825"><a href="#cb41-1825" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb41-1826"><a href="#cb41-1826" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1827"><a href="#cb41-1827" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIC Comparison</span></span>
+<span id="cb41-1828"><a href="#cb41-1828" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1831"><a href="#cb41-1831" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb41-1832"><a href="#cb41-1832" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: quad-aic</span></span>
+<span id="cb41-1833"><a href="#cb41-1833" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1834"><a href="#cb41-1834" aria-hidden="true" tabindex="-1"></a>aic <span class="ot">&lt;-</span> <span class="cf">function</span>(break_mod, quad_mod, line_mod, hyp) {</span>
+<span id="cb41-1835"><a href="#cb41-1835" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AIC</span>(break_mod, quad_mod, line_mod) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1836"><a href="#cb41-1836" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1837"><a href="#cb41-1837" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">dAIC =</span> AIC <span class="sc">-</span> <span class="fu">min</span>(AIC),</span>
+<span id="cb41-1838"><a href="#cb41-1838" aria-hidden="true" tabindex="-1"></a>         <span class="at">rellik =</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fl">0.5</span> <span class="sc">*</span> dAIC),</span>
+<span id="cb41-1839"><a href="#cb41-1839" aria-hidden="true" tabindex="-1"></a>         <span class="at">weight =</span> rellik <span class="sc">/</span> <span class="fu">sum</span>(rellik),</span>
+<span id="cb41-1840"><a href="#cb41-1840" aria-hidden="true" tabindex="-1"></a>         <span class="at">hypothesis =</span> hyp,</span>
+<span id="cb41-1841"><a href="#cb41-1841" aria-hidden="true" tabindex="-1"></a>         <span class="at">model =</span> <span class="fu">c</span>(<span class="st">"Breakpoint"</span>, <span class="st">"Quadratic"</span>, <span class="st">"Linear"</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1842"><a href="#cb41-1842" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(hypothesis, model, AIC, weight)</span>
+<span id="cb41-1843"><a href="#cb41-1843" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb41-1844"><a href="#cb41-1844" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1845"><a href="#cb41-1845" aria-hidden="true" tabindex="-1"></a><span class="fu">pmap</span>(<span class="fu">list</span>(<span class="at">break_mod =</span> <span class="fu">list</span>(breed_age_mod, pup_surv_mod, pup_recr_mod),</span>
+<span id="cb41-1846"><a href="#cb41-1846" aria-hidden="true" tabindex="-1"></a>          <span class="at">quad_mod =</span> <span class="fu">list</span>(breed_age_quad, surv_age_quad, recr_age_quad),</span>
+<span id="cb41-1847"><a href="#cb41-1847" aria-hidden="true" tabindex="-1"></a>          <span class="at">line_mod =</span> <span class="fu">list</span>(breed_age_line, surv_age_line, recr_age_line), </span>
+<span id="cb41-1848"><a href="#cb41-1848" aria-hidden="true" tabindex="-1"></a>          <span class="at">hyp =</span> <span class="fu">c</span>(<span class="st">"H1"</span>, <span class="st">"H2a"</span>, <span class="st">"H2b"</span>)),</span>
+<span id="cb41-1849"><a href="#cb41-1849" aria-hidden="true" tabindex="-1"></a>     aic) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1850"><a href="#cb41-1850" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list_rbind</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1851"><a href="#cb41-1851" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span>
+<span id="cb41-1852"><a href="#cb41-1852" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb41-1853"><a href="#cb41-1853" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1854"><a href="#cb41-1854" aria-hidden="true" tabindex="-1"></a>+-------+----------+----------+----------+----------+----------+----------+----------+</span>
-<span id="cb41-1855"><a href="#cb41-1855" aria-hidden="true" tabindex="-1"></a>| 2     | 3        | 4        | 5        | 6        | 7        | 8        | 9        |</span>
-<span id="cb41-1856"><a href="#cb41-1856" aria-hidden="true" tabindex="-1"></a>+=======+==========+==========+==========+==========+==========+==========+==========+</span>
-<span id="cb41-1857"><a href="#cb41-1857" aria-hidden="true" tabindex="-1"></a>| 22±0  | 23.7±1.6 | 26.6±1.6 | 26.1±1.9 | 26.5±2.2 | 27.1±1.2 | 28.2±0.8 | 28.5±0.7 |</span>
-<span id="cb41-1858"><a href="#cb41-1858" aria-hidden="true" tabindex="-1"></a>|       |          |          |          |          |          |          |          |</span>
-<span id="cb41-1859"><a href="#cb41-1859" aria-hidden="true" tabindex="-1"></a>| <span class="sc">\(</span>1<span class="sc">\)</span> | <span class="sc">\(</span>9<span class="sc">\)</span>    | <span class="sc">\(</span>24<span class="sc">\)</span>   | <span class="sc">\(</span>12<span class="sc">\)</span>   | <span class="sc">\(</span>6<span class="sc">\)</span>    | <span class="sc">\(</span>8<span class="sc">\)</span>    | <span class="sc">\(</span>5<span class="sc">\)</span>    | <span class="sc">\(</span>2<span class="sc">\)</span>    |</span>
-<span id="cb41-1860"><a href="#cb41-1860" aria-hidden="true" tabindex="-1"></a>+-------+----------+----------+----------+----------+----------+----------+----------+</span>
-<span id="cb41-1861"><a href="#cb41-1861" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1862"><a href="#cb41-1862" aria-hidden="true" tabindex="-1"></a>Where the column names are the age of the seal in years, and row values indicate mean±SD (n). To get the mean and 95% CI duration of nursing, we pooled the samples for mothers age 4 and up (i.e., excluded 2- and 3-year olds).</span>
-<span id="cb41-1863"><a href="#cb41-1863" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1864"><a href="#cb41-1864" aria-hidden="true" tabindex="-1"></a>The formulas we used for pooling the variances come from <span class="co">[</span><span class="ot">@oneill2014</span><span class="co">]</span>.</span>
+<span id="cb41-1854"><a href="#cb41-1854" aria-hidden="true" tabindex="-1"></a><span class="fu">## Nursing duration</span></span>
+<span id="cb41-1855"><a href="#cb41-1855" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1856"><a href="#cb41-1856" aria-hidden="true" tabindex="-1"></a>What's the mean and 95% CI duration of nursing? <span class="co">[</span><span class="ot">@reiter1981</span><span class="co">]</span> provide the following information in Table III:</span>
+<span id="cb41-1857"><a href="#cb41-1857" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1858"><a href="#cb41-1858" aria-hidden="true" tabindex="-1"></a>+-------+----------+----------+----------+----------+----------+----------+----------+</span>
+<span id="cb41-1859"><a href="#cb41-1859" aria-hidden="true" tabindex="-1"></a>| 2     | 3        | 4        | 5        | 6        | 7        | 8        | 9        |</span>
+<span id="cb41-1860"><a href="#cb41-1860" aria-hidden="true" tabindex="-1"></a>+=======+==========+==========+==========+==========+==========+==========+==========+</span>
+<span id="cb41-1861"><a href="#cb41-1861" aria-hidden="true" tabindex="-1"></a>| 22±0  | 23.7±1.6 | 26.6±1.6 | 26.1±1.9 | 26.5±2.2 | 27.1±1.2 | 28.2±0.8 | 28.5±0.7 |</span>
+<span id="cb41-1862"><a href="#cb41-1862" aria-hidden="true" tabindex="-1"></a>|       |          |          |          |          |          |          |          |</span>
+<span id="cb41-1863"><a href="#cb41-1863" aria-hidden="true" tabindex="-1"></a>| <span class="sc">\(</span>1<span class="sc">\)</span> | <span class="sc">\(</span>9<span class="sc">\)</span>    | <span class="sc">\(</span>24<span class="sc">\)</span>   | <span class="sc">\(</span>12<span class="sc">\)</span>   | <span class="sc">\(</span>6<span class="sc">\)</span>    | <span class="sc">\(</span>8<span class="sc">\)</span>    | <span class="sc">\(</span>5<span class="sc">\)</span>    | <span class="sc">\(</span>2<span class="sc">\)</span>    |</span>
+<span id="cb41-1864"><a href="#cb41-1864" aria-hidden="true" tabindex="-1"></a>+-------+----------+----------+----------+----------+----------+----------+----------+</span>
 <span id="cb41-1865"><a href="#cb41-1865" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1868"><a href="#cb41-1868" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb41-1869"><a href="#cb41-1869" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: pooled-nursing</span></span>
-<span id="cb41-1870"><a href="#cb41-1870" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1871"><a href="#cb41-1871" aria-hidden="true" tabindex="-1"></a><span class="co"># N, mean, and SD from Reiter et al. (1981) Table III for 4+ yo mothers</span></span>
-<span id="cb41-1872"><a href="#cb41-1872" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">12</span>, <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">5</span>, <span class="dv">2</span>)</span>
-<span id="cb41-1873"><a href="#cb41-1873" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">26.6</span>, <span class="fl">26.1</span>, <span class="fl">26.5</span>, <span class="fl">27.1</span>, <span class="fl">28.2</span>, <span class="fl">28.5</span>)</span>
-<span id="cb41-1874"><a href="#cb41-1874" aria-hidden="true" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.6</span>, <span class="fl">1.9</span>, <span class="fl">2.2</span>, <span class="fl">1.2</span>, <span class="fl">0.8</span>, <span class="fl">0.7</span>)</span>
-<span id="cb41-1875"><a href="#cb41-1875" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1876"><a href="#cb41-1876" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for pooling two samples</span></span>
-<span id="cb41-1877"><a href="#cb41-1877" aria-hidden="true" tabindex="-1"></a>pool_samples <span class="ot">&lt;-</span> <span class="cf">function</span>(sample1, sample2) {</span>
-<span id="cb41-1878"><a href="#cb41-1878" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sample1 and sample2 must be numeric vectors of length 3 with names v, m, and n</span></span>
-<span id="cb41-1879"><a href="#cb41-1879" aria-hidden="true" tabindex="-1"></a>  is_valid <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
-<span id="cb41-1880"><a href="#cb41-1880" aria-hidden="true" tabindex="-1"></a>    <span class="fu">is.numeric</span>(x) <span class="sc">&amp;&amp;</span></span>
-<span id="cb41-1881"><a href="#cb41-1881" aria-hidden="true" tabindex="-1"></a>      <span class="fu">is.vector</span>(x) <span class="sc">&amp;&amp;</span></span>
-<span id="cb41-1882"><a href="#cb41-1882" aria-hidden="true" tabindex="-1"></a>      (<span class="fu">length</span>(x) <span class="sc">==</span> <span class="dv">3</span>) <span class="sc">&amp;&amp;</span></span>
-<span id="cb41-1883"><a href="#cb41-1883" aria-hidden="true" tabindex="-1"></a>      <span class="fu">all</span>(<span class="fu">c</span>(<span class="st">"v"</span>, <span class="st">"m"</span>, <span class="st">"n"</span>) <span class="sc">%in%</span> <span class="fu">names</span>(x))</span>
-<span id="cb41-1884"><a href="#cb41-1884" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb41-1885"><a href="#cb41-1885" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1886"><a href="#cb41-1886" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>(<span class="fu">is_valid</span>(sample1) <span class="sc">&amp;&amp;</span> <span class="fu">is_valid</span>(sample2))) </span>
-<span id="cb41-1887"><a href="#cb41-1887" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"sample1 and sample2 must be numeric vectors of length 3 with names v, m, and n (variance, mean, and number of elements)"</span>)</span>
-<span id="cb41-1888"><a href="#cb41-1888" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb41-1889"><a href="#cb41-1889" aria-hidden="true" tabindex="-1"></a>  v1 <span class="ot">&lt;-</span> sample1[<span class="st">"v"</span>]</span>
-<span id="cb41-1890"><a href="#cb41-1890" aria-hidden="true" tabindex="-1"></a>  m1 <span class="ot">&lt;-</span> sample1[<span class="st">"m"</span>]</span>
-<span id="cb41-1891"><a href="#cb41-1891" aria-hidden="true" tabindex="-1"></a>  n1 <span class="ot">&lt;-</span> sample1[<span class="st">"n"</span>]</span>
-<span id="cb41-1892"><a href="#cb41-1892" aria-hidden="true" tabindex="-1"></a>  v2 <span class="ot">&lt;-</span> sample2[<span class="st">"v"</span>]</span>
-<span id="cb41-1893"><a href="#cb41-1893" aria-hidden="true" tabindex="-1"></a>  m2 <span class="ot">&lt;-</span> sample2[<span class="st">"m"</span>]</span>
-<span id="cb41-1894"><a href="#cb41-1894" aria-hidden="true" tabindex="-1"></a>  n2 <span class="ot">&lt;-</span> sample2[<span class="st">"n"</span>]</span>
-<span id="cb41-1895"><a href="#cb41-1895" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb41-1896"><a href="#cb41-1896" aria-hidden="true" tabindex="-1"></a>  n3 <span class="ot">&lt;-</span> n1 <span class="sc">+</span> n2</span>
-<span id="cb41-1897"><a href="#cb41-1897" aria-hidden="true" tabindex="-1"></a>  m3 <span class="ot">&lt;-</span> <span class="fu">weighted.mean</span>(<span class="fu">c</span>(m1, m2), <span class="fu">c</span>(n1, n2))</span>
-<span id="cb41-1898"><a href="#cb41-1898" aria-hidden="true" tabindex="-1"></a>  v3 <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (n1 <span class="sc">+</span> n2 <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> ((n1 <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> v1 <span class="sc">+</span> (n2 <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> v2 <span class="sc">+</span> n1 <span class="sc">*</span> n2 <span class="sc">/</span> (n1 <span class="sc">+</span> n2) <span class="sc">*</span> (m1 <span class="sc">-</span> m2)<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb41-1899"><a href="#cb41-1899" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">c</span>(v3, m3, n3)</span>
-<span id="cb41-1900"><a href="#cb41-1900" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(result) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"v"</span>, <span class="st">"m"</span>, <span class="st">"n"</span>)</span>
-<span id="cb41-1901"><a href="#cb41-1901" aria-hidden="true" tabindex="-1"></a>  result</span>
-<span id="cb41-1902"><a href="#cb41-1902" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb41-1903"><a href="#cb41-1903" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1904"><a href="#cb41-1904" aria-hidden="true" tabindex="-1"></a><span class="co"># Pool the samples iteratively using reduction</span></span>
-<span id="cb41-1905"><a href="#cb41-1905" aria-hidden="true" tabindex="-1"></a>samples <span class="ot">&lt;-</span> <span class="fu">pmap</span>(<span class="fu">list</span>(n, m, s), \(.n, .m, .s) <span class="fu">c</span>(<span class="at">v =</span> .s<span class="sc">^</span><span class="dv">2</span>, <span class="at">m =</span> .m, <span class="at">n =</span> .n))</span>
-<span id="cb41-1906"><a href="#cb41-1906" aria-hidden="true" tabindex="-1"></a>pooled_samples <span class="ot">&lt;-</span> <span class="fu">reduce</span>(samples, pool_samples)</span>
+<span id="cb41-1866"><a href="#cb41-1866" aria-hidden="true" tabindex="-1"></a>Where the column names are the age of the seal in years, and row values indicate mean±SD (n). To get the mean and 95% CI duration of nursing, we pooled the samples for mothers age 4 and up (i.e., excluded 2- and 3-year olds).</span>
+<span id="cb41-1867"><a href="#cb41-1867" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1868"><a href="#cb41-1868" aria-hidden="true" tabindex="-1"></a>The formulas we used for pooling the variances come from <span class="co">[</span><span class="ot">@oneill2014</span><span class="co">]</span>.</span>
+<span id="cb41-1869"><a href="#cb41-1869" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1872"><a href="#cb41-1872" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb41-1873"><a href="#cb41-1873" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: pooled-nursing</span></span>
+<span id="cb41-1874"><a href="#cb41-1874" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1875"><a href="#cb41-1875" aria-hidden="true" tabindex="-1"></a><span class="co"># N, mean, and SD from Reiter et al. (1981) Table III for 4+ yo mothers</span></span>
+<span id="cb41-1876"><a href="#cb41-1876" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">12</span>, <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">5</span>, <span class="dv">2</span>)</span>
+<span id="cb41-1877"><a href="#cb41-1877" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">26.6</span>, <span class="fl">26.1</span>, <span class="fl">26.5</span>, <span class="fl">27.1</span>, <span class="fl">28.2</span>, <span class="fl">28.5</span>)</span>
+<span id="cb41-1878"><a href="#cb41-1878" aria-hidden="true" tabindex="-1"></a>s <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.6</span>, <span class="fl">1.9</span>, <span class="fl">2.2</span>, <span class="fl">1.2</span>, <span class="fl">0.8</span>, <span class="fl">0.7</span>)</span>
+<span id="cb41-1879"><a href="#cb41-1879" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1880"><a href="#cb41-1880" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for pooling two samples</span></span>
+<span id="cb41-1881"><a href="#cb41-1881" aria-hidden="true" tabindex="-1"></a>pool_samples <span class="ot">&lt;-</span> <span class="cf">function</span>(sample1, sample2) {</span>
+<span id="cb41-1882"><a href="#cb41-1882" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sample1 and sample2 must be numeric vectors of length 3 with names v, m, and n</span></span>
+<span id="cb41-1883"><a href="#cb41-1883" aria-hidden="true" tabindex="-1"></a>  is_valid <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb41-1884"><a href="#cb41-1884" aria-hidden="true" tabindex="-1"></a>    <span class="fu">is.numeric</span>(x) <span class="sc">&amp;&amp;</span></span>
+<span id="cb41-1885"><a href="#cb41-1885" aria-hidden="true" tabindex="-1"></a>      <span class="fu">is.vector</span>(x) <span class="sc">&amp;&amp;</span></span>
+<span id="cb41-1886"><a href="#cb41-1886" aria-hidden="true" tabindex="-1"></a>      (<span class="fu">length</span>(x) <span class="sc">==</span> <span class="dv">3</span>) <span class="sc">&amp;&amp;</span></span>
+<span id="cb41-1887"><a href="#cb41-1887" aria-hidden="true" tabindex="-1"></a>      <span class="fu">all</span>(<span class="fu">c</span>(<span class="st">"v"</span>, <span class="st">"m"</span>, <span class="st">"n"</span>) <span class="sc">%in%</span> <span class="fu">names</span>(x))</span>
+<span id="cb41-1888"><a href="#cb41-1888" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb41-1889"><a href="#cb41-1889" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1890"><a href="#cb41-1890" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>(<span class="fu">is_valid</span>(sample1) <span class="sc">&amp;&amp;</span> <span class="fu">is_valid</span>(sample2))) </span>
+<span id="cb41-1891"><a href="#cb41-1891" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"sample1 and sample2 must be numeric vectors of length 3 with names v, m, and n (variance, mean, and number of elements)"</span>)</span>
+<span id="cb41-1892"><a href="#cb41-1892" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb41-1893"><a href="#cb41-1893" aria-hidden="true" tabindex="-1"></a>  v1 <span class="ot">&lt;-</span> sample1[<span class="st">"v"</span>]</span>
+<span id="cb41-1894"><a href="#cb41-1894" aria-hidden="true" tabindex="-1"></a>  m1 <span class="ot">&lt;-</span> sample1[<span class="st">"m"</span>]</span>
+<span id="cb41-1895"><a href="#cb41-1895" aria-hidden="true" tabindex="-1"></a>  n1 <span class="ot">&lt;-</span> sample1[<span class="st">"n"</span>]</span>
+<span id="cb41-1896"><a href="#cb41-1896" aria-hidden="true" tabindex="-1"></a>  v2 <span class="ot">&lt;-</span> sample2[<span class="st">"v"</span>]</span>
+<span id="cb41-1897"><a href="#cb41-1897" aria-hidden="true" tabindex="-1"></a>  m2 <span class="ot">&lt;-</span> sample2[<span class="st">"m"</span>]</span>
+<span id="cb41-1898"><a href="#cb41-1898" aria-hidden="true" tabindex="-1"></a>  n2 <span class="ot">&lt;-</span> sample2[<span class="st">"n"</span>]</span>
+<span id="cb41-1899"><a href="#cb41-1899" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb41-1900"><a href="#cb41-1900" aria-hidden="true" tabindex="-1"></a>  n3 <span class="ot">&lt;-</span> n1 <span class="sc">+</span> n2</span>
+<span id="cb41-1901"><a href="#cb41-1901" aria-hidden="true" tabindex="-1"></a>  m3 <span class="ot">&lt;-</span> <span class="fu">weighted.mean</span>(<span class="fu">c</span>(m1, m2), <span class="fu">c</span>(n1, n2))</span>
+<span id="cb41-1902"><a href="#cb41-1902" aria-hidden="true" tabindex="-1"></a>  v3 <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (n1 <span class="sc">+</span> n2 <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> ((n1 <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> v1 <span class="sc">+</span> (n2 <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> v2 <span class="sc">+</span> n1 <span class="sc">*</span> n2 <span class="sc">/</span> (n1 <span class="sc">+</span> n2) <span class="sc">*</span> (m1 <span class="sc">-</span> m2)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb41-1903"><a href="#cb41-1903" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">c</span>(v3, m3, n3)</span>
+<span id="cb41-1904"><a href="#cb41-1904" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(result) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"v"</span>, <span class="st">"m"</span>, <span class="st">"n"</span>)</span>
+<span id="cb41-1905"><a href="#cb41-1905" aria-hidden="true" tabindex="-1"></a>  result</span>
+<span id="cb41-1906"><a href="#cb41-1906" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb41-1907"><a href="#cb41-1907" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1908"><a href="#cb41-1908" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"%0.1f (95%%CI: %0.1f - %0.1f)"</span>, </span>
-<span id="cb41-1909"><a href="#cb41-1909" aria-hidden="true" tabindex="-1"></a>        pooled_samples[<span class="st">"m"</span>],</span>
-<span id="cb41-1910"><a href="#cb41-1910" aria-hidden="true" tabindex="-1"></a>        pooled_samples[<span class="st">"m"</span>] <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> <span class="fu">sqrt</span>(pooled_samples[<span class="st">"v"</span>]),</span>
-<span id="cb41-1911"><a href="#cb41-1911" aria-hidden="true" tabindex="-1"></a>        pooled_samples[<span class="st">"m"</span>] <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> <span class="fu">sqrt</span>(pooled_samples[<span class="st">"v"</span>]))</span>
-<span id="cb41-1912"><a href="#cb41-1912" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb41-1913"><a href="#cb41-1913" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1914"><a href="#cb41-1914" aria-hidden="true" tabindex="-1"></a><span class="fu">## Population dynamics</span></span>
-<span id="cb41-1915"><a href="#cb41-1915" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1916"><a href="#cb41-1916" aria-hidden="true" tabindex="-1"></a>What effect does senescence have on reproduction and offspring survival? First, calculate the total pup production of the age-structured population in one year. Then, let's pretend senescence *doesn't happen*. In this hypothetical population, all animals older than 11 years old reproduce like an 11 year old. How many more pups would that population produce? And how many more of those pups would survive to reproductive age?</span>
+<span id="cb41-1908"><a href="#cb41-1908" aria-hidden="true" tabindex="-1"></a><span class="co"># Pool the samples iteratively using reduction</span></span>
+<span id="cb41-1909"><a href="#cb41-1909" aria-hidden="true" tabindex="-1"></a>samples <span class="ot">&lt;-</span> <span class="fu">pmap</span>(<span class="fu">list</span>(n, m, s), \(.n, .m, .s) <span class="fu">c</span>(<span class="at">v =</span> .s<span class="sc">^</span><span class="dv">2</span>, <span class="at">m =</span> .m, <span class="at">n =</span> .n))</span>
+<span id="cb41-1910"><a href="#cb41-1910" aria-hidden="true" tabindex="-1"></a>pooled_samples <span class="ot">&lt;-</span> <span class="fu">reduce</span>(samples, pool_samples)</span>
+<span id="cb41-1911"><a href="#cb41-1911" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1912"><a href="#cb41-1912" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"%0.1f (95%%CI: %0.1f - %0.1f)"</span>, </span>
+<span id="cb41-1913"><a href="#cb41-1913" aria-hidden="true" tabindex="-1"></a>        pooled_samples[<span class="st">"m"</span>],</span>
+<span id="cb41-1914"><a href="#cb41-1914" aria-hidden="true" tabindex="-1"></a>        pooled_samples[<span class="st">"m"</span>] <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> <span class="fu">sqrt</span>(pooled_samples[<span class="st">"v"</span>]),</span>
+<span id="cb41-1915"><a href="#cb41-1915" aria-hidden="true" tabindex="-1"></a>        pooled_samples[<span class="st">"m"</span>] <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> <span class="fu">sqrt</span>(pooled_samples[<span class="st">"v"</span>]))</span>
+<span id="cb41-1916"><a href="#cb41-1916" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb41-1917"><a href="#cb41-1917" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1918"><a href="#cb41-1918" aria-hidden="true" tabindex="-1"></a>The observed pup production (in the age-structured population) is:</span>
+<span id="cb41-1918"><a href="#cb41-1918" aria-hidden="true" tabindex="-1"></a><span class="fu">## Population dynamics</span></span>
 <span id="cb41-1919"><a href="#cb41-1919" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1920"><a href="#cb41-1920" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb41-1921"><a href="#cb41-1921" aria-hidden="true" tabindex="-1"></a>\pi_{1a} = \frac{\sum_{a=4}^{20} b_a n_a}{\sum_{a=4}^{20} n_a}</span>
-<span id="cb41-1922"><a href="#cb41-1922" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1920"><a href="#cb41-1920" aria-hidden="true" tabindex="-1"></a>What effect does senescence have on reproduction and offspring survival? First, calculate the total pup production of the age-structured population in one year. Then, let's pretend senescence *doesn't happen*. In this hypothetical population, all animals older than 11 years old reproduce like an 11 year old. How many more pups would that population produce? And how many more of those pups would survive to reproductive age?</span>
+<span id="cb41-1921"><a href="#cb41-1921" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1922"><a href="#cb41-1922" aria-hidden="true" tabindex="-1"></a>The observed pup production (in the age-structured population) is:</span>
 <span id="cb41-1923"><a href="#cb41-1923" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1924"><a href="#cb41-1924" aria-hidden="true" tabindex="-1"></a>Where $\pi_1$ is pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.</span>
-<span id="cb41-1925"><a href="#cb41-1925" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1926"><a href="#cb41-1926" aria-hidden="true" tabindex="-1"></a>Hypothetical pup production in a non-senescing population is:</span>
+<span id="cb41-1924"><a href="#cb41-1924" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1925"><a href="#cb41-1925" aria-hidden="true" tabindex="-1"></a>\pi_{1a} = \frac{\sum_{a=4}^{20} b_a n_a}{\sum_{a=4}^{20} n_a}</span>
+<span id="cb41-1926"><a href="#cb41-1926" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb41-1927"><a href="#cb41-1927" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1928"><a href="#cb41-1928" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb41-1929"><a href="#cb41-1929" aria-hidden="true" tabindex="-1"></a>\pi_{2a} = \frac{\sum_{a=4}^{11} b_a n_a + \sum_{a=12}^{20} b_{11} n_a}{\sum_{a=4}^{20}n_a}</span>
-<span id="cb41-1930"><a href="#cb41-1930" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1928"><a href="#cb41-1928" aria-hidden="true" tabindex="-1"></a>Where $\pi_1$ is pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.</span>
+<span id="cb41-1929"><a href="#cb41-1929" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1930"><a href="#cb41-1930" aria-hidden="true" tabindex="-1"></a>Hypothetical pup production in a non-senescing population is:</span>
 <span id="cb41-1931"><a href="#cb41-1931" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1932"><a href="#cb41-1932" aria-hidden="true" tabindex="-1"></a>I.e., $b$ does not decline post-age 11.</span>
-<span id="cb41-1933"><a href="#cb41-1933" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1934"><a href="#cb41-1934" aria-hidden="true" tabindex="-1"></a>Similarly, the observed and hypothetical quantity of pups that survive to adulthood adds a term $s$ for offspring survival.</span>
+<span id="cb41-1932"><a href="#cb41-1932" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1933"><a href="#cb41-1933" aria-hidden="true" tabindex="-1"></a>\pi_{2a} = \frac{\sum_{a=4}^{11} b_a n_a + \sum_{a=12}^{20} b_{11} n_a}{\sum_{a=4}^{20}n_a}</span>
+<span id="cb41-1934"><a href="#cb41-1934" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb41-1935"><a href="#cb41-1935" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1936"><a href="#cb41-1936" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb41-1937"><a href="#cb41-1937" aria-hidden="true" tabindex="-1"></a>\pi_{1b} = \frac{\sum_{a=4}^{20} b_a n_a s_a}{\sum_{a=4}^{20} n_a}</span>
-<span id="cb41-1938"><a href="#cb41-1938" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1936"><a href="#cb41-1936" aria-hidden="true" tabindex="-1"></a>I.e., $b$ does not decline post-age 11.</span>
+<span id="cb41-1937"><a href="#cb41-1937" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1938"><a href="#cb41-1938" aria-hidden="true" tabindex="-1"></a>Similarly, the observed and hypothetical quantity of pups that survive to adulthood adds a term $s$ for offspring survival.</span>
 <span id="cb41-1939"><a href="#cb41-1939" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-1940"><a href="#cb41-1940" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb41-1941"><a href="#cb41-1941" aria-hidden="true" tabindex="-1"></a>\pi_{2b} = \frac{\sum_{a=4}^{11} b_a n_a s_a + \sum_{a=12}^{20} b_{11} n_a s_{11}}{\sum_{a=4}^{20} n_a}</span>
+<span id="cb41-1941"><a href="#cb41-1941" aria-hidden="true" tabindex="-1"></a>\pi_{1b} = \frac{\sum_{a=4}^{20} b_a n_a s_a}{\sum_{a=4}^{20} n_a}</span>
 <span id="cb41-1942"><a href="#cb41-1942" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb41-1943"><a href="#cb41-1943" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1946"><a href="#cb41-1946" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb41-1947"><a href="#cb41-1947" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: popdy</span></span>
-<span id="cb41-1948"><a href="#cb41-1948" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1949"><a href="#cb41-1949" aria-hidden="true" tabindex="-1"></a><span class="co"># a, b, n, and s </span></span>
-<span id="cb41-1950"><a href="#cb41-1950" aria-hidden="true" tabindex="-1"></a>popdy_df <span class="ot">&lt;-</span> <span class="fu">count</span>(sealdat, age) <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1951"><a href="#cb41-1951" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(age <span class="sc">&lt;=</span> <span class="dv">20</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1952"><a href="#cb41-1952" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age10 =</span> (age <span class="sc">-</span> age_senesce) <span class="sc">/</span> <span class="dv">10</span>,</span>
-<span id="cb41-1953"><a href="#cb41-1953" aria-hidden="true" tabindex="-1"></a>         <span class="at">age_cat =</span> <span class="fu">factor</span>(age <span class="sc">&gt;=</span> age_senesce, </span>
-<span id="cb41-1954"><a href="#cb41-1954" aria-hidden="true" tabindex="-1"></a>                          <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Young"</span>, <span class="st">"Old"</span>))) <span class="sc">%&gt;%</span> </span>
-<span id="cb41-1955"><a href="#cb41-1955" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">b =</span> <span class="fu">predict</span>(breed_age_mod, <span class="at">newdata =</span> ., <span class="at">re.form =</span> <span class="cn">NA</span>, <span class="at">type =</span> <span class="st">"response"</span>),</span>
-<span id="cb41-1956"><a href="#cb41-1956" aria-hidden="true" tabindex="-1"></a>         <span class="at">s =</span> <span class="fu">predict</span>(pup_surv_mod, <span class="at">newdata =</span> ., <span class="at">re.form =</span> <span class="cn">NA</span>, <span class="at">type =</span> <span class="st">"response"</span>))</span>
-<span id="cb41-1957"><a href="#cb41-1957" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1958"><a href="#cb41-1958" aria-hidden="true" tabindex="-1"></a><span class="co"># pup production (pi1a and pi2a)</span></span>
-<span id="cb41-1959"><a href="#cb41-1959" aria-hidden="true" tabindex="-1"></a>pi1a <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(b <span class="sc">*</span> n) <span class="sc">/</span> <span class="fu">sum</span>(n)) </span>
-<span id="cb41-1960"><a href="#cb41-1960" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1961"><a href="#cb41-1961" aria-hidden="true" tabindex="-1"></a>b11 <span class="ot">&lt;-</span> popdy_df<span class="sc">$</span>b[popdy_df<span class="sc">$</span>age <span class="sc">==</span> <span class="dv">11</span>]</span>
-<span id="cb41-1962"><a href="#cb41-1962" aria-hidden="true" tabindex="-1"></a>pi2a <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(<span class="fu">ifelse</span>(age <span class="sc">&gt;</span> <span class="dv">11</span>, b11, b) <span class="sc">*</span> n) <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
-<span id="cb41-1963"><a href="#cb41-1963" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1964"><a href="#cb41-1964" aria-hidden="true" tabindex="-1"></a><span class="co"># Survivng offspring (pi1b and pi2b)</span></span>
-<span id="cb41-1965"><a href="#cb41-1965" aria-hidden="true" tabindex="-1"></a>pi1b <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(b <span class="sc">*</span> n <span class="sc">*</span> s) <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
-<span id="cb41-1966"><a href="#cb41-1966" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1967"><a href="#cb41-1967" aria-hidden="true" tabindex="-1"></a>s11 <span class="ot">&lt;-</span> popdy_df<span class="sc">$</span>s[popdy_df<span class="sc">$</span>age <span class="sc">==</span> <span class="dv">11</span>]</span>
-<span id="cb41-1968"><a href="#cb41-1968" aria-hidden="true" tabindex="-1"></a>pi2b <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(<span class="fu">ifelse</span>(age <span class="sc">&gt;</span> <span class="dv">11</span>, b11 <span class="sc">*</span> s11, b <span class="sc">*</span> s) <span class="sc">*</span> n) <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
-<span id="cb41-1969"><a href="#cb41-1969" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1944"><a href="#cb41-1944" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1945"><a href="#cb41-1945" aria-hidden="true" tabindex="-1"></a>\pi_{2b} = \frac{\sum_{a=4}^{11} b_a n_a s_a + \sum_{a=12}^{20} b_{11} n_a s_{11}}{\sum_{a=4}^{20} n_a}</span>
+<span id="cb41-1946"><a href="#cb41-1946" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb41-1947"><a href="#cb41-1947" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1950"><a href="#cb41-1950" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb41-1951"><a href="#cb41-1951" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: popdy</span></span>
+<span id="cb41-1952"><a href="#cb41-1952" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1953"><a href="#cb41-1953" aria-hidden="true" tabindex="-1"></a><span class="co"># a, b, n, and s </span></span>
+<span id="cb41-1954"><a href="#cb41-1954" aria-hidden="true" tabindex="-1"></a>popdy_df <span class="ot">&lt;-</span> <span class="fu">count</span>(sealdat, age) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1955"><a href="#cb41-1955" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(age <span class="sc">&lt;=</span> <span class="dv">20</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1956"><a href="#cb41-1956" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age10 =</span> (age <span class="sc">-</span> age_senesce) <span class="sc">/</span> <span class="dv">10</span>,</span>
+<span id="cb41-1957"><a href="#cb41-1957" aria-hidden="true" tabindex="-1"></a>         <span class="at">age_cat =</span> <span class="fu">factor</span>(age <span class="sc">&gt;=</span> age_senesce, </span>
+<span id="cb41-1958"><a href="#cb41-1958" aria-hidden="true" tabindex="-1"></a>                          <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Young"</span>, <span class="st">"Old"</span>))) <span class="sc">%&gt;%</span> </span>
+<span id="cb41-1959"><a href="#cb41-1959" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">b =</span> <span class="fu">predict</span>(breed_age_mod, <span class="at">newdata =</span> ., <span class="at">re.form =</span> <span class="cn">NA</span>, <span class="at">type =</span> <span class="st">"response"</span>),</span>
+<span id="cb41-1960"><a href="#cb41-1960" aria-hidden="true" tabindex="-1"></a>         <span class="at">s =</span> <span class="fu">predict</span>(pup_surv_mod, <span class="at">newdata =</span> ., <span class="at">re.form =</span> <span class="cn">NA</span>, <span class="at">type =</span> <span class="st">"response"</span>))</span>
+<span id="cb41-1961"><a href="#cb41-1961" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1962"><a href="#cb41-1962" aria-hidden="true" tabindex="-1"></a><span class="co"># pup production (pi1a and pi2a)</span></span>
+<span id="cb41-1963"><a href="#cb41-1963" aria-hidden="true" tabindex="-1"></a>pi1a <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(b <span class="sc">*</span> n) <span class="sc">/</span> <span class="fu">sum</span>(n)) </span>
+<span id="cb41-1964"><a href="#cb41-1964" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1965"><a href="#cb41-1965" aria-hidden="true" tabindex="-1"></a>b11 <span class="ot">&lt;-</span> popdy_df<span class="sc">$</span>b[popdy_df<span class="sc">$</span>age <span class="sc">==</span> <span class="dv">11</span>]</span>
+<span id="cb41-1966"><a href="#cb41-1966" aria-hidden="true" tabindex="-1"></a>pi2a <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(<span class="fu">ifelse</span>(age <span class="sc">&gt;</span> <span class="dv">11</span>, b11, b) <span class="sc">*</span> n) <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
+<span id="cb41-1967"><a href="#cb41-1967" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1968"><a href="#cb41-1968" aria-hidden="true" tabindex="-1"></a><span class="co"># Survivng offspring (pi1b and pi2b)</span></span>
+<span id="cb41-1969"><a href="#cb41-1969" aria-hidden="true" tabindex="-1"></a>pi1b <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(b <span class="sc">*</span> n <span class="sc">*</span> s) <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
 <span id="cb41-1970"><a href="#cb41-1970" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1971"><a href="#cb41-1971" aria-hidden="true" tabindex="-1"></a><span class="fu">str_glue</span>(<span class="st">"</span></span>
-<span id="cb41-1972"><a href="#cb41-1972" aria-hidden="true" tabindex="-1"></a><span class="st">pi1a: {round(pi1a, 5)}</span></span>
-<span id="cb41-1973"><a href="#cb41-1973" aria-hidden="true" tabindex="-1"></a><span class="st">pi2a: {round(pi2a, 5)}</span></span>
-<span id="cb41-1974"><a href="#cb41-1974" aria-hidden="true" tabindex="-1"></a><span class="st">pi1b: {round(pi1b, 5)}</span></span>
-<span id="cb41-1975"><a href="#cb41-1975" aria-hidden="true" tabindex="-1"></a><span class="st">pi2b: {round(pi2b, 5)}"</span>)</span>
-<span id="cb41-1976"><a href="#cb41-1976" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-1977"><a href="#cb41-1977" aria-hidden="true" tabindex="-1"></a><span class="fu">str_glue</span>(<span class="st">"</span></span>
-<span id="cb41-1978"><a href="#cb41-1978" aria-hidden="true" tabindex="-1"></a><span class="st">delta pi a {round(100 * (pi1a - pi2a) / pi2a, 2)}%,</span></span>
-<span id="cb41-1979"><a href="#cb41-1979" aria-hidden="true" tabindex="-1"></a><span class="st">delta pi b {round(100 * (pi1b - pi2b) / pi2b, 2)}%"</span>)</span>
-<span id="cb41-1980"><a href="#cb41-1980" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb41-1971"><a href="#cb41-1971" aria-hidden="true" tabindex="-1"></a>s11 <span class="ot">&lt;-</span> popdy_df<span class="sc">$</span>s[popdy_df<span class="sc">$</span>age <span class="sc">==</span> <span class="dv">11</span>]</span>
+<span id="cb41-1972"><a href="#cb41-1972" aria-hidden="true" tabindex="-1"></a>pi2b <span class="ot">&lt;-</span> <span class="fu">with</span>(popdy_df, <span class="fu">sum</span>(<span class="fu">ifelse</span>(age <span class="sc">&gt;</span> <span class="dv">11</span>, b11 <span class="sc">*</span> s11, b <span class="sc">*</span> s) <span class="sc">*</span> n) <span class="sc">/</span> <span class="fu">sum</span>(n))</span>
+<span id="cb41-1973"><a href="#cb41-1973" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1974"><a href="#cb41-1974" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1975"><a href="#cb41-1975" aria-hidden="true" tabindex="-1"></a><span class="fu">str_glue</span>(<span class="st">"</span></span>
+<span id="cb41-1976"><a href="#cb41-1976" aria-hidden="true" tabindex="-1"></a><span class="st">pi1a: {round(pi1a, 5)}</span></span>
+<span id="cb41-1977"><a href="#cb41-1977" aria-hidden="true" tabindex="-1"></a><span class="st">pi2a: {round(pi2a, 5)}</span></span>
+<span id="cb41-1978"><a href="#cb41-1978" aria-hidden="true" tabindex="-1"></a><span class="st">pi1b: {round(pi1b, 5)}</span></span>
+<span id="cb41-1979"><a href="#cb41-1979" aria-hidden="true" tabindex="-1"></a><span class="st">pi2b: {round(pi2b, 5)}"</span>)</span>
+<span id="cb41-1980"><a href="#cb41-1980" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-1981"><a href="#cb41-1981" aria-hidden="true" tabindex="-1"></a><span class="fu">str_glue</span>(<span class="st">"</span></span>
+<span id="cb41-1982"><a href="#cb41-1982" aria-hidden="true" tabindex="-1"></a><span class="st">delta pi a {round(100 * (pi1a - pi2a) / pi2a, 2)}%,</span></span>
+<span id="cb41-1983"><a href="#cb41-1983" aria-hidden="true" tabindex="-1"></a><span class="st">delta pi b {round(100 * (pi1b - pi2b) / pi2b, 2)}%"</span>)</span>
+<span id="cb41-1984"><a href="#cb41-1984" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

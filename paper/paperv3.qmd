@@ -1705,17 +1705,21 @@ sprintf("Age peak (H1) = %0.1f", h1_age_peak)
 #| label: linear-h2
 
 #h2a
-surv_age_line <- lmer(
+surv_age_line <- glmer(
   pup_surv_int ~ age10 + (1 | animalID) + (1 | year),
-  surv_recr_data
+  surv_recr_data, 
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
 )
 
 summary(surv_age_line)$coefficients
 
 #h2b
-recr_age_line <- lmer(
+recr_age_line <- glmer(
   pup_recr_int ~ age10 + (1 | year),
-  filter(surv_recr_data, pupsex == "F")
+  filter(surv_recr_data, pupsex == "F"), 
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa")
 )
 
 summary(recr_age_line)$coefficients
