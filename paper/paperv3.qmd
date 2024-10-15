@@ -121,7 +121,7 @@ sighting_img <- sealdat %>%
   filter(year > 1987) %>% 
   ggplot(aes(year, animalID)) +
   geom_raster(aes(fill = observed)) +
-  scale_fill_brewer(palette = "YlGnBu", direction = 1) +
+  scale_fill_viridis_d(direction = 1) +
   guides(fill = guide_legend(position = "inside", 
                              direction = "horizontal",
                              ncol = 1,
@@ -1593,16 +1593,16 @@ detection_pred_years <- detection_grid %>%
                              type = "response",
                              re.form = ~ (1 | year_fct)))
 
-ggplot(detection_pred, aes(age, color = age_cat, fill = age_cat)) +
+ggplot(detection_pred, aes(age)) +
   # Line per year
-  geom_line(aes(y = predicted, group = interaction(age_cat, year_fct)), 
+  geom_line(aes(y = predicted, group = interaction(age, year_fct)), 
             detection_pred_years, 
             alpha = 0.2) +
   # Weighted model
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
               alpha = 0.3, 
               color = NA) +
-  geom_line(aes(y = predicted, linetype = age_cat),
+  geom_line(aes(y = predicted),
             linewidth = 1.5) +
   # Population-level model
   geom_line(aes(y = pred_pop), 
@@ -1619,9 +1619,9 @@ ggplot(detection_pred, aes(age, color = age_cat, fill = age_cat)) +
   scale_y_continuous("Detection rate", 
                      labels = scales::label_percent(accuracy = 1),
                      limits = c(0, NA)) +
-  scale_linetype_manual(values = c("solid", "dashed")) +
-  scale_color_manual(values = c("#7fbc41", "#de77ae")) +
-  scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
+  # scale_linetype_manual(values = c("solid", "dashed")) +
+  # scale_color_manual(values = c("#7fbc41", "#de77ae")) +
+  # scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   theme(legend.position = "none")
 ```
 
