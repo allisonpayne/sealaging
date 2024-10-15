@@ -1856,27 +1856,27 @@ What effect does senescence have on reproduction and offspring survival? First, 
 The observed pup production (in the age-structured population) is:
 
 $$
-\pi_{1a} = \frac{\sum_{a=4}^{20} b_a n_a}{\sum_{a=4}^{20} n_a}
+F_{1} = \frac{\sum_{a=4}^{20} b_a n_a}{\sum_{a=4}^{20} n_a}
 $$
 
-Where $\pi_1$ is pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.
+Where $F$ represents fertility, described by pup production per mother per year by the age-structured population. $a$ is age, $b$ is estimated breeding percentage, and $n$ is the number of mothers in that age class.
 
 Hypothetical pup production in a non-senescing population is:
 
 $$
-\pi_{2a} = \frac{\sum_{a=4}^{11} b_a n_a + \sum_{a=12}^{20} b_{11} n_a}{\sum_{a=4}^{20}n_a}
+F_{2} = \frac{\sum_{a=4}^{11} b_a n_a + \sum_{a=12}^{20} b_{11} n_a}{\sum_{a=4}^{20}n_a}
 $$
 
 I.e., $b$ does not decline post-age 11.
 
-Similarly, the observed and hypothetical quantity of pups that survive to adulthood adds a term $s$ for offspring survival.
+Similarly, to account for the influence of maternal effects ($M$), we add a term $s$ for offspring survival to estimate the observed and hypothetical quantity of pups that survive to adulthood.
 
 $$
-\pi_{1b} = \frac{\sum_{a=4}^{20} b_a n_a s_a}{\sum_{a=4}^{20} n_a}
+M_{1} = \frac{\sum_{a=4}^{20} b_a n_a s_a}{\sum_{a=4}^{20} n_a}
 $$
 
 $$
-\pi_{2b} = \frac{\sum_{a=4}^{11} b_a n_a s_a + \sum_{a=12}^{20} b_{11} n_a s_{11}}{\sum_{a=4}^{20} n_a}
+M_{2} = \frac{\sum_{a=4}^{11} b_a n_a s_a + \sum_{a=12}^{20} b_{11} n_a s_{11}}{\sum_{a=4}^{20} n_a}
 $$
 
 ```{r}
