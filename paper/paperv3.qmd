@@ -1700,12 +1700,18 @@ detection_pred_years <- detection_grid %>%
   mutate(predicted = predict(detection_mod, 
                              newdata = .,
                              type = "response",
-                             re.form = ~ (1 | year_fct)))
+                             re.form = ~ (1 | year_fct))) %>% 
+  group_by(age, year_fct)
+
+
+  geom_line(aes(age, predicted, group = interaction(phase, age_cat, year_fct)), 
+            filter(phen_pred_years, phase == "breeddur"),
+            alpha = 0.1) + 
 
 ggplot(detection_pred, aes(age)) +
   # Line per year
-  geom_line(aes(y = predicted, group = interaction(age, year_fct)), 
-            detection_pred_years, 
+  geom_line(aes(x = age, y = predicted, group = interaction(age_cat, year_fct)), 
+            mutate(detection_pred_years, age_cat = "all"), 
             alpha = 0.2) +
   # Weighted model
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
@@ -1728,9 +1734,6 @@ ggplot(detection_pred, aes(age)) +
   scale_y_continuous("Detection rate", 
                      labels = scales::label_percent(accuracy = 1),
                      limits = c(0, NA)) +
-  # scale_linetype_manual(values = c("solid", "dashed")) +
-  # scale_color_manual(values = c("#7fbc41", "#de77ae")) +
-  # scale_fill_manual(values = c("#7fbc41", "#de77ae")) +
   theme(legend.position = "none")
 ```
 

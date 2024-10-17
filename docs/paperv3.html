@@ -3029,7 +3029,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb44-1183"><a href="#cb44-1183" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(phase <span class="sc">==</span> <span class="st">"moltdur"</span>)</span>
 <span id="cb44-1184"><a href="#cb44-1184" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-1185"><a href="#cb44-1185" aria-hidden="true" tabindex="-1"></a>molt_mod <span class="ot">&lt;-</span> <span class="fu">glmer</span>(dur_days <span class="sc">~</span> age10 <span class="sc">:</span> age_cat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> year_fct) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> animalID), </span>
-<span id="cb44-1186"><a href="#cb44-1186" aria-hidden="true" tabindex="-1"></a>        <span class="at">data =</span> molt_data, </span>
+<span id="cb44-1186"><a href="#cb44-1186" aria-hidden="true" tabindex="-1"></a>        molt_data, </span>
 <span id="cb44-1187"><a href="#cb44-1187" aria-hidden="true" tabindex="-1"></a>        <span class="at">family =</span> <span class="fu">Gamma</span>(<span class="at">link =</span> <span class="st">"log"</span>))</span>
 <span id="cb44-1188"><a href="#cb44-1188" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-1189"><a href="#cb44-1189" aria-hidden="true" tabindex="-1"></a>breed_data <span class="ot">&lt;-</span> sealdat <span class="sc">%&gt;%</span> </span>
