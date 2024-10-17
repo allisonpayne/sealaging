@@ -1078,10 +1078,10 @@ summary(pheno_model)
 #| label: mod-sens
 
 fit_models <- function(a) {
-  age_senesce <- a
   sealdat <- sealdat %>% 
-    mutate(age_cat = factor(age >= age_senesce, 
-                            labels = c("Young", "Old")))
+    mutate(age_cat = factor(age >= a, 
+                            labels = c("Young", "Old")),
+           age10 = (age - a) / 10)
   
   # H1
   breed_age_mod <- glmer(
@@ -1123,6 +1123,15 @@ fit_models <- function(a) {
     pup_sex_data,
     family = "binomial"
   )
+  
+  effect_size <- function(m) {
+    probs <- tibble(age = c(15, 19),
+                    age_cat = c("Old", "Old")) %>% 
+      mutate(age10 = (age - a) / 10) %>% 
+      predict(m, re.form = NA, newdata = ., type = "response")
+    odds <- probs / (1 - probs)
+    odds[2] / odds[1]
+  }
 
   list(
     h1 = summary(breed_age_mod)$coefficients,
@@ -1132,7 +1141,11 @@ fit_models <- function(a) {
     h1_aic = AIC(breed_age_mod),
     h2_surv_aic = AIC(pup_surv_mod),
     h2_recr_aic = AIC(pup_recr_mod),
-    h3_aic = AIC(sexrat_age_mod)
+    h3_aic = AIC(sexrat_age_mod),
+    h1_effect = effect_size(breed_age_mod),
+    h2_surv_effect = effect_size(pup_surv_mod),
+    h2_recr_effect = effect_size(pup_recr_mod),
+    h3_effect = effect_size(sexrat_age_mod)
   )
 }
 
@@ -1171,8 +1184,18 @@ aic_tbl <- tibble(age_cutoff = cutoff,
                   "H3 (sex ratio)" = extract_aic("h3")) %>% 
   mutate(across(-age_cutoff, aic_weight))
 
+extract_coef <- function(h) {
+  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
+}
+coef_tbl <- tibble(age_cutoff = cutoff, 
+                "H1 (breeding)" = extract_coef("h1"),
+                "H2a (survival)" = extract_coef("h2_surv"),
+                "H2b (recruitment)" = extract_coef("h2_recr"),
+                "H3 (sex ratio)" = extract_coef("h3"))
+
 knitr::kable(p_tbl)
 knitr::kable(aic_tbl)
+knitr::kable(coef_tbl)
 
 ```
 
@@ -1180,25 +1203,25 @@ knitr::kable(aic_tbl)
 #| label: fig-mod-sens
 #| fig-cap: "Model sensitivity to onset of senescence. Age at onset of senescence on the x-axis, p-value for the coefficient of the interaction (age category = post-senescence) x (response variable) on the y-axis. Statistical significance (p = 0.05) indicated by dashed line. Hypotheses H1 (reproductive senescence), H2b (maternal-effect senescence; offspring recruitment), and H3 (offspring sex ratio) were insensitive to choice of age for onset of senescence. Hypothesis H2a (maternal-effect senescence; offspring survival) was significantly supported for onset of senescence age 11+. At age 10, the p-vale for the coefficient of the interaction (age category = post-senescence) x (offspring survival) was 0.058."
 
-p_tbl %>% 
-  pivot_longer(-age_cutoff, names_to = "hypothesis", values_to = "p") %>%
-  mutate(hypgrp = ifelse(str_detect(hypothesis, "H3"), 
-                         "H3 (sex ratio)", 
-                         hypothesis)) %>% 
-  ggplot(aes(age_cutoff, p)) +
-  geom_point(aes(color = hypothesis == "H3 (sex ratio; 2 tail)")) +
-  geom_hline(yintercept = 0.05, linetype = "dashed") +
-  geom_text(aes(x, y, label = tag),
-            tibble(hypgrp = colnames(p_tbl)[2:5],
-                   tag = LETTERS[1:4],
-                   x = 8, y = 3),
-            vjust = 1,
-            fontface = "bold") +
-  scale_y_log10(labels = scales::number) +
-  scale_color_manual(values = c("black", "grey50")) +
+left_join(
+  pivot_longer(p_tbl, -age_cutoff, names_to = "hypothesis", values_to = "p"),
+  pivot_longer(coef_tbl, -age_cutoff, names_to = "hypothesis", values_to = "coef"),
+  by = c("age_cutoff", "hypothesis")
+  ) %>% 
+  left_join(
+    pivot_longer(se_tbl, -age_cutoff, names_to = "hypothesis", values_to = "se"),
+    by = c("age_cutoff", "hypothesis")
+  ) %>% 
+  ggplot(aes(age_cutoff, coef)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_pointrange(aes(size = p, 
+                      color = p < 0.05, 
+                      ymin = coef - 1.96 * se,
+                      ymax = coef + 1.96 * se)) +
   labs(x = "Senescence onset (years)") +
+  scale_size_continuous(range = c(0.25, 1)) +
   expand_limits(y = 3) +
-  facet_wrap(~hypgrp) +
+  facet_wrap(~hypothesis) +
   theme(legend.position = "none")
 
 ```
