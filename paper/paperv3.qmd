@@ -1124,28 +1124,88 @@ fit_models <- function(a) {
     family = "binomial"
   )
   
-  effect_size <- function(m) {
-    probs <- tibble(age = c(15, 19),
-                    age_cat = c("Old", "Old")) %>% 
-      mutate(age10 = (age - a) / 10) %>% 
-      predict(m, re.form = NA, newdata = ., type = "response")
-    odds <- probs / (1 - probs)
-    odds[2] / odds[1]
-  }
+  # H4
+molt_data <- sealdat %>% 
+  filter(year >= 2011, 
+         moltdur >= 7, 
+         age <= 20) %>% 
+  mutate(BA = firstobsbreeddoy, 
+         BD = firstobsbreeddoy + breeddur, 
+         MA = lastobsmoltdoy - moltdur, 
+         MD = lastobsmoltdoy) %>% 
+  drop_na(age, BA, BD, MA, MD) %>% 
+  transmute(animalID, 
+            year_fct, 
+            age10 = (age - age_senesce) / 10, 
+            age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old")),
+            moltdur, 
+            breeddur) %>% 
+  pivot_longer(moltdur:breeddur, 
+               names_to = "phase", 
+               values_to = "dur_days") %>% 
+  filter(phase == "moltdur")
+
+molt_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID), 
+        molt_data, 
+        family = Gamma(link = "log"))
+
+breed_data <- sealdat %>% 
+  filter(year >= 2011, 
+         moltdur >= 7, 
+         age <= 20) %>% 
+  mutate(BA = firstobsbreeddoy, 
+         BD = firstobsbreeddoy + breeddur, 
+         MA = lastobsmoltdoy - moltdur, 
+         MD = lastobsmoltdoy) %>% 
+  drop_na(age, BA, BD, MA, MD) %>% 
+  transmute(animalID, 
+            year_fct, 
+            age10 = (age - age_senesce) / 10, 
+            age_cat = factor(age >= age_senesce, 
+                          labels = c("Young", "Old")),
+            moltdur, 
+            breeddur) %>% 
+  pivot_longer(moltdur:breeddur, 
+               names_to = "phase", 
+               values_to = "dur_days") %>% 
+  filter(phase == "breeddur")
+
+breed_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID), 
+        data = breed_data, 
+        family = Gamma(link = "log"), 
+        control = glmerControl(optimizer = "bobyqa")
+)
+  
+  
+#Making the tables
+#Not sure about this function
+  # effect_size <- function(m) {
+  #   probs <- tibble(age = c(15, 19),
+  #                   age_cat = c("Old", "Old")) %>% 
+  #     mutate(age10 = (age - a) / 10) %>% 
+  #     predict(m, re.form = NA, newdata = ., type = "response")
+  #   odds <- probs / (1 - probs)
+  #   odds[2] / odds[1]
+  # }
 
   list(
     h1 = summary(breed_age_mod)$coefficients,
     h2_surv = summary(pup_surv_mod)$coefficients,
     h2_recr = summary(pup_recr_mod)$coefficients,
     h3 = summary(sexrat_age_mod)$coefficients,
+    h4_molt = summary(molt_mod)$coefficients, 
+    h4_breed = summary(breed_mod)$coefficients,
     h1_aic = AIC(breed_age_mod),
     h2_surv_aic = AIC(pup_surv_mod),
     h2_recr_aic = AIC(pup_recr_mod),
     h3_aic = AIC(sexrat_age_mod),
-    h1_effect = effect_size(breed_age_mod),
-    h2_surv_effect = effect_size(pup_surv_mod),
-    h2_recr_effect = effect_size(pup_recr_mod),
-    h3_effect = effect_size(sexrat_age_mod)
+    h4_molt_aic = AIC(molt_mod), 
+    h4_breed_aic = AIC(breed_mod)
+    # h1_effect = effect_size(breed_age_mod),
+    # h2_surv_effect = effect_size(pup_surv_mod),
+    # h2_recr_effect = effect_size(pup_recr_mod),
+    # h3_effect = effect_size(sexrat_age_mod)
   )
 }
 
@@ -1153,45 +1213,71 @@ fit_models <- function(a) {
 cutoff <- 6:14
 mod_sens <- map(cutoff, fit_models)
 
+```
+
+```{r}
 # Are hypotheses supported by the model? note to future readers...this part could have been done way easier, and you will have to trust our process that this was the path of least resistence for us at the point of final revisions!
-extract_p <- function(h, tails = 1) {
-  if (tails == 1) {
-    map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
-  } else if (tails == 2) {
-    map_dbl(mod_sens, \(m) 2 * pnorm(m[[h]]["age10:age_catOld", "z value"],
-                                     lower.tail = (m[[h]]["age10:age_catOld", "z value"] < 0)
-                                     ))
-  } else {
-    stop("tails must be 1 or 2")
-  }
+# extract_p <- function(h, tails = 1) {
+#   if (tails == 1) {
+#     map_dbl(mod_sens, \(m) pnorm(m[[h]]["age10:age_catOld", "z value"]))
+#   } else if (tails == 2) {
+#     map_dbl(mod_sens, \(m) 2 * pnorm(m[[h]]["age10:age_catOld", "z value"],
+#                                      lower.tail = (m[[h]]["age10:age_catOld", "z value"] < 0)
+#                                      ))
+#   } else {
+#     stop("tails must be 1 or 2")
+#   }
+# }
+extract_p <- function(h) {
+  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Pr(>|z|)"])
 }
 extract_aic <- function(h) {
   map_dbl(mod_sens, paste(h, "aic", sep = "_"))
 }
-p_tbl <- tibble(age_cutoff = cutoff, 
-                "H1 (breeding)" = extract_p("h1", tails = 2),
-                "H2a (survival)" = extract_p("h2_surv", tails = 2),
-                "H2b (recruitment)" = extract_p("h2_recr", tails = 2),
-                "H3 (sex ratio)" = extract_p("h3", tails = 2))
 aic_weight <- function(x) {
   rellik <- exp(-0.5 * (x - min(x)))
   rellik / sum(rellik)
 }
+extract_coef <- function(h) {
+  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
+}
+extract_se <- function(h) {
+  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Std. Error"])
+}
+
+#make the tables
+p_tbl <- tibble(age_cutoff = cutoff, 
+                "H1 (breeding)" = extract_p("h1"),
+                "H2a (survival)" = extract_p("h2_surv"),
+                "H2b (recruitment)" = extract_p("h2_recr"),
+                "H3 (sex ratio)" = extract_p("h3"), 
+                "H4a (molt duration)" = extract_p("h4_molt"), 
+                "H4b (breed duration)" = extract_p("h4_breed"))
+
 aic_tbl <- tibble(age_cutoff = cutoff,
                   "H1 (breeding)" = extract_aic("h1"),
                   "H2a (survival)" = extract_aic("h2_surv"),
                   "H2b (recruitment)" = extract_aic("h2_recr"),
-                  "H3 (sex ratio)" = extract_aic("h3")) %>% 
+                  "H3 (sex ratio)" = extract_aic("h3"), 
+                  "H4a (molt duration)" = extract_aic("h4_molt"), 
+                  "H4b (breed duration)" = extract_aic("h4_breed")) %>% 
   mutate(across(-age_cutoff, aic_weight))
 
-extract_coef <- function(h) {
-  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
-}
 coef_tbl <- tibble(age_cutoff = cutoff, 
                 "H1 (breeding)" = extract_coef("h1"),
                 "H2a (survival)" = extract_coef("h2_surv"),
                 "H2b (recruitment)" = extract_coef("h2_recr"),
-                "H3 (sex ratio)" = extract_coef("h3"))
+                "H3 (sex ratio)" = extract_coef("h3"), 
+                "H4a (molt duration)" = extract_coef("h4_molt"), 
+                "H4b (breed duration)" = extract_coef("h4_breed"))
+
+se_tbl <- tibble(age_cutoff = cutoff, 
+                "H1 (breeding)" = extract_se("h1"),
+                "H2a (survival)" = extract_se("h2_surv"),
+                "H2b (recruitment)" = extract_se("h2_recr"),
+                "H3 (sex ratio)" = extract_se("h3"), 
+                "H4a (molt duration)" = extract_se("h4_molt"), 
+                "H4b (breed duration)" = extract_se("h4_breed"))
 
 knitr::kable(p_tbl)
 knitr::kable(aic_tbl)
