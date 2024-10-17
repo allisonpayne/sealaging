@@ -1125,57 +1125,33 @@ fit_models <- function(a) {
   )
   
   # H4
-molt_data <- sealdat %>% 
-  filter(year >= 2011, 
-         moltdur >= 7, 
-         age <= 20) %>% 
-  mutate(BA = firstobsbreeddoy, 
-         BD = firstobsbreeddoy + breeddur, 
-         MA = lastobsmoltdoy - moltdur, 
-         MD = lastobsmoltdoy) %>% 
-  drop_na(age, BA, BD, MA, MD) %>% 
-  transmute(animalID, 
-            year_fct, 
-            age10 = (age - age_senesce) / 10, 
-            age_cat = factor(age >= age_senesce, 
-                          labels = c("Young", "Old")),
-            moltdur, 
-            breeddur) %>% 
-  pivot_longer(moltdur:breeddur, 
-               names_to = "phase", 
-               values_to = "dur_days") %>% 
-  filter(phase == "moltdur")
-
-molt_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID), 
-        molt_data, 
-        family = Gamma(link = "log"))
-
-breed_data <- sealdat %>% 
-  filter(year >= 2011, 
-         moltdur >= 7, 
-         age <= 20) %>% 
-  mutate(BA = firstobsbreeddoy, 
-         BD = firstobsbreeddoy + breeddur, 
-         MA = lastobsmoltdoy - moltdur, 
-         MD = lastobsmoltdoy) %>% 
-  drop_na(age, BA, BD, MA, MD) %>% 
-  transmute(animalID, 
-            year_fct, 
-            age10 = (age - age_senesce) / 10, 
-            age_cat = factor(age >= age_senesce, 
-                          labels = c("Young", "Old")),
-            moltdur, 
-            breeddur) %>% 
-  pivot_longer(moltdur:breeddur, 
-               names_to = "phase", 
-               values_to = "dur_days") %>% 
-  filter(phase == "breeddur")
-
-breed_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID), 
-        data = breed_data, 
-        family = Gamma(link = "log"), 
-        control = glmerControl(optimizer = "bobyqa")
-)
+  pheno_data <- sealdat %>% 
+    filter(year >= 2011, 
+           moltdur >= 7, 
+           age <= 20) %>% 
+    mutate(BA = firstobsbreeddoy, 
+           BD = firstobsbreeddoy + breeddur, 
+           MA = lastobsmoltdoy - moltdur, 
+           MD = lastobsmoltdoy) %>% 
+    drop_na(age, BA, BD, MA, MD) %>% 
+    select(animalID,
+           age10,
+           age_cat,
+           year_fct,
+           moltdur, 
+           breeddur) %>% 
+    pivot_longer(moltdur:breeddur, 
+                 names_to = "phase", 
+                 values_to = "dur_days")
+  
+  molt_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID), 
+                    filter(pheno_data, phase == "moltdur"), 
+                    family = Gamma(link = "log"))
+  
+  breed_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID), 
+                     filter(pheno_data, phase == "breeddur"), 
+                     family = Gamma(link = "log"), 
+                     control = glmerControl(optimizer = "bobyqa"))
   
   
 #Making the tables
@@ -1209,7 +1185,7 @@ breed_mod <- glmer(dur_days ~ age10 : age_cat + (1 | year_fct) + (1 | animalID),
   )
 }
 
-# Fit models with cut-off at ages 8-13
+# Fit models with cut-off at ages 6-14
 cutoff <- 6:14
 mod_sens <- map(cutoff, fit_models)
 
