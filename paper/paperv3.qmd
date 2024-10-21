@@ -1152,18 +1152,6 @@ fit_models <- function(a) {
                      filter(pheno_data, phase == "breeddur"), 
                      family = Gamma(link = "log"), 
                      control = glmerControl(optimizer = "bobyqa"))
-  
-  
-#Making the tables
-#Not sure about this function
-  # effect_size <- function(m) {
-  #   probs <- tibble(age = c(15, 19),
-  #                   age_cat = c("Old", "Old")) %>% 
-  #     mutate(age10 = (age - a) / 10) %>% 
-  #     predict(m, re.form = NA, newdata = ., type = "response")
-  #   odds <- probs / (1 - probs)
-  #   odds[2] / odds[1]
-  # }
 
   list(
     h1 = summary(breed_age_mod)$coefficients,
@@ -1178,10 +1166,6 @@ fit_models <- function(a) {
     h3_aic = AIC(sexrat_age_mod),
     h4_molt_aic = AIC(molt_mod), 
     h4_breed_aic = AIC(breed_mod)
-    # h1_effect = effect_size(breed_age_mod),
-    # h2_surv_effect = effect_size(pup_surv_mod),
-    # h2_recr_effect = effect_size(pup_recr_mod),
-    # h3_effect = effect_size(sexrat_age_mod)
   )
 }
 
@@ -1215,7 +1199,8 @@ aic_weight <- function(x) {
   rellik / sum(rellik)
 }
 extract_coef <- function(h) {
-  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
+  #map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
+  exp(map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"]))
 }
 extract_se <- function(h) {
   map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Std. Error"])
@@ -1255,9 +1240,12 @@ se_tbl <- tibble(age_cutoff = cutoff,
                 "H4a (molt duration)" = extract_se("h4_molt"), 
                 "H4b (breed duration)" = extract_se("h4_breed"))
 
-knitr::kable(p_tbl)
-knitr::kable(aic_tbl)
-knitr::kable(coef_tbl)
+knitr::kable(p_tbl, 
+             caption = "P values for threshold ages 6-14")
+knitr::kable(aic_tbl, 
+             caption = "AIC weights for threshold ages 6-14")
+knitr::kable(coef_tbl, 
+             caption = "Effect size for threshold ages 6-14")
 
 ```
 
@@ -1280,7 +1268,8 @@ left_join(
                       color = p < 0.05, 
                       ymin = coef - 1.96 * se,
                       ymax = coef + 1.96 * se)) +
-  labs(x = "Senescence onset (years)") +
+  labs(x = "Senescence onset (years)", 
+       y = "Effect size") +
   scale_size_continuous(range = c(0.25, 1)) +
   expand_limits(y = 3) +
   facet_wrap(~hypothesis) +
@@ -1678,11 +1667,6 @@ detection_pred_years <- detection_grid %>%
                              type = "response",
                              re.form = ~ (1 | year_fct))) %>% 
   group_by(age, year_fct)
-
-
-  geom_line(aes(age, predicted, group = interaction(phase, age_cat, year_fct)), 
-            filter(phen_pred_years, phase == "breeddur"),
-            alpha = 0.1) + 
 
 ggplot(detection_pred, aes(age)) +
   # Line per year
