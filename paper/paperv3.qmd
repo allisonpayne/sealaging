@@ -1199,8 +1199,7 @@ aic_weight <- function(x) {
   rellik / sum(rellik)
 }
 extract_coef <- function(h) {
-  #map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
-  exp(map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"]))
+  map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Estimate"])
 }
 extract_se <- function(h) {
   map_dbl(mod_sens, \(m) m[[h]]["age10:age_catOld", "Std. Error"])
@@ -1269,7 +1268,7 @@ left_join(
                       ymin = coef - 1.96 * se,
                       ymax = coef + 1.96 * se)) +
   labs(x = "Senescence onset (years)", 
-       y = "Effect size") +
+       y = "Coefficient") +
   scale_size_continuous(range = c(0.25, 1)) +
   expand_limits(y = 3) +
   facet_wrap(~hypothesis) +
