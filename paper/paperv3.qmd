@@ -1357,6 +1357,17 @@ ggplot(selective_coef, aes(hypothesis, mean, color = model)) +
   labs(y = "Coefficient", x = "Model") + 
   theme(legend.title = element_blank())
 
+selective_diss_coef <- selective_coef %>% filter(model == "Base" | model == "Disappearance")
+
+ggplot(selective_diss_coef, aes(hypothesis, mean, color = model)) + 
+  geom_pointrange(aes(ymin = lwr, ymax = upr), position = position_dodge(width = 0.2)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  expand_limits(y = 0) + 
+  labs(y = "Age Coefficient for Old Animals", x = "Model") + 
+  scale_color_manual(values = c("#de77ae", "#00b6b9")) +
+  scale_fill_manual(values = c("#de77ae", "#00b6b9")) +
+  theme(legend.title = element_blank())
+
 ```
 
 There was no evidence for selective appearance or disappearance influencing the relationship between maternal age and probability of reproduction or offspring survival. The 95% CI of the coefficient for age in the old age class did not overlap 0 for either hypothesis in any of the selective (dis)appearance models [@fig-selective]. Therefore the observed patterns are consistent with the senescence hypothesis (i.e., within-animal change with age).
